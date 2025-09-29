@@ -88,7 +88,7 @@ class LiveDashboard:
     def _render_dashboard(self, timeline: EmotionalTimeline):
         """Render the complete dashboard"""
         width = self._get_terminal_width(default=80)
-        
+
         # Header (left-aligned to avoid emoji/centering width issues)
         print("=" * width)
         print("🧠 AUTISM/ADHD MEETING COACH - LIVE EMOTIONAL MONITORING")
@@ -220,13 +220,14 @@ class LiveDashboard:
 
     def _render_recent_activity(self, timeline: EmotionalTimeline, width: int):
         """Render recent activity log"""
-        print("📋 RECENT ACTIVITY (Last 3 entries)")
+        print("📋 RECENT ACTIVITY (Last 10 entries)")
         print("-" * 35)
 
         recent_entries = timeline.get_recent_entries(5)
         if recent_entries:
-            # Show last 3 entries
-            for entry in recent_entries[-3:]:
+            # Show last 10 entries (or all if fewer)
+            display_count = min(10, len(recent_entries))
+            for entry in recent_entries[-display_count:]:
                 timestamp = datetime.fromtimestamp(entry.timestamp).strftime("%H:%M:%S")
                 state_colored = colorize_emotional_state(entry.emotional_state)
 

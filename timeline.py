@@ -6,6 +6,7 @@ from collections import deque
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime, timedelta
 from colors import Colors, colorize_emotional_state, get_emotional_state_color
+import config
 
 
 class TimelineEntry:
@@ -141,7 +142,9 @@ class EmotionalTimeline:
         print("\nRecent Entries:")
         print("-" * (width-20))
 
-        for entry in recent_entries[-5:]:  # Last 5 entries
+        # Show more entries (up to 10) for better context
+        display_count = min(10, len(recent_entries))
+        for entry in recent_entries[-display_count:]:
             state_colored = colorize_emotional_state(entry.emotional_state)
             alert_indicator = "🚨" if entry.alert else "  "
             confidence_bar = self._confidence_bar(entry.confidence)
@@ -204,7 +207,7 @@ class EmotionalTimeline:
             print(f"{start_dt.strftime('%H:%M')}{' ' * (width-10)}{end_dt.strftime('%H:%M')}")
 
     def _create_time_buckets(self, entries: List[TimelineEntry], bucket_count: int) -> List[str]:
-        """Create time buckets for timeline visualization"""
+        """Create time buckets for timeline visualization with better proportional representation"""
         if not entries:
             return []
 
@@ -229,9 +232,36 @@ class EmotionalTimeline:
             ]
 
             if bucket_entries:
-                # Use the most confident entry in the bucket
-                best_entry = max(bucket_entries, key=lambda e: e.confidence)
-                buckets.append(best_entry.emotional_state)
+                # Weight states by their actual time presence in the bucket
+                state_weights = {}
+                total_weight = 0
+
+                for j, entry in enumerate(bucket_entries):
+                    # Calculate how much time this entry represents
+                    entry_start = max(entry.timestamp, bucket_start)
+                    if j < len(bucket_entries) - 1:
+                        entry_end = min(bucket_entries[j + 1].timestamp, bucket_end)
+                    else:
+                        entry_end = bucket_end
+
+                    weight = max(entry_end - entry_start, 0.1)  # Minimum weight
+                    state = entry.emotional_state
+
+                    # Reduce visual impact of alert states if they're very brief
+                    if entry.alert and weight < bucket_duration * config.TIMELINE_ALERT_WEIGHT_THRESHOLD:
+                        # If alert state is less than threshold% of bucket, blend with previous
+                        if buckets and buckets[-1] in ['calm', 'neutral', 'engaged']:
+                            state = buckets[-1]  # Use previous calmer state
+
+                    state_weights[state] = state_weights.get(state, 0) + weight
+                    total_weight += weight
+
+                # Choose the state with the most time in this bucket
+                if state_weights:
+                    dominant_state = max(state_weights.keys(), key=lambda k: state_weights[k])
+                    buckets.append(dominant_state)
+                else:
+                    buckets.append(bucket_entries[0].emotional_state)
             else:
                 # Use previous bucket's state or neutral
                 buckets.append(buckets[-1] if buckets else 'neutral')

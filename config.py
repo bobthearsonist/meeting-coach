@@ -14,7 +14,7 @@ DEVICE = "cpu"  # Options: cpu, cuda
 
 # Analysis Settings
 OLLAMA_MODEL = "gemma2:2b"  # LLM model for tone analysis
-MIN_WORDS_FOR_ANALYSIS = 15  # Minimum words before analyzing (need sufficient context)
+MIN_WORDS_FOR_ANALYSIS = 15  # Minimum words before analyzing; 15 words typically provide enough context for meaningful tone and social cue analysis.
 
 # Speaking Pace Thresholds
 PACE_TOO_FAST = 180  # Words per minute
@@ -26,8 +26,11 @@ PACE_IDEAL_MAX = 160
 FILLER_WORDS = ["um", "uh", "like", "you know", "basically", "actually", "literally"]
 
 # Feedback Settings
-FEEDBACK_HISTORY_SIZE = 5  # Number of recent chunks to keep
+FEEDBACK_HISTORY_SIZE = 10  # Number of recent chunks to keep (increased for better context)
 NOTIFICATION_COOLDOWN = 30  # Seconds between similar notifications
+
+# Timeline Display Settings
+TIMELINE_ALERT_WEIGHT_THRESHOLD = 0.3  # Alert states need this much of bucket duration to dominate
 
 # Audio Input Mode
 USE_MICROPHONE_INPUT = True  # True = analyze YOUR speech, False = analyze Teams output audio
@@ -49,7 +52,7 @@ Provide a JSON response with:
 6. coaching_feedback: practical, supportive suggestion if needed (one sentence, or "Continue as you are" if appropriate)
 
 Assessment guidelines:
-- Default to "calm" and "appropriate" for normal conversational speech
+- Default to "calm" and "appropriate" for normal conversational speech (e.g., steady pace, clear articulation, turn-taking, and absence of excessive interruptions or emotional outbursts)
 - Only flag "intense" or "elevated" if there are clear indicators like excitement, urgency, or emotional language
 - Consider context - sharing accomplishments or explaining technical topics is often normal enthusiasm
 - "engaged" is positive - someone actively participating in discussion
