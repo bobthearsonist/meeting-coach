@@ -117,6 +117,7 @@ class CommunicationAnalyzer:
             'engaged': '✨',
             'distracted': '🤔',
             'overwhelmed': '😵‍💫',
+            'overly_critical': '👎',
             'unknown': '❓'
         }
         return emoji_map.get(tone.lower(), '💬')
@@ -151,7 +152,7 @@ class CommunicationAnalyzer:
         elevated_states = ['elevated', 'intense', 'rapid', 'overwhelmed']
 
         # Alert on problematic social patterns
-        social_concerns = ['dismissive', 'aggressive', 'interrupting', 'dominating', 'off_topic', 'repetitive']
+        social_concerns = ['dismissive', 'aggressive', 'interrupting', 'dominating', 'off_topic', 'repetitive', 'overly_critical']
 
         concerning_patterns = elevated_states + social_concerns
         return tone.lower() in concerning_patterns and confidence >= threshold
