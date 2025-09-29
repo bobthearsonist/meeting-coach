@@ -14,7 +14,7 @@ DEVICE = "cpu"  # Options: cpu, cuda
 
 # Analysis Settings
 OLLAMA_MODEL = "gemma2:2b"  # LLM model for tone analysis
-MIN_WORDS_FOR_ANALYSIS = 5  # Minimum words before analyzing
+MIN_WORDS_FOR_ANALYSIS = 15  # Minimum words before analyzing (need sufficient context)
 
 # Speaking Pace Thresholds
 PACE_TOO_FAST = 180  # Words per minute
@@ -35,23 +35,24 @@ BLACKHOLE_DEVICE_INDEX = None  # Will auto-detect if None
 MICROPHONE_DEVICE_INDEX = None  # Will prompt for selection if None
 
 # Analysis Prompt Template - Specialized for Autism/ADHD Social Coaching
-ANALYSIS_PROMPT = """Analyze this meeting transcript for social cues and emotional regulation coaching.
-Focus on helping someone with autism and ADHD understand their communication patterns and emotional state.
+ANALYSIS_PROMPT = """Analyze this meeting transcript for social cues and emotional regulation patterns.
+Focus on objective assessment to help someone with autism and ADHD understand their communication.
 
 Text: "{text}"
 
 Provide a JSON response with:
-1. emotional_state: "elevated", "intense", "rapid", "calm", "engaged", "distracted", or "overwhelmed"
-2. social_cues: "interrupting", "dominating", "monotone", "too_quiet", "appropriate", "off_topic", or "repetitive"
-3. speech_pattern: "rushed", "rambling", "clear", "hesitant", "loud", "quiet", or "normal"
+1. emotional_state: "calm", "engaged", "elevated", "intense", "rapid", "distracted", or "overwhelmed"
+2. social_cues: "appropriate", "interrupting", "dominating", "monotone", "too_quiet", "off_topic", or "repetitive"
+3. speech_pattern: "normal", "rushed", "rambling", "clear", "hesitant", "loud", or "quiet"
 4. confidence: 0.0-1.0 (how certain you are of the assessment)
-5. key_indicators: list of specific words/phrases that indicate emotional state or social issues
-6. coaching_feedback: practical, supportive suggestion to help with social awareness or emotional regulation (one sentence)
+5. key_indicators: list of specific words/phrases that support your assessment
+6. coaching_feedback: practical, supportive suggestion if needed (one sentence, or "Continue as you are" if appropriate)
 
-Focus on:
-- Detecting elevated emotional states (excitement, frustration, anxiety)
-- Identifying when someone might be dominating conversation or interrupting
-- Recognizing speech pace changes that indicate emotional shifts
-- Providing gentle, practical coaching for better social interaction
+Assessment guidelines:
+- Default to "calm" and "appropriate" for normal conversational speech
+- Only flag "intense" or "elevated" if there are clear indicators like excitement, urgency, or emotional language
+- Consider context - sharing accomplishments or explaining technical topics is often normal enthusiasm
+- "engaged" is positive - someone actively participating in discussion
+- Focus on patterns, not single words or phrases
 
-Be supportive and specific in your coaching feedback."""
+Be conservative in flagging issues - most conversation should be assessed as appropriate."""
