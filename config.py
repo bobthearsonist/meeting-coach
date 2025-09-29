@@ -34,24 +34,26 @@ USE_MICROPHONE_INPUT = True  # True = analyze YOUR speech, False = analyze Teams
 BLACKHOLE_DEVICE_INDEX = None  # Will auto-detect if None
 MICROPHONE_DEVICE_INDEX = None  # Will prompt for selection if None
 
-# Analysis Prompt Template - Specialized for Autism/ADHD Social Coaching
-ANALYSIS_PROMPT = """Analyze this meeting transcript for social cues and emotional regulation coaching.
-Focus on helping someone with autism and ADHD understand their communication patterns and emotional state.
+# Analysis Prompt Template
+ANALYSIS_PROMPT = """Analyze this meeting transcript segment for communication tone. Be conservative and precise in your assessment:
 
-Text: "{text}"
+"{text}"
+
+Guidelines for tone classification:
+- NEUTRAL: Default for factual statements, data presentations, or emotionally flat content
+- SUPPORTIVE: Clear encouragement, appreciation, or positive reinforcement (e.g., "great idea", "I appreciate")
+- DISMISSIVE: Explicit rejection or disregard (e.g., "whatever", "I don't care", outright dismissal)
+- AGGRESSIVE: Hostile language, personal attacks, or confrontational phrasing
+- PASSIVE: Withdrawn, reluctant participation, or avoiding responsibility
+
+IMPORTANT:
+- Factual statements and brief responses should typically be NEUTRAL
+- Only flag as problematic (dismissive/aggressive/passive) when tone is clearly evident
+- Be conservative with confidence scores - use lower confidence (0.3-0.6) for borderline cases
+- Higher confidence (0.7+) only for clear, unambiguous tone indicators
 
 Provide a JSON response with:
-1. emotional_state: "elevated", "intense", "rapid", "calm", "engaged", "distracted", or "overwhelmed"
-2. social_cues: "interrupting", "dominating", "monotone", "too_quiet", "appropriate", "off_topic", or "repetitive"
-3. speech_pattern: "rushed", "rambling", "clear", "hesitant", "loud", "quiet", or "normal"
-4. confidence: 0.0-1.0 (how certain you are of the assessment)
-5. key_indicators: list of specific words/phrases that indicate emotional state or social issues
-6. coaching_feedback: practical, supportive suggestion to help with social awareness or emotional regulation (one sentence)
-
-Focus on:
-- Detecting elevated emotional states (excitement, frustration, anxiety)
-- Identifying when someone might be dominating conversation or interrupting
-- Recognizing speech pace changes that indicate emotional shifts
-- Providing gentle, practical coaching for better social interaction
-
-Be supportive and specific in your coaching feedback."""
+1. tone: "supportive", "dismissive", "neutral", "aggressive", or "passive"
+2. confidence: 0.0-1.0 (be conservative)
+3. key_indicators: specific phrases that influenced the assessment
+4. suggestions: brief feedback (one sentence) or "No specific feedback needed" for neutral content"""
