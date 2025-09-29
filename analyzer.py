@@ -1,7 +1,11 @@
 """
 Communication analysis using local LLM (Ollama)
 """
-import ollama
+try:
+    import ollama
+except ImportError:
+    # Fallback to mock for testing
+    import mock_ollama as ollama
 import json
 from typing import Dict, Optional
 import config
