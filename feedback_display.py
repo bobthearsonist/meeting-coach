@@ -159,33 +159,37 @@ class SimpleFeedbackDisplay:
     """
     def __init__(self):
         self.is_recording = False
+        self.current_wpm = 0.0
+        self.current_tone = ""
+        self.filler_counts = {}
     
     def update_status(self, is_recording: bool):
-        status = "RECORDING" if is_recording else "IDLE"
-        print(f"\n{'='*60}")
-        print(f"Status: {status}")
-        print('='*60)
+        # Avoid extra prints in console mode; dashboard shows status
+        self.is_recording = is_recording
     
     def update_pace(self, wpm: float, feedback: Dict[str, str]):
-        print(f"\n{feedback['icon']} Pace: {wpm:.0f} WPM - {feedback['message']}")
+        # Dashboard reflects pace; keep state without printing
+        self.current_wpm = wpm
     
     def update_tone(self, tone: str, confidence: float, emoji: str):
-        print(f"{emoji} Tone: {tone.title()} (confidence: {confidence:.0%})")
+        # Dashboard reflects tone; avoid printing
+        self.current_tone = tone
     
     def update_filler_words(self, filler_counts: Dict[str, int]):
+        # Dashboard reflects filler words; retain counts without printing
         if filler_counts:
-            print(f"Filler words: {filler_counts}")
+            for k, v in filler_counts.items():
+                self.filler_counts[k] = self.filler_counts.get(k, 0) + v
     
     def add_feedback(self, feedback: Dict[str, any]):
-        suggestion = feedback.get('suggestion', '')
-        if suggestion:
-            alert_marker = "⚠️ " if feedback.get('alert') else ""
-            print(f"\n{alert_marker}Feedback: {suggestion}")
+        # Dashboard renders feedback; do not print to avoid scroll
+        pass
     
     def reset_metrics(self):
-        print("\n" + "="*60)
-        print("Metrics reset for new meeting")
-        print("="*60 + "\n")
+        # No-op for console to avoid extra prints
+        self.current_wpm = 0.0
+        self.current_tone = ""
+        self.filler_counts = {}
 
 
 if __name__ == "__main__":

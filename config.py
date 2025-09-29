@@ -4,17 +4,17 @@ Configuration settings for Teams Meeting Coach
 
 # Audio Capture Settings
 SAMPLE_RATE = 16000  # Whisper works best with 16kHz
-CHUNK_DURATION = 15  # Seconds per transcription chunk
+CHUNK_DURATION = 5  # Seconds per transcription chunk
 CHANNELS = 2  # Stereo for BlackHole
 
 # Whisper Model Settings
-WHISPER_MODEL = "base"  # Options: tiny, base, small, medium, large
+WHISPER_MODEL = "tiny"  # Options: tiny, base, small, medium, large
 COMPUTE_TYPE = "int8"  # Options: int8, float16, float32
 DEVICE = "cpu"  # Options: cpu, cuda
 
 # Analysis Settings
-OLLAMA_MODEL = "llama3:8b"  # LLM model for tone analysis
-MIN_WORDS_FOR_ANALYSIS = 10  # Minimum words before analyzing
+OLLAMA_MODEL = "gemma2:2b"  # LLM model for tone analysis
+MIN_WORDS_FOR_ANALYSIS = 5  # Minimum words before analyzing
 
 # Speaking Pace Thresholds
 PACE_TOO_FAST = 180  # Words per minute
@@ -32,16 +32,26 @@ NOTIFICATION_COOLDOWN = 30  # Seconds between similar notifications
 # Audio Input Mode
 USE_MICROPHONE_INPUT = True  # True = analyze YOUR speech, False = analyze Teams output audio
 BLACKHOLE_DEVICE_INDEX = None  # Will auto-detect if None
-MICROPHONE_DEVICE_INDEX = None  # Will auto-detect if None
+MICROPHONE_DEVICE_INDEX = None  # Will prompt for selection if None
 
-# Analysis Prompt Template
-ANALYSIS_PROMPT = """Analyze this meeting transcript segment:
-"{text}"
+# Analysis Prompt Template - Specialized for Autism/ADHD Social Coaching
+ANALYSIS_PROMPT = """Analyze this meeting transcript for social cues and emotional regulation coaching.
+Focus on helping someone with autism and ADHD understand their communication patterns and emotional state.
+
+Text: "{text}"
 
 Provide a JSON response with:
-1. tone: "supportive", "dismissive", "neutral", "aggressive", or "passive"
-2. confidence: 0.0-1.0
-3. key_indicators: list of phrases that influenced the assessment
-4. suggestions: brief feedback (one sentence)
+1. emotional_state: "elevated", "intense", "rapid", "calm", "engaged", "distracted", or "overwhelmed"
+2. social_cues: "interrupting", "dominating", "monotone", "too_quiet", "appropriate", "off_topic", or "repetitive"
+3. speech_pattern: "rushed", "rambling", "clear", "hesitant", "loud", "quiet", or "normal"
+4. confidence: 0.0-1.0 (how certain you are of the assessment)
+5. key_indicators: list of specific words/phrases that indicate emotional state or social issues
+6. coaching_feedback: practical, supportive suggestion to help with social awareness or emotional regulation (one sentence)
 
-Be concise and focus on actionable feedback."""
+Focus on:
+- Detecting elevated emotional states (excitement, frustration, anxiety)
+- Identifying when someone might be dominating conversation or interrupting
+- Recognizing speech pace changes that indicate emotional shifts
+- Providing gentle, practical coaching for better social interaction
+
+Be supportive and specific in your coaching feedback."""

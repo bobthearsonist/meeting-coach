@@ -66,12 +66,16 @@ class CommunicationAnalyzer:
             
             analysis = json.loads(response_text)
             
-            # Ensure all required fields exist
-            analysis.setdefault('tone', 'neutral')
+            # Ensure all required fields exist (supporting both old and new format)
+            analysis.setdefault('tone', analysis.get('emotional_state', 'neutral'))
+            analysis.setdefault('emotional_state', analysis.get('tone', 'neutral'))
+            analysis.setdefault('social_cues', 'unknown')
+            analysis.setdefault('speech_pattern', 'normal')
             analysis.setdefault('confidence', 0.5)
             analysis.setdefault('key_indicators', [])
-            analysis.setdefault('suggestions', 'No specific suggestions')
-            
+            analysis.setdefault('suggestions', analysis.get('coaching_feedback', 'No specific suggestions'))
+            analysis.setdefault('coaching_feedback', analysis.get('suggestions', 'No coaching available'))
+
             return analysis
             
         except json.JSONDecodeError as e:
@@ -95,8 +99,9 @@ class CommunicationAnalyzer:
             }
     
     def get_tone_emoji(self, tone: str) -> str:
-        """Get emoji representation of tone."""
+        """Get emoji representation of emotional state/tone."""
         emoji_map = {
+            # Original tone mappings
             'supportive': '🤝',
             'dismissive': '🙄',
             'neutral': '😐',
@@ -104,24 +109,67 @@ class CommunicationAnalyzer:
             'passive': '😶',
             'positive': '😊',
             'negative': '😕',
+            # New emotional state mappings
+            'elevated': '⬆️',
+            'intense': '🔥',
+            'rapid': '⚡',
+            'calm': '🧘',
+            'engaged': '✨',
+            'distracted': '🤔',
+            'overwhelmed': '😵‍💫',
             'unknown': '❓'
         }
         return emoji_map.get(tone.lower(), '💬')
+
+    def get_social_cue_emoji(self, social_cue: str) -> str:
+        """Get emoji for social cue indicators."""
+        emoji_map = {
+            'interrupting': '✋',
+            'dominating': '🎤',
+            'monotone': '📢',
+            'too_quiet': '🤐',
+            'appropriate': '👍',
+            'off_topic': '🔄',
+            'repetitive': '🔁'
+        }
+        return emoji_map.get(social_cue.lower(), '💬')
     
-    def should_alert(self, tone: str, confidence: float, threshold: float = 0.7) -> bool:
+    def should_alert(self, tone: str, confidence: float, threshold: float = 0.6) -> bool:
         """
-        Determine if tone should trigger an alert.
-        
+        Determine if emotional state or social cue should trigger an alert.
+        Lower threshold for autism/ADHD coaching to catch subtle patterns.
+
         Args:
-            tone: detected tone
+            tone: detected emotional state or tone
             confidence: confidence level (0-1)
-            threshold: minimum confidence to alert
-            
+            threshold: minimum confidence to alert (default 0.6 for more sensitivity)
+
         Returns:
             True if alert should be shown
         """
-        problematic_tones = ['dismissive', 'aggressive', 'passive']
-        return tone.lower() in problematic_tones and confidence >= threshold
+        # Alert on elevated states that might indicate emotional dysregulation
+        elevated_states = ['elevated', 'intense', 'rapid', 'overwhelmed']
+
+        # Alert on problematic social patterns
+        social_concerns = ['dismissive', 'aggressive', 'interrupting', 'dominating', 'off_topic', 'repetitive']
+
+        concerning_patterns = elevated_states + social_concerns
+        return tone.lower() in concerning_patterns and confidence >= threshold
+
+    def should_social_cue_alert(self, social_cue: str, confidence: float, threshold: float = 0.6) -> bool:
+        """
+        Check specifically for social cue alerts.
+
+        Args:
+            social_cue: detected social cue pattern
+            confidence: confidence level (0-1)
+            threshold: minimum confidence to alert
+
+        Returns:
+            True if social cue alert should be shown
+        """
+        concerning_social_cues = ['interrupting', 'dominating', 'too_quiet', 'off_topic', 'repetitive']
+        return social_cue.lower() in concerning_social_cues and confidence >= threshold
     
     def generate_summary(self, analyses: list) -> Dict[str, any]:
         """
