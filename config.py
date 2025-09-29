@@ -42,7 +42,7 @@ Focus on objective assessment to help someone with autism and ADHD understand th
 Text: "{text}"
 
 Provide a JSON response with:
-1. emotional_state: "calm", "engaged", "elevated", "intense", "rapid", "distracted", or "overwhelmed"
+1. emotional_state: "calm", "engaged", "elevated", "intense", "rapid", "distracted", "overwhelmed", or "overly_critical"
 2. social_cues: "appropriate", "interrupting", "dominating", "monotone", "too_quiet", "off_topic", or "repetitive"
 3. speech_pattern: "normal", "rushed", "rambling", "clear", "hesitant", "loud", or "quiet"
 4. confidence: 0.0-1.0 (how certain you are of the assessment)
@@ -52,6 +52,7 @@ Provide a JSON response with:
 Assessment guidelines:
 - Default to "calm" and "appropriate" for normal conversational speech
 - Only flag "intense" or "elevated" if there are clear indicators like excitement, urgency, or emotional language
+- Flag "overly_critical" for harsh, judgmental, or excessively negative language toward others or ideas
 - Consider context - sharing accomplishments or explaining technical topics is often normal enthusiasm
 - "engaged" is positive - someone actively participating in discussion
 - Focus on patterns, not single words or phrases

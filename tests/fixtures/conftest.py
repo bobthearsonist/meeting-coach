@@ -68,31 +68,43 @@ def communication_analysis_test_cases():
             'tone': 'supportive',
             'confidence': 0.8,
             'should_alert': False,
-            'expected_emoji': '💚'
+            'expected_emoji': '🤝'
         },
         {
             'tone': 'dismissive',
             'confidence': 0.8,
             'should_alert': True,
-            'expected_emoji': '⚠️'
+            'expected_emoji': '🙄'
         },
         {
             'tone': 'aggressive',
             'confidence': 0.9,
             'should_alert': True,
-            'expected_emoji': '🔴'
+            'expected_emoji': '😤'
         },
         {
             'tone': 'dismissive',
             'confidence': 0.5,  # Low confidence
             'should_alert': False,
-            'expected_emoji': '⚠️'
+            'expected_emoji': '🙄'
         },
         {
             'tone': 'neutral',
             'confidence': 0.9,
             'should_alert': False,
-            'expected_emoji': '⚪'
+            'expected_emoji': '😐'
+        },
+        {
+            'tone': 'overly_critical',
+            'confidence': 0.8,
+            'should_alert': True,
+            'expected_emoji': '👎'
+        },
+        {
+            'tone': 'overly_critical',
+            'confidence': 0.6,  # Low confidence
+            'should_alert': False,
+            'expected_emoji': '👎'
         }
     ]
 
