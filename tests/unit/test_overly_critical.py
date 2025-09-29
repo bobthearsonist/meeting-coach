@@ -2,6 +2,7 @@
 Test cases specifically for overly critical speech detection
 """
 import pytest
+import json
 from unittest.mock import Mock, patch
 import sys
 import os
@@ -25,27 +26,27 @@ class TestOverlyCriticalDetection:
         """Examples of overly critical speech patterns."""
         return [
             {
-                'text': "That's a terrible idea and won't work at all. You clearly haven't thought this through.",
+                'text': "That's a terrible idea and won't work at all. You clearly haven't thought this through properly and should reconsider this approach.",
                 'expected_tone': 'overly_critical',
                 'description': 'Direct harsh criticism'
             },
             {
-                'text': "This code is garbage. Whoever wrote this obviously doesn't know what they're doing.",
+                'text': "This code is absolute garbage and completely unworkable. Whoever wrote this obviously doesn't know what they're doing and should not be programming.",
                 'expected_tone': 'overly_critical', 
                 'description': 'Personal attack on competence'
             },
             {
-                'text': "I can't believe you would suggest something so stupid. That's completely wrong.",
+                'text': "I can't believe you would suggest something so incredibly stupid and wrong. That's completely incorrect and shows poor judgment on your part.",
                 'expected_tone': 'overly_critical',
                 'description': 'Insulting language'
             },
             {
-                'text': "No, that's not right. You never understand these things properly.",
+                'text': "No, that's not right at all. You never understand these technical things properly and always make these kinds of basic mistakes.",
                 'expected_tone': 'overly_critical',
                 'description': 'Dismissive with personal judgment'
             },
             {
-                'text': "That approach is fundamentally flawed and will cause serious problems down the line.",
+                'text': "That approach is fundamentally flawed and will cause serious problems down the line. This shows a complete lack of understanding of basic principles.",
                 'expected_tone': 'overly_critical',
                 'description': 'Overly harsh technical criticism'
             }
@@ -56,22 +57,22 @@ class TestOverlyCriticalDetection:
         """Examples that should NOT be flagged as overly critical."""
         return [
             {
-                'text': "I have some concerns about this approach. Could we consider alternative solutions?",
+                'text': "I have some concerns about this approach and would like to discuss potential alternative solutions. Could we consider other options together?",
                 'expected_tone': 'calm',
                 'description': 'Constructive feedback'
             },
             {
-                'text': "I think there might be issues with this implementation. Let me explain my reasoning.",
+                'text': "I think there might be some issues with this implementation that we should address. Let me explain my reasoning and we can work together.",
                 'expected_tone': 'engaged',
                 'description': 'Thoughtful critique'
             },
             {
-                'text': "I disagree with this approach, but I understand your perspective.",
+                'text': "I respectfully disagree with this approach, but I understand your perspective completely. Would you be open to considering an alternative solution?",
                 'expected_tone': 'calm',
                 'description': 'Respectful disagreement'
             },
             {
-                'text': "This won't work as expected due to the following technical limitations.",
+                'text': "This won't work as expected due to the following technical limitations that we need to consider. Let's explore some different approaches.",
                 'expected_tone': 'calm',
                 'description': 'Technical objection'
             }
@@ -107,14 +108,14 @@ class TestOverlyCriticalDetection:
         for example in overly_critical_examples:
             # Mock Ollama to return overly critical analysis
             mock_response = {
-                'response': f'''{{
+                'response': json.dumps({
                     "emotional_state": "overly_critical",
                     "social_cues": "inappropriate", 
                     "speech_pattern": "harsh",
                     "confidence": 0.85,
                     "key_indicators": ["harsh language", "personal attack", "dismissive"],
                     "coaching_feedback": "Consider using more constructive language when providing feedback"
-                }}'''
+                })
             }
             mock_generate.return_value = mock_response
             
@@ -137,14 +138,14 @@ class TestOverlyCriticalDetection:
         for example in constructive_criticism_examples:
             # Mock Ollama to return calm/engaged analysis
             mock_response = {
-                'response': f'''{{
-                    "emotional_state": "{example['expected_tone']}",
+                'response': json.dumps({
+                    "emotional_state": example['expected_tone'],
                     "social_cues": "appropriate",
                     "speech_pattern": "clear", 
                     "confidence": 0.8,
                     "key_indicators": ["respectful", "constructive"],
                     "coaching_feedback": "Continue as you are"
-                }}'''
+                })
             }
             mock_generate.return_value = mock_response
             
