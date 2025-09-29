@@ -148,7 +148,7 @@ class LiveDashboard:
             alert_text = colorize_alert("🚨 COACHING ALERT ACTIVE", True)
             print(f"\n{alert_text}")
             if self.current_coaching:
-                coaching_colored = Colors.colorize(self.current_coaching, Colors.BRIGHT_CYAN)
+                coaching_colored = Colors.colorize(self.current_coaching, Colors.BOLD + Colors.BRIGHT_WHITE)
                 print(f"💡 {coaching_colored}")
         else:
             calm_text = Colors.colorize("✅ All good - no alerts", Colors.GREEN)
