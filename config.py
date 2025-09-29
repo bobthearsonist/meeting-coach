@@ -14,7 +14,7 @@ DEVICE = "cpu"  # Options: cpu, cuda
 
 # Analysis Settings
 OLLAMA_MODEL = "gemma2:2b"  # LLM model for tone analysis
-MIN_WORDS_FOR_ANALYSIS = 5  # Minimum words before analyzing
+MIN_WORDS_FOR_ANALYSIS = 15  # Minimum words before analyzing (need sufficient context)
 
 # Speaking Pace Thresholds
 PACE_TOO_FAST = 180  # Words per minute
@@ -34,26 +34,25 @@ USE_MICROPHONE_INPUT = True  # True = analyze YOUR speech, False = analyze Teams
 BLACKHOLE_DEVICE_INDEX = None  # Will auto-detect if None
 MICROPHONE_DEVICE_INDEX = None  # Will prompt for selection if None
 
-# Analysis Prompt Template
-ANALYSIS_PROMPT = """Analyze this meeting transcript segment for communication tone. Be conservative and precise in your assessment:
+# Analysis Prompt Template - Specialized for Autism/ADHD Social Coaching
+ANALYSIS_PROMPT = """Analyze this meeting transcript for social cues and emotional regulation patterns.
+Focus on objective assessment to help someone with autism and ADHD understand their communication.
 
-"{text}"
-
-Guidelines for tone classification:
-- NEUTRAL: Default for factual statements, data presentations, or emotionally flat content
-- SUPPORTIVE: Clear encouragement, appreciation, or positive reinforcement (e.g., "great idea", "I appreciate")
-- DISMISSIVE: Explicit rejection or disregard (e.g., "whatever", "I don't care", outright dismissal)
-- AGGRESSIVE: Hostile language, personal attacks, or confrontational phrasing
-- PASSIVE: Withdrawn, reluctant participation, or avoiding responsibility
-
-IMPORTANT:
-- Factual statements and brief responses should typically be NEUTRAL
-- Only flag as problematic (dismissive/aggressive/passive) when tone is clearly evident
-- Be conservative with confidence scores - use lower confidence (0.3-0.6) for borderline cases
-- Higher confidence (0.7+) only for clear, unambiguous tone indicators
+Text: "{text}"
 
 Provide a JSON response with:
-1. tone: "supportive", "dismissive", "neutral", "aggressive", or "passive"
-2. confidence: 0.0-1.0 (be conservative)
-3. key_indicators: specific phrases that influenced the assessment
-4. suggestions: brief feedback (one sentence) or "No specific feedback needed" for neutral content"""
+1. emotional_state: "calm", "engaged", "elevated", "intense", "rapid", "distracted", or "overwhelmed"
+2. social_cues: "appropriate", "interrupting", "dominating", "monotone", "too_quiet", "off_topic", or "repetitive"
+3. speech_pattern: "normal", "rushed", "rambling", "clear", "hesitant", "loud", or "quiet"
+4. confidence: 0.0-1.0 (how certain you are of the assessment)
+5. key_indicators: list of specific words/phrases that support your assessment
+6. coaching_feedback: practical, supportive suggestion if needed (one sentence, or "Continue as you are" if appropriate)
+
+Assessment guidelines:
+- Default to "calm" and "appropriate" for normal conversational speech
+- Only flag "intense" or "elevated" if there are clear indicators like excitement, urgency, or emotional language
+- Consider context - sharing accomplishments or explaining technical topics is often normal enthusiasm
+- "engaged" is positive - someone actively participating in discussion
+- Focus on patterns, not single words or phrases
+
+Be conservative in flagging issues - most conversation should be assessed as appropriate."""
