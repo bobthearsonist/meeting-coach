@@ -5,7 +5,11 @@
       "Bash(python:*)",
       "Bash(source:*)",
       "Bash(pip install:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(./run_with_venv.sh:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(timeout:*)"
     ],
     "deny": [],
     "ask": []

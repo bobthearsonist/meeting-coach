@@ -10,6 +10,9 @@ from audio_capture import AudioCapture
 from transcriber import Transcriber
 from analyzer import CommunicationAnalyzer
 from feedback_display import FeedbackDisplay, SimpleFeedbackDisplay
+from timeline import EmotionalTimeline
+from colors import Colors, colorize_emotional_state, colorize_social_cue, colorize_alert
+from dashboard import LiveDashboard
 import config
 
 
@@ -32,7 +35,9 @@ class MeetingCoach:
             self.audio_capture = AudioCapture(config.BLACKHOLE_DEVICE_INDEX, use_microphone=False)
         self.transcriber = Transcriber()
         self.analyzer = CommunicationAnalyzer()
-        
+        self.timeline = EmotionalTimeline(window_minutes=15, max_entries=200)
+        self.dashboard = LiveDashboard()
+
         # Initialize display
         if use_menu_bar:
             try:
@@ -59,11 +64,7 @@ class MeetingCoach:
         
         # Skip if no speech detected
         if not text or transcription['word_count'] < 3:
-            print(".", end="", flush=True)  # Show we're still running
-            return
-        
-        print(f"\n\nTranscription: {text}")
-        print("-" * 60)
+            return  # Dashboard will show activity status
         
         # Analyze speaking pace
         wpm = self.transcriber.calculate_wpm(
@@ -99,17 +100,29 @@ class MeetingCoach:
             emotional_alert = self.analyzer.should_alert(emotional_state, confidence)
             social_alert = self.analyzer.should_social_cue_alert(social_cues, confidence)
 
-            # Print detailed feedback to console for autism/ADHD coaching
-            if emotional_alert or social_alert:
-                print(f"🧠 COACHING ALERT:")
-                if emotional_alert:
-                    print(f"   {emotion_emoji} Emotional State: {emotional_state} (confidence: {confidence:.1f})")
-                if social_alert:
-                    print(f"   {social_emoji} Social Cue: {social_cues} (confidence: {confidence:.1f})")
-                if speech_pattern != 'normal':
-                    print(f"   🗣️ Speech Pattern: {speech_pattern}")
-                print(f"   💡 Coaching: {coaching_feedback}")
-                print("-" * 40)
+            # Add to timeline
+            self.timeline.add_entry(
+                emotional_state=emotional_state,
+                social_cue=social_cues,
+                confidence=confidence,
+                text=text[:50],  # First 50 chars
+                alert=emotional_alert or social_alert
+            )
+
+            # Update dashboard with current status
+            self.dashboard.update_current_status(
+                emotional_state=emotional_state,
+                social_cue=social_cues,
+                confidence=confidence,
+                text=text,
+                coaching=coaching_feedback,
+                alert=emotional_alert or social_alert,
+                wpm=wpm,
+                filler_counts=filler_counts
+            )
+
+            # Update live dashboard display
+            self.dashboard.update_live_display(self.timeline)
 
             # Create comprehensive feedback object
             feedback = {
@@ -127,23 +140,11 @@ class MeetingCoach:
     
     def run(self):
         """Start the meeting coach."""
-        print("\n" + "="*60)
-        print("Teams Meeting Coach is running!")
-        print("="*60)
-        print(f"Chunk duration: {config.CHUNK_DURATION} seconds")
-        print(f"Whisper model: {config.WHISPER_MODEL}")
-        print(f"Analysis model: {config.OLLAMA_MODEL}")
-        print("\nMake sure:")
-        if config.USE_MICROPHONE_INPUT:
-            print("1. Your microphone is working and has permission")
-            print("2. You're speaking clearly into your microphone")
-            print("3. Ollama is running (ollama serve)")
-        else:
-            print("1. BlackHole is configured")
-            print("2. Teams audio is routed through BlackHole Multi-Output")
-            print("3. Ollama is running (ollama serve)")
-        print("\nPress Ctrl+C to stop")
-        print("="*60 + "\n")
+        # Initialize the live dashboard
+        self.dashboard.initialize_display()
+
+        # Brief pause to show initialization
+        time.sleep(1)
         
         self.display.update_status(True)
         self.is_running = True
@@ -163,10 +164,53 @@ class MeetingCoach:
             self.cleanup()
     
     def cleanup(self):
-        """Cleanup resources."""
+        """Cleanup resources and show session summary."""
         self.is_running = False
         self.display.update_status(False)
-        print("Meeting Coach stopped.")
+
+        # Restore terminal display before printing summary
+        try:
+            self.dashboard.restore_display()
+        except Exception:
+            # Fallback
+            self.dashboard.clear_screen()
+
+        print("="*70)
+        print("📊 FINAL SESSION SUMMARY")
+        print("="*70)
+
+        # Show final timeline
+        self.timeline.display_timeline(minutes=15, width=70)
+
+        # Show session summary
+        summary = self.timeline.get_session_summary()
+        duration_min = summary.get('session_duration_minutes', 0)
+
+        print(f"\n🕐 Session Duration: {duration_min:.1f} minutes")
+        print(f"📝 Total Analyses: {summary.get('total_entries', 0)}")
+
+        if summary.get('dominant_state'):
+            dominant = summary['dominant_state']
+            dominant_colored = colorize_emotional_state(dominant)
+            print(f"🎯 Dominant State: {dominant_colored}")
+
+        alert_count = summary.get('alert_count', 0)
+        if alert_count > 0:
+            alert_text = colorize_alert(f"{alert_count} coaching alerts", True)
+            print(f"🚨 Alerts: {alert_text}")
+
+        state_dist = summary.get('state_distribution', {})
+        if state_dist:
+            print(f"📈 State Distribution:")
+            for state, count in sorted(state_dist.items(), key=lambda x: x[1], reverse=True):
+                state_colored = colorize_emotional_state(state)
+                percentage = (count / summary['total_entries']) * 100 if summary['total_entries'] > 0 else 0
+                print(f"    {state_colored}: {count} times ({percentage:.1f}%)")
+
+        print("\n" + "="*70)
+        print("🎉 Great work on your emotional awareness during this session! 🧠")
+        print("💡 Review the patterns above to understand your communication style")
+        print("="*70)
 
 
 def list_audio_devices():
