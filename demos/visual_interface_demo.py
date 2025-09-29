@@ -78,7 +78,7 @@ def test_analyzer_output():
         print(f"Confidence: {confidence:.1f}")
 
         if result.get('coaching_feedback'):
-            coaching = Colors.colorize(result['coaching_feedback'], Colors.BOLD + Colors.BRIGHT_YELLOW)
+            coaching = Colors.colorize(result['coaching_feedback'], Colors.BOLD + Colors.BRIGHT_WHITE)
             print(f"Coaching: {coaching}")
 
 def test_mock_session():

@@ -148,7 +148,7 @@ class LiveDashboard:
             alert_text = colorize_alert("🚨 COACHING ALERT ACTIVE", True)
             print(f"\n{alert_text}")
             if self.current_coaching:
-                coaching_colored = Colors.colorize(self.current_coaching, Colors.BOLD + Colors.BRIGHT_YELLOW)
+                coaching_colored = Colors.colorize(self.current_coaching, Colors.BOLD + Colors.BRIGHT_WHITE)
                 print(f"💡 {coaching_colored}")
         else:
             calm_text = Colors.colorize("✅ All good - no alerts", Colors.GREEN)
@@ -340,7 +340,7 @@ class LiveDashboard:
         print("🧠 AUTISM/ADHD MEETING COACH - INITIALIZING")
         print("=" * width)
         print()
-        
+
         # Display initialization information if provided
         if initialization_info:
             print("Initializing Teams Meeting Coach...")
@@ -352,7 +352,7 @@ class LiveDashboard:
             if initialization_info.get('ollama_model'):
                 print(f"Connected to Ollama. Using model: {initialization_info['ollama_model']}")
             print()
-        
+
         print("🎯 Ready to start monitoring your emotional state...")
         print("💡 The display will update in real-time as you speak")
         print("=" * width)
