@@ -175,6 +175,62 @@ python test_end_to_end.py
 python setup_check.py
 ```
 
+## 🛠️ Development Setup
+
+This project uses a Python virtual environment and Make for task automation.
+
+### Virtual Environment Configuration
+
+The project includes automatic virtual environment detection through:
+
+- **`.python-version`** - Specifies Python 3.12+ requirement (similar to `.nvmrc` for Node.js)
+- **VS Code settings** (`.vscode/settings.json`) - Automatically activates venv in integrated terminal
+- **Shell scripts** - `run_with_venv.sh` and `run_tests_venv.sh` handle activation
+- **Make targets** - All Python commands automatically use the virtual environment
+
+### Development Commands
+
+Use Make for all development tasks:
+
+```bash
+# Install dependencies
+make install
+
+# Run tests
+make test                # All tests
+make test-unit          # Unit tests only
+make test-integration   # Integration tests only
+make test-fast          # Fast tests (no slow external deps)
+
+# Code quality
+make lint               # Linting
+make format             # Code formatting
+
+# Run demos
+make run-demos          # All demonstration scripts
+```
+
+### Direct Virtual Environment Usage
+
+If you need to run Python commands directly:
+
+```bash
+# Use the convenience scripts
+./run_with_venv.sh python script.py
+./run_tests_venv.sh test_module.py
+
+# Or manually activate
+source venv/bin/activate
+python script.py
+```
+
+### Environment Files
+
+- **`.python-version`** - Python version requirement (for pyenv, VS Code, etc.)
+- **`requirements.txt`** - Python dependencies
+- **`Makefile`** - Development task automation
+- **`.vscode/settings.json`** - VS Code Python configuration
+
 ## 🔧 Troubleshooting
 
 ### No Audio Captured
