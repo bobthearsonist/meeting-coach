@@ -36,6 +36,7 @@ class LiveDashboard:
         self.session_start = time.time()
         self.is_listening = False
         self.listening_animation_state = 0
+        self.last_listening_change = 0  # Initialize to 0 so initial state shows "Ready"
 
         # Terminal control
         self.supports_ansi = self._supports_ansi()
@@ -408,13 +409,26 @@ class LiveDashboard:
     def _get_listening_indicator(self) -> str:
         """Get the current listening animation indicator"""
         if not self.is_listening:
+            # Show brief "Recording stopped" indication for 2 seconds after stopping
+            time_since_change = time.time() - self.last_listening_change
+            if time_since_change < 2.0:
+                return "🎤 Stopped"
             return "🎤 Ready"
 
-        indicators = ["🎤 Listening.", "🎤 Listening..", "🎤 Listening..."]
+        # When listening/recording, show brief "Recording started" then animate
+        time_since_change = time.time() - self.last_listening_change
+        if time_since_change < 1.0:
+            return "🎤 Started"
+        
+        indicators = ["🎤 Recording.", "🎤 Recording..", "🎤 Recording..."]
         return indicators[self.listening_animation_state % len(indicators)]
 
     def set_listening_state(self, is_listening: bool):
         """Update the listening state for status display"""
+        # Track when the listening state changes
+        if self.is_listening != is_listening:
+            self.last_listening_change = time.time()
+        
         self.is_listening = is_listening
         if is_listening:
             # Advance animation state when actively listening
