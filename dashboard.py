@@ -330,7 +330,7 @@ class LiveDashboard:
         self.current_wpm = wpm
         self.filler_counts = filler_counts or {}
 
-    def initialize_display(self):
+    def initialize_display(self, initialization_info=None):
         """Initialize the dashboard display"""
         self.enter_alt_screen()
         self.clear_screen()
@@ -340,6 +340,19 @@ class LiveDashboard:
         print("🧠 AUTISM/ADHD MEETING COACH - INITIALIZING")
         print("=" * width)
         print()
+        
+        # Display initialization information if provided
+        if initialization_info:
+            print("Initializing Teams Meeting Coach...")
+            if initialization_info.get('audio_device'):
+                print(f"Using audio device: {initialization_info['audio_device']}")
+            if initialization_info.get('whisper_model'):
+                print(f"Loading Whisper model: {initialization_info['whisper_model']}")
+                print("Whisper model loaded successfully")
+            if initialization_info.get('ollama_model'):
+                print(f"Connected to Ollama. Using model: {initialization_info['ollama_model']}")
+            print()
+        
         print("🎯 Ready to start monitoring your emotional state...")
         print("💡 The display will update in real-time as you speak")
         print("=" * width)
