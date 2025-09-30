@@ -1,3 +1,4 @@
+
 """
 In-place updating dashboard for autism/ADHD coaching
 """
@@ -33,6 +34,8 @@ class LiveDashboard:
         self.alert_active = False
         self.filler_counts = {}
         self.session_start = time.time()
+        self.is_listening = False
+        self.listening_animation_state = 0
 
         # Terminal control
         self.supports_ansi = self._supports_ansi()
@@ -150,17 +153,26 @@ class LiveDashboard:
         state_colored = colorize_emotional_state(self.current_state['emotional_state'])
         cue_colored = colorize_social_cue(self.current_social_cue)
 
-        # Build status line
+        # Build status line with fixed positioning
         status_parts = [
             f"State: {state_colored}",
             f"Social: {cue_colored}",
             f"Confidence: {self.current_confidence:.1f}",
         ]
 
+        # Add pace with fixed width to prevent bouncing
         if self.current_wpm > 0:
             wpm_color = Colors.GREEN if 100 <= self.current_wpm <= 180 else Colors.YELLOW
-            wpm_colored = Colors.colorize(f"{self.current_wpm:.0f} WPM", wpm_color)
-            status_parts.append(f"Pace: {wpm_colored}")
+            wpm_colored = Colors.colorize(f"{self.current_wpm:3.0f} WPM", wpm_color)
+            pace_section = f"Pace: {wpm_colored}"
+        else:
+            pace_section = "Pace:   -- WPM"  # Fixed width placeholder
+
+        status_parts.append(pace_section)
+
+        # Add listening indicator with reserved space (fixed width)
+        listening_indicator = f"{self._get_listening_indicator():15s}"  # 15 chars reserved
+        status_parts.append(listening_indicator)
 
         print(" | ".join(status_parts))
 
@@ -392,6 +404,21 @@ class LiveDashboard:
         self.alert_active = alert
         self.current_wpm = wpm
         self.filler_counts = filler_counts or {}
+
+    def _get_listening_indicator(self) -> str:
+        """Get the current listening animation indicator"""
+        if not self.is_listening:
+            return "🎤 Ready"
+
+        indicators = ["🎤 Listening.", "🎤 Listening..", "🎤 Listening..."]
+        return indicators[self.listening_animation_state % len(indicators)]
+
+    def set_listening_state(self, is_listening: bool):
+        """Update the listening state for status display"""
+        self.is_listening = is_listening
+        if is_listening:
+            # Advance animation state when actively listening
+            self.listening_animation_state = (self.listening_animation_state + 1) % 3
 
     def initialize_display(self, initialization_info=None):
         """Initialize the dashboard display"""

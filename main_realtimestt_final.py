@@ -49,27 +49,17 @@ class MeetingCoach:
                 model=config.WHISPER_MODEL,
                 language="en",
 
-                # Optimized VAD settings for continuous speech detection
-                post_speech_silence_duration=0.3,  # Shorter silence before stopping
-                min_length_of_recording=0.2,       # Minimum recording length
-                min_gap_between_recordings=0.1,    # Smaller gap between recordings
-                pre_recording_buffer_duration=0.3, # Buffer before speech starts
+                # Simplified VAD settings that are known to work
+                post_speech_silence_duration=1.0,
+                min_length_of_recording=0.5,
+                min_gap_between_recordings=0.2,
 
-                # VAD sensitivity settings
-                silero_sensitivity=0.6,             # Moderate sensitivity
-                webrtc_sensitivity=2,               # Balanced WebRTC sensitivity
-
-                # Disable features that might interfere
+                # Disable some features that might conflict
                 enable_realtime_transcription=False,
                 use_microphone=True,
+
+                # Disable spinner since we manage our own display
                 spinner=False,
-
-                # Enable debug mode for troubleshooting
-                debug_mode=True,
-
-                # Add callbacks for monitoring
-                on_recording_start=self._on_recording_start,
-                on_recording_stop=self._on_recording_stop,
             )
             print("✅ RealtimeSTT recorder initialized successfully")
         except Exception as e:
@@ -77,22 +67,11 @@ class MeetingCoach:
             raise
 
         self.is_running = False
-        self.is_listening = False
         self.last_wpm = 0
         self.animation_thread = None
         self.animation_stop_event = threading.Event()
 
         print(f"✅ RealtimeSTT initialized with model: {config.WHISPER_MODEL}")
-
-    def _on_recording_start(self):
-        """Callback when RealtimeSTT starts recording"""
-        print("🎤 Recording started...")
-        self.is_listening = True
-
-    def _on_recording_stop(self):
-        """Callback when RealtimeSTT stops recording"""
-        print("🎤 Recording stopped...")
-        self.is_listening = False
 
     def _animation_worker(self):
         """Background thread to update listening animation"""
@@ -123,17 +102,9 @@ class MeetingCoach:
 
         word_count = len(text.split())
 
-        # Calculate speaking pace using RealtimeSTT timing
-        # RealtimeSTT doesn't provide duration directly, so we'll use a reasonable estimation
-        # based on the recording callbacks and typical speech patterns
-
-        # Estimate duration based on word count and typical speaking pace
-        # Use a more realistic estimation: assume the speech took reasonable time
-        estimated_seconds = max(1.0, word_count * 0.4)  # ~0.4 seconds per word (150 WPM)
-        wpm = (word_count / estimated_seconds) * 60 if estimated_seconds > 0 else 0
-
-        # Cap WPM at reasonable limits to avoid display issues
-        wpm = min(max(wpm, 50), 300)  # Between 50-300 WPM
+        # Calculate approximate speaking metrics
+        estimated_duration = word_count / 150  # Assume ~150 WPM average
+        wpm = word_count / (estimated_duration / 60) if estimated_duration > 0 else 0
         self.last_wpm = wpm
 
         print(f"🎙️ Detected speech: \"{text[:60]}{'...' if len(text) > 60 else ''}\" ({word_count} words, ~{wpm:.0f} WPM)")
@@ -207,7 +178,6 @@ class MeetingCoach:
             self.display.add_feedback(feedback)
         else:
             # For short utterances, still update dashboard with basic info
-            # AND add to timeline so it shows up in recent activity
             self.dashboard.update_current_status(
                 emotional_state='neutral',
                 social_cue='appropriate',
@@ -218,15 +188,7 @@ class MeetingCoach:
                 wpm=wpm,
                 filler_counts=filler_counts
             )
-
-            # Add short utterances to timeline too (without LLM analysis)
-            self.timeline.add_entry(
-                emotional_state='neutral',
-                social_cue='appropriate',
-                confidence=0.0,
-                text=text,
-                alert=False
-            )
+            print(f"⏸️ Short utterance: {text} ({word_count} words - need {config.MIN_WORDS_FOR_ANALYSIS})")
 
         # Always clear listening state and update live dashboard display after processing
         self.dashboard.set_listening_state(False)
@@ -282,9 +244,6 @@ class MeetingCoach:
             self.animation_thread = threading.Thread(target=self._animation_worker, daemon=True)
             self.animation_thread.start()
 
-            # Show initial dashboard state
-            self.dashboard.update_live_display(self.timeline)
-
             # Use the correct RealtimeSTT pattern: continuous callback in loop
             while self.is_running:
                 try:
@@ -293,7 +252,7 @@ class MeetingCoach:
                     self.dashboard.update_live_display(self.timeline)
 
                     # Wait for speech - this blocks until complete speech utterance is detected
-                    # Use the callback pattern
+                    # The callback function will be called with the transcribed text
                     self.recorder.text(self.process_speech)
 
                     # Brief pause to prevent overwhelming the system
