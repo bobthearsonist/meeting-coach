@@ -50,14 +50,22 @@ class MeetingCoach:
             self.display = SimpleFeedbackDisplay()
         
         self.is_running = False
+        
+        # Text buffer for accumulating short utterances
+        self.text_buffer = ""
+        self.buffer_word_count = 0
+        self.buffer_start_time = None
     
     def process_audio_chunk(self, audio_data):
         """
-        Process a single audio chunk through the pipeline.
+        Process a single audio chunk through the pipeline using buffering.
+        Accumulates text until we have enough for proper analysis.
         
         Args:
             audio_data: numpy array of audio samples
         """
+        import time
+        
         # Transcribe
         transcription = self.transcriber.transcribe(audio_data)
         text = transcription['text']
@@ -66,7 +74,16 @@ class MeetingCoach:
         if not text or transcription['word_count'] < 3:
             return  # Dashboard will show activity status
         
-        # Analyze speaking pace
+        # Add to buffer
+        if self.text_buffer:
+            self.text_buffer += " " + text
+        else:
+            self.text_buffer = text
+            self.buffer_start_time = time.time()
+        
+        self.buffer_word_count += transcription['word_count']
+        
+        # Analyze speaking pace for immediate feedback
         wpm = self.transcriber.calculate_wpm(
             transcription['word_count'],
             transcription['duration']
@@ -74,18 +91,24 @@ class MeetingCoach:
         pace_feedback = self.transcriber.get_speaking_pace_feedback(wpm)
         self.display.update_pace(wpm, pace_feedback)
         
-        # Count filler words
+        # Count filler words for immediate feedback
         filler_counts = self.transcriber.count_filler_words(text)
         if filler_counts:
             self.display.update_filler_words(filler_counts)
         
-        # Always add to timeline for any speech detected (to show all activity)
-        # Use basic defaults for short utterances, full analysis for longer ones
-        if transcription['word_count'] >= config.MIN_WORDS_FOR_ANALYSIS:
-            # Full analysis for longer utterances
-            tone_analysis = self.analyzer.analyze_tone(text)
+        # Check if buffer has enough content for analysis or if too much time has passed
+        buffer_timeout = 30  # seconds - analyze buffer even if short after 30s
+        time_since_buffer_start = time.time() - (self.buffer_start_time or time.time())
+        should_analyze = (
+            self.buffer_word_count >= config.MIN_WORDS_FOR_ANALYSIS or 
+            time_since_buffer_start > buffer_timeout
+        )
+        
+        if should_analyze and self.text_buffer:
+            # Analyze the accumulated buffer
+            tone_analysis = self.analyzer.analyze_tone(self.text_buffer)
 
-            # Extract new analysis fields
+            # Extract analysis fields
             emotional_state = tone_analysis.get('emotional_state', 'neutral')
             social_cues = tone_analysis.get('social_cues', 'appropriate')
             speech_pattern = tone_analysis.get('speech_pattern', 'normal')
@@ -107,16 +130,25 @@ class MeetingCoach:
                 emotional_state=emotional_state,
                 social_cue=social_cues,
                 confidence=confidence,
-                text=text,
+                text=self.text_buffer,
                 coaching=coaching_feedback,
                 alert=emotional_alert or social_alert,
                 wpm=wpm,
                 filler_counts=filler_counts
             )
 
+            # Add to timeline with the full buffered text
+            self.timeline.add_entry(
+                emotional_state=emotional_state,
+                social_cue=social_cues,
+                confidence=confidence,
+                text=self.text_buffer[:50],  # First 50 chars of buffer
+                alert=emotional_alert or social_alert
+            )
+
             # Create comprehensive feedback object
             feedback = {
-                'text': text,
+                'text': self.text_buffer,
                 'tone': emotional_state,
                 'emotional_state': emotional_state,
                 'social_cues': social_cues,
@@ -127,24 +159,13 @@ class MeetingCoach:
                 'key_indicators': tone_analysis.get('key_indicators', [])
             }
             self.display.add_feedback(feedback)
-        else:
-            # Basic defaults for short utterances (ensure they appear in timeline)
-            emotional_state = 'neutral'
-            social_cues = 'appropriate'
-            confidence = 0.1  # Low confidence since no full analysis
-            emotional_alert = False
-            social_alert = False
+            
+            # Clear the buffer after analysis
+            self.text_buffer = ""
+            self.buffer_word_count = 0
+            self.buffer_start_time = None
 
-        # Add to timeline for all speech (short and long utterances)
-        self.timeline.add_entry(
-            emotional_state=emotional_state,
-            social_cue=social_cues,
-            confidence=confidence,
-            text=text[:50],  # First 50 chars
-            alert=emotional_alert or social_alert
-        )
-
-        # Update live dashboard display for all speech
+        # Always update live dashboard display
         self.dashboard.update_live_display(self.timeline)
     
     def run(self):
