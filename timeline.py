@@ -204,7 +204,12 @@ class EmotionalTimeline:
             print(f"{start_dt.strftime('%H:%M')}{' ' * (width-10)}{end_dt.strftime('%H:%M')}")
 
     def _create_time_buckets(self, entries: List[TimelineEntry], bucket_count: int) -> List[str]:
-        """Create time buckets for timeline visualization, proportional to flagged segments"""
+        """Create time buckets for timeline visualization, proportional to flagged segments
+        
+        This method gives flagged (alert) segments more visual representation in the timeline
+        by allocating bucket space with a 3:1 weight ratio (flagged:unflagged).
+        This ensures that important alerts get more visual prominence in the timeline display.
+        """
         if not entries:
             return []
 

@@ -343,7 +343,12 @@ class LiveDashboard:
             print(f"[{timestamp}] Status: {state_text} | Confidence: {self.current_confidence:.1f}")
 
     def _create_mini_buckets(self, entries, bucket_count: int) -> List[str]:
-        """Create time buckets for mini timeline, proportional to flagged segments"""
+        """Create time buckets for mini timeline, proportional to flagged segments
+        
+        This method gives flagged (alert) segments more visual representation in the mini timeline
+        by allocating bucket space with a 3:1 weight ratio (flagged:unflagged).
+        This ensures consistency with the main timeline display.
+        """
         if not entries or bucket_count <= 0:
             return []
 
