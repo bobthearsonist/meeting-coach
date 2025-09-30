@@ -6,6 +6,8 @@ import sys
 import time
 import argparse
 import numpy as np
+import threading
+import queue
 from audio_capture import AudioCapture
 from transcriber import Transcriber
 from analyzer import CommunicationAnalyzer
@@ -48,41 +50,69 @@ class MeetingCoach:
                 self.display = SimpleFeedbackDisplay()
         else:
             self.display = SimpleFeedbackDisplay()
-        
+
         self.is_running = False
-        
-        # Text buffer for accumulating short utterances
+
+        # Text buffer for accumulating short utterances (thread-safe)
         self.text_buffer = ""
         self.buffer_word_count = 0
         self.buffer_start_time = None
-    
+        self.buffer_lock = threading.Lock()  # Protect buffer access
+
+        # Threading and queue infrastructure
+        self.audio_queue = queue.Queue(maxsize=50)  # Buffer up to 50 chunks (~250 seconds)
+        self.capture_thread = None
+        self.processing_thread = None
+        self.shutdown_event = threading.Event()
+
     def process_audio_chunk(self, audio_data):
         """
         Process a single audio chunk through the pipeline using buffering.
         Accumulates text until we have enough for proper analysis.
-        
+
         Args:
             audio_data: numpy array of audio samples
         """
         import time
-        
+
         # Transcribe
         transcription = self.transcriber.transcribe(audio_data)
         text = transcription['text']
-        
+
         # Skip if no speech detected
         if not text or transcription['word_count'] < 3:
             return  # Dashboard will show activity status
-        
-        # Add to buffer
-        if self.text_buffer:
-            self.text_buffer += " " + text
-        else:
-            self.text_buffer = text
-            self.buffer_start_time = time.time()
-        
-        self.buffer_word_count += transcription['word_count']
-        
+
+        # Thread-safe buffer operations
+        with self.buffer_lock:
+            # Add to buffer
+            if self.text_buffer:
+                self.text_buffer += " " + text
+            else:
+                self.text_buffer = text
+                self.buffer_start_time = time.time()
+
+            self.buffer_word_count += transcription['word_count']
+
+            # Check if buffer has enough content for analysis or if too much time has passed
+            buffer_timeout = 30  # seconds - analyze buffer even if short after 30s
+            time_since_buffer_start = time.time() - (self.buffer_start_time or time.time())
+            should_analyze = (
+                self.buffer_word_count >= config.MIN_WORDS_FOR_ANALYSIS or
+                time_since_buffer_start > buffer_timeout
+            )
+
+            # Copy buffer data for analysis (if needed)
+            if should_analyze and self.text_buffer:
+                buffer_text = self.text_buffer
+                buffer_word_count = self.buffer_word_count
+                # Clear buffer for next accumulation
+                self.text_buffer = ""
+                self.buffer_word_count = 0
+                self.buffer_start_time = None
+            else:
+                buffer_text = None
+
         # Analyze speaking pace for immediate feedback
         wpm = self.transcriber.calculate_wpm(
             transcription['word_count'],
@@ -90,23 +120,16 @@ class MeetingCoach:
         )
         pace_feedback = self.transcriber.get_speaking_pace_feedback(wpm)
         self.display.update_pace(wpm, pace_feedback)
-        
+
         # Count filler words for immediate feedback
         filler_counts = self.transcriber.count_filler_words(text)
         if filler_counts:
             self.display.update_filler_words(filler_counts)
-        
-        # Check if buffer has enough content for analysis or if too much time has passed
-        buffer_timeout = 30  # seconds - analyze buffer even if short after 30s
-        time_since_buffer_start = time.time() - (self.buffer_start_time or time.time())
-        should_analyze = (
-            self.buffer_word_count >= config.MIN_WORDS_FOR_ANALYSIS or 
-            time_since_buffer_start > buffer_timeout
-        )
-        
-        if should_analyze and self.text_buffer:
+
+        # Perform analysis if buffer is ready
+        if buffer_text:
             # Analyze the accumulated buffer
-            tone_analysis = self.analyzer.analyze_tone(self.text_buffer)
+            tone_analysis = self.analyzer.analyze_tone(buffer_text)
 
             # Extract analysis fields
             emotional_state = tone_analysis.get('emotional_state', 'neutral')
@@ -130,7 +153,7 @@ class MeetingCoach:
                 emotional_state=emotional_state,
                 social_cue=social_cues,
                 confidence=confidence,
-                text=self.text_buffer,
+                text=buffer_text,
                 coaching=coaching_feedback,
                 alert=emotional_alert or social_alert,
                 wpm=wpm,
@@ -142,13 +165,13 @@ class MeetingCoach:
                 emotional_state=emotional_state,
                 social_cue=social_cues,
                 confidence=confidence,
-                text=self.text_buffer[:50],  # First 50 chars of buffer
+                text=buffer_text,  # Full buffer text, not truncated
                 alert=emotional_alert or social_alert
             )
 
             # Create comprehensive feedback object
             feedback = {
-                'text': self.text_buffer,
+                'text': buffer_text,
                 'tone': emotional_state,
                 'emotional_state': emotional_state,
                 'social_cues': social_cues,
@@ -159,50 +182,165 @@ class MeetingCoach:
                 'key_indicators': tone_analysis.get('key_indicators', [])
             }
             self.display.add_feedback(feedback)
-            
-            # Clear the buffer after analysis
-            self.text_buffer = ""
-            self.buffer_word_count = 0
-            self.buffer_start_time = None
 
         # Always update live dashboard display
         self.dashboard.update_live_display(self.timeline)
-    
+
+    def _audio_capture_worker(self):
+        """
+        Audio capture worker thread - continuously captures audio chunks.
+        Runs in producer thread to ensure no audio is missed.
+        """
+        try:
+            print("🎤 Starting audio capture thread...")
+            for audio_chunk in self.audio_capture.capture_stream(config.CHUNK_DURATION):
+                if self.shutdown_event.is_set():
+                    break
+
+                try:
+                    # Add chunk to queue (non-blocking with timeout)
+                    self.audio_queue.put(audio_chunk, timeout=1.0)
+                except queue.Full:
+                    print("⚠️ Audio queue full - dropping oldest chunk (SPEECH MAY BE LOST)")
+                    # Remove oldest chunk and add new one
+                    try:
+                        dropped_chunk = self.audio_queue.get_nowait()
+                        print(f"🗑️ Dropped chunk of {len(dropped_chunk)} samples")
+                        self.audio_queue.put(audio_chunk, timeout=1.0)
+                    except (queue.Empty, queue.Full):
+                        print("❌ Failed to manage audio queue - speech lost!")
+                        pass  # Continue if we can't manage the queue
+
+        except Exception as e:
+            print(f"❌ Audio capture thread error: {e}")
+        finally:
+            print("🎤 Audio capture thread stopped")
+
+    def _audio_processing_worker(self):
+        """
+        Audio processing worker thread - processes queued audio chunks.
+        Runs in consumer thread to handle transcription and analysis.
+        """
+        try:
+            print("🧠 Starting audio processing thread...")
+            while not self.shutdown_event.is_set():
+                try:
+                    # Get audio chunk from queue (blocking with timeout)
+                    audio_chunk = self.audio_queue.get(timeout=1.0)
+
+                    # Process the chunk
+                    self.process_audio_chunk(audio_chunk)
+
+                    # Mark task as done
+                    self.audio_queue.task_done()
+
+                except queue.Empty:
+                    # No audio to process, continue waiting
+                    continue
+                except Exception as e:
+                    print(f"❌ Error processing audio chunk: {e}")
+                    # Continue processing other chunks
+                    continue
+
+        except Exception as e:
+            print(f"❌ Audio processing thread error: {e}")
+        finally:
+            print("🧠 Audio processing thread stopped")
+
     def run(self):
-        """Start the meeting coach."""
+        """Start the meeting coach with threaded audio capture and processing."""
         # Collect initialization information to display
         initialization_info = {
             'audio_device': self.audio_capture.get_device_name(self.audio_capture.device_index),
             'whisper_model': config.WHISPER_MODEL,
             'ollama_model': self.analyzer.model
         }
-        
+
         # Initialize the live dashboard with initialization info
         self.dashboard.initialize_display(initialization_info)
 
         # Brief pause to show initialization
         time.sleep(2)
-        
+
         self.display.update_status(True)
         self.is_running = True
-        
+
         try:
-            # Start audio capture stream
-            for audio_chunk in self.audio_capture.capture_stream(config.CHUNK_DURATION):
-                if not self.is_running:
+            print("🚀 Starting threaded audio capture and processing...")
+
+            # Start audio capture thread (producer)
+            self.capture_thread = threading.Thread(
+                target=self._audio_capture_worker,
+                name="AudioCapture",
+                daemon=True
+            )
+
+            # Start audio processing thread (consumer)
+            self.processing_thread = threading.Thread(
+                target=self._audio_processing_worker,
+                name="AudioProcessing",
+                daemon=True
+            )
+
+            # Start both threads
+            self.capture_thread.start()
+            self.processing_thread.start()
+
+            print("✅ Both threads started successfully")
+            print("🎯 Meeting coach is now running - speak naturally!")
+            print("📊 Dashboard will update in real-time")
+            print("⌨️  Press Ctrl+C to stop")
+
+            # Main thread waits for shutdown
+            while self.is_running:
+                time.sleep(0.1)  # Small sleep to prevent busy waiting
+
+                # Check if threads are still alive
+                if not self.capture_thread.is_alive():
+                    print("⚠️ Audio capture thread died unexpectedly")
                     break
-                
-                self.process_audio_chunk(audio_chunk)
-        
+                if not self.processing_thread.is_alive():
+                    print("⚠️ Audio processing thread died unexpectedly")
+                    break
+
         except KeyboardInterrupt:
-            print("\n\nStopping Meeting Coach...")
-        
+            print("\n\n🛑 Stopping Meeting Coach...")
+
         finally:
             self.cleanup()
-    
+
     def cleanup(self):
         """Cleanup resources and show session summary."""
+        print("🧹 Starting cleanup...")
+
+        # Signal threads to shutdown
+        self.shutdown_event.set()
         self.is_running = False
+
+        # Wait for threads to finish (with timeout)
+        if self.capture_thread and self.capture_thread.is_alive():
+            print("⏳ Waiting for audio capture thread to finish...")
+            self.capture_thread.join(timeout=3.0)
+            if self.capture_thread.is_alive():
+                print("⚠️ Audio capture thread did not finish cleanly")
+
+        if self.processing_thread and self.processing_thread.is_alive():
+            print("⏳ Waiting for audio processing thread to finish...")
+            self.processing_thread.join(timeout=3.0)
+            if self.processing_thread.is_alive():
+                print("⚠️ Audio processing thread did not finish cleanly")
+
+        # Clear any remaining queue items
+        try:
+            while not self.audio_queue.empty():
+                self.audio_queue.get_nowait()
+                self.audio_queue.task_done()
+        except queue.Empty:
+            pass
+
+        print("✅ Thread cleanup complete")
+
+        # Update display status
         self.display.update_status(False)
 
         # Restore terminal display before printing summary
@@ -346,9 +484,9 @@ def main():
         type=int,
         help='Specify audio device index to use'
     )
-    
+
     args = parser.parse_args()
-    
+
     # Test mode
     if args.test_audio:
         print("Testing audio capture...\n")
@@ -371,23 +509,23 @@ def main():
         print(f"Audio level (RMS): {np.sqrt(np.mean(audio**2)):.4f}")
         capture.save_chunk_to_wav(audio, "test_capture.wav")
         return
-    
+
     if args.test_transcription:
         print("Testing transcription...\n")
         from transcriber import Transcriber
         import wave
-        
+
         transcriber = Transcriber()
-        
+
         try:
             with wave.open("test_capture.wav", 'rb') as wf:
                 audio_bytes = wf.readframes(wf.getnframes())
                 audio_array = np.frombuffer(audio_bytes, dtype=np.int16).astype(np.float32) / 32768.0
-                
+
                 result = transcriber.transcribe(audio_array)
                 print(f"Transcription: {result['text']}")
                 print(f"Word count: {result['word_count']}")
-                
+
                 wpm = transcriber.calculate_wpm(result['word_count'], result['duration'])
                 print(f"Speaking pace: {wpm:.0f} WPM")
         except FileNotFoundError:
@@ -416,7 +554,7 @@ def main():
     # Run meeting coach
     use_menu_bar = not args.console
     coach = MeetingCoach(use_menu_bar=use_menu_bar, device_index=selected_device_index)
-    
+
     if use_menu_bar and isinstance(coach.display, FeedbackDisplay):
         # Run as menu bar app
         coach.display.run()
