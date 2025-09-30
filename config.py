@@ -5,6 +5,7 @@ Configuration settings for Teams Meeting Coach
 # Audio Capture Settings
 SAMPLE_RATE = 16000  # Whisper works best with 16kHz
 CHUNK_DURATION = 5  # Seconds per transcription chunk
+CHUNK_SIZE = 1024   # Audio frames per buffer
 CHANNELS = 2  # Stereo for BlackHole
 
 # Whisper Model Settings
