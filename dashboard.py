@@ -15,7 +15,15 @@ class LiveDashboard:
     """Live updating dashboard that refreshes in place"""
 
     def __init__(self):
-        self.current_state = "neutral"
+        self.current_state = {
+            'emotional_state': "neutral",
+            'social_cue': "unknown",
+            'confidence': 0.0,
+            'wpm': 0,
+            'text': "",
+            'coaching': "",
+            'alert': False
+        }
         self.current_social_cue = "unknown"
         self.current_confidence = 0.0
         self.current_wpm = 0
@@ -88,7 +96,7 @@ class LiveDashboard:
     def _render_dashboard(self, timeline: EmotionalTimeline):
         """Render the complete dashboard"""
         width = self._get_terminal_width(default=80)
-        
+
         # Header (left-aligned to avoid emoji/centering width issues)
         print("=" * width)
         print("🧠 AUTISM/ADHD MEETING COACH - LIVE EMOTIONAL MONITORING")
@@ -118,7 +126,7 @@ class LiveDashboard:
         print("-" * 20)
 
         # Emotional state with color
-        state_colored = colorize_emotional_state(self.current_state)
+        state_colored = colorize_emotional_state(self.current_state['emotional_state'])
         cue_colored = colorize_social_cue(self.current_social_cue)
 
         # Build status line
@@ -264,7 +272,7 @@ class LiveDashboard:
     def _print_simple_update(self):
         """Simple update for terminals without ANSI support"""
         timestamp = datetime.now().strftime("%H:%M:%S")
-        state_text = self.current_state.upper()
+        state_text = self.current_state['emotional_state'].upper()
 
         if self.alert_active:
             print(f"[{timestamp}] 🚨 ALERT: {state_text} | {self.current_coaching}")
@@ -305,7 +313,15 @@ class LiveDashboard:
                             text: str = "", coaching: str = "", alert: bool = False,
                             wpm: float = 0, filler_counts: Dict = None):
         """Update current status information"""
-        self.current_state = emotional_state
+        self.current_state = {
+            'emotional_state': emotional_state,
+            'social_cue': social_cue,
+            'confidence': confidence,
+            'text': text,
+            'coaching': coaching,
+            'alert': alert,
+            'wpm': wpm
+        }
         self.current_social_cue = social_cue
         self.current_confidence = confidence
         self.current_text = text
