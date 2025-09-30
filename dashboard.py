@@ -343,28 +343,77 @@ class LiveDashboard:
             print(f"[{timestamp}] Status: {state_text} | Confidence: {self.current_confidence:.1f}")
 
     def _create_mini_buckets(self, entries, bucket_count: int) -> List[str]:
-        """Create time buckets for mini timeline"""
+        """Create time buckets for mini timeline, proportional to flagged segments"""
         if not entries or bucket_count <= 0:
             return []
 
         if len(entries) == 1:
             return [entries[0].emotional_state]
 
-        # Simple approach: divide entries into buckets
-        entries_per_bucket = max(1, len(entries) // bucket_count)
+        # Count flagged vs unflagged entries
+        flagged_entries = [e for e in entries if e.alert]
+        unflagged_entries = [e for e in entries if not e.alert]
+        
+        total_flagged = len(flagged_entries)
+        total_unflagged = len(unflagged_entries)
+        
+        # If no flagged entries, use simple entry-based approach
+        if total_flagged == 0:
+            entries_per_bucket = max(1, len(entries) // bucket_count)
+            buckets = []
+            
+            for i in range(0, len(entries), entries_per_bucket):
+                bucket_entries = entries[i:i + entries_per_bucket]
+                if bucket_entries:
+                    # Use the most confident entry in the bucket
+                    best_entry = max(bucket_entries, key=lambda e: e.confidence)
+                    buckets.append(best_entry.emotional_state)
+            
+            # Pad or trim to exact bucket count
+            while len(buckets) < bucket_count:
+                buckets.append(buckets[-1] if buckets else 'neutral')
+            
+            return buckets[:bucket_count]
+        
+        # Calculate proportional bucket allocation
+        # Give flagged segments more visual weight (3:1 ratio)
+        flagged_weight = 3
+        unflagged_weight = 1
+        
+        total_weight = (total_flagged * flagged_weight) + (total_unflagged * unflagged_weight)
+        
+        # Calculate bucket allocation
+        flagged_buckets = int((total_flagged * flagged_weight / total_weight) * bucket_count)
+        unflagged_buckets = bucket_count - flagged_buckets
+        
+        # Ensure at least one bucket for each type if they exist
+        if total_flagged > 0 and flagged_buckets == 0:
+            flagged_buckets = 1
+            unflagged_buckets = bucket_count - 1
+        if total_unflagged > 0 and unflagged_buckets == 0:
+            unflagged_buckets = 1
+            flagged_buckets = bucket_count - 1
+            
         buckets = []
-
-        for i in range(0, len(entries), entries_per_bucket):
-            bucket_entries = entries[i:i + entries_per_bucket]
-            if bucket_entries:
-                # Use the most confident entry in the bucket
-                best_entry = max(bucket_entries, key=lambda e: e.confidence)
-                buckets.append(best_entry.emotional_state)
-
-        # Pad or trim to exact bucket count
-        while len(buckets) < bucket_count:
-            buckets.append(buckets[-1] if buckets else 'neutral')
-
+        
+        # Fill buckets with flagged entries first
+        if flagged_buckets > 0:
+            for i in range(flagged_buckets):
+                entry_index = int(i * len(flagged_entries) / flagged_buckets)
+                if entry_index < len(flagged_entries):
+                    buckets.append(flagged_entries[entry_index].emotional_state)
+                else:
+                    buckets.append(flagged_entries[-1].emotional_state)
+        
+        # Fill remaining buckets with unflagged entries
+        if unflagged_buckets > 0:
+            for i in range(unflagged_buckets):
+                entry_index = int(i * len(unflagged_entries) / unflagged_buckets)
+                if entry_index < len(unflagged_entries):
+                    buckets.append(unflagged_entries[entry_index].emotional_state)
+                else:
+                    buckets.append(unflagged_entries[-1].emotional_state)
+        
         return buckets[:bucket_count]
 
     def _get_state_color(self, state: str) -> str:
