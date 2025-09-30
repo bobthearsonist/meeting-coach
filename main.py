@@ -79,8 +79,10 @@ class MeetingCoach:
         if filler_counts:
             self.display.update_filler_words(filler_counts)
         
-        # Analyze communication patterns (only if enough content)
+        # Always add to timeline for any speech detected (to show all activity)
+        # Use basic defaults for short utterances, full analysis for longer ones
         if transcription['word_count'] >= config.MIN_WORDS_FOR_ANALYSIS:
+            # Full analysis for longer utterances
             tone_analysis = self.analyzer.analyze_tone(text)
 
             # Extract new analysis fields
@@ -100,15 +102,6 @@ class MeetingCoach:
             emotional_alert = self.analyzer.should_alert(emotional_state, confidence)
             social_alert = self.analyzer.should_social_cue_alert(social_cues, confidence)
 
-            # Add to timeline
-            self.timeline.add_entry(
-                emotional_state=emotional_state,
-                social_cue=social_cues,
-                confidence=confidence,
-                text=text[:50],  # First 50 chars
-                alert=emotional_alert or social_alert
-            )
-
             # Update dashboard with current status
             self.dashboard.update_current_status(
                 emotional_state=emotional_state,
@@ -120,9 +113,6 @@ class MeetingCoach:
                 wpm=wpm,
                 filler_counts=filler_counts
             )
-
-            # Update live dashboard display
-            self.dashboard.update_live_display(self.timeline)
 
             # Create comprehensive feedback object
             feedback = {
@@ -137,6 +127,25 @@ class MeetingCoach:
                 'key_indicators': tone_analysis.get('key_indicators', [])
             }
             self.display.add_feedback(feedback)
+        else:
+            # Basic defaults for short utterances (ensure they appear in timeline)
+            emotional_state = 'neutral'
+            social_cues = 'appropriate'
+            confidence = 0.1  # Low confidence since no full analysis
+            emotional_alert = False
+            social_alert = False
+
+        # Add to timeline for all speech (short and long utterances)
+        self.timeline.add_entry(
+            emotional_state=emotional_state,
+            social_cue=social_cues,
+            confidence=confidence,
+            text=text[:50],  # First 50 chars
+            alert=emotional_alert or social_alert
+        )
+
+        # Update live dashboard display for all speech
+        self.dashboard.update_live_display(self.timeline)
     
     def run(self):
         """Start the meeting coach."""
