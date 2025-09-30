@@ -5,6 +5,7 @@ import os
 import sys
 import time
 import shutil
+import textwrap
 from typing import Dict, Optional, List
 from datetime import datetime
 from colors import Colors, colorize_emotional_state, colorize_social_cue, colorize_alert
@@ -35,6 +36,8 @@ class LiveDashboard:
 
         # Terminal control
         self.supports_ansi = self._supports_ansi()
+        # Width will be recalculated on each render to handle window resizing
+        self.last_terminal_width = 80
         # No fixed height; we fully redraw the screen each update
         self.dashboard_height = None
         self._alt_screen_active = False
@@ -42,6 +45,22 @@ class LiveDashboard:
     def _supports_ansi(self) -> bool:
         """Check if terminal supports ANSI escape codes"""
         return hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()
+
+    def _wrap_text(self, text: str, width: int, indent: str = "    ") -> List[str]:
+        """Wrap text to fit within specified width with optional indentation"""
+        if not text:
+            return []
+
+        # Account for indent in width calculation
+        available_width = max(20, width - len(indent))
+
+        # Use textwrap to handle the wrapping
+        wrapped_lines = textwrap.wrap(text, width=available_width)
+
+        # Add indentation to all lines except the first (if needed)
+        if wrapped_lines:
+            return [wrapped_lines[0]] + [indent + line for line in wrapped_lines[1:]]
+        return []
 
     def clear_screen(self):
         """Clear the entire screen, scrollback, and move cursor to home"""
@@ -95,7 +114,9 @@ class LiveDashboard:
 
     def _render_dashboard(self, timeline: EmotionalTimeline):
         """Render the complete dashboard"""
+        # Always get fresh terminal width to handle window resizing
         width = self._get_terminal_width(default=80)
+        self.last_terminal_width = width
 
         # Header (left-aligned to avoid emoji/centering width issues)
         print("=" * width)
@@ -156,7 +177,20 @@ class LiveDashboard:
 
         # Current speech
         if self.current_text:
-            print(f"\n🗣️  Recent: \"{self.current_text[:60]}{'...' if len(self.current_text) > 60 else ''}\"")
+            prefix = "🗣️  Recent: \""
+            continuation_indent = " " * len("🗣️  Recent: ")
+
+            # Wrap the text to fit within available width
+            available_width = width - len(prefix) - 1  # -1 for closing quote
+            wrapped_lines = textwrap.wrap(self.current_text, width=max(20, available_width))
+
+            if wrapped_lines:
+                # Print first line with prefix and opening quote
+                print(f"\n{prefix}{wrapped_lines[0]}{'\"' if len(wrapped_lines) == 1 else ''}")
+                # Print continuation lines with proper alignment
+                for i, line in enumerate(wrapped_lines[1:]):
+                    is_last = i == len(wrapped_lines) - 2
+                    print(f"{continuation_indent}{line}{'\"' if is_last else ''}")
 
         # Filler words
         if self.filler_counts:
@@ -233,13 +267,42 @@ class LiveDashboard:
 
         recent_entries = timeline.get_recent_entries(5)
         if recent_entries:
-            # Show last 3 entries
+            # Show last 3 entries with proper column alignment
             for entry in recent_entries[-3:]:
                 timestamp = datetime.fromtimestamp(entry.timestamp).strftime("%H:%M:%S")
                 state_colored = colorize_emotional_state(entry.emotional_state)
 
                 alert_indicator = "🚨" if entry.alert else "  "
-                print(f"{alert_indicator} {timestamp} | {state_colored} | {entry.text[:30]}")
+
+                # Create fixed-width columns for consistent alignment
+                # Format: "🚨 HH:MM:SS | state     | text..."
+                state_width = 12  # Fixed width for emotional state column to fit "OVERWHELMED"
+
+                # Build the template without colors for precise alignment calculation
+                state_plain = entry.emotional_state.upper()
+                template_prefix = f"{alert_indicator}{timestamp} | {state_plain:<{state_width}} | "
+
+                # Build the display version with colors, ensuring same width
+                # We need to pad the colored state to the same visual width
+                state_colored_padded = state_colored + " " * (state_width - len(state_plain))
+                display_prefix = f"{alert_indicator}{timestamp} | {state_colored_padded} | "
+
+                if entry.text:
+                    # Use the template length for continuation indent
+                    continuation_indent = " " * len(template_prefix)
+
+                    # Wrap the text to fit within the available width
+                    available_width = width - len(template_prefix)
+                    wrapped_lines = textwrap.wrap(entry.text, width=max(20, available_width))
+
+                    if wrapped_lines:
+                        # Print first line with colored prefix
+                        print(f"{display_prefix}{wrapped_lines[0]}")
+                        # Print continuation lines with proper alignment
+                        for line in wrapped_lines[1:]:
+                            print(f"{continuation_indent}{line}")
+                else:
+                    print(f"{display_prefix}(No text)")
         else:
             print("  No activity yet - start speaking!")
 
@@ -335,7 +398,10 @@ class LiveDashboard:
         self.enter_alt_screen()
         self.clear_screen()
 
+        # Get fresh terminal width for initialization
         width = self._get_terminal_width(default=80)
+        self.last_terminal_width = width
+
         print("=" * width)
         print("🧠 AUTISM/ADHD MEETING COACH - INITIALIZING")
         print("=" * width)
@@ -367,9 +433,11 @@ class LiveDashboard:
         """Safely determine terminal width for clean layout"""
         try:
             cols = shutil.get_terminal_size((default, 24)).columns
+            # Ensure minimum width for readability, maximum for performance
             return max(60, min(cols, 140))
         except Exception:
-            return default
+            # Fallback to last known width or default
+            return getattr(self, 'last_terminal_width', default)
 
 
 if __name__ == "__main__":
