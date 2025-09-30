@@ -140,11 +140,18 @@ class MeetingCoach:
     
     def run(self):
         """Start the meeting coach."""
-        # Initialize the live dashboard
-        self.dashboard.initialize_display()
+        # Collect initialization information to display
+        initialization_info = {
+            'audio_device': self.audio_capture.get_device_name(self.audio_capture.device_index),
+            'whisper_model': config.WHISPER_MODEL,
+            'ollama_model': self.analyzer.model
+        }
+        
+        # Initialize the live dashboard with initialization info
+        self.dashboard.initialize_display(initialization_info)
 
         # Brief pause to show initialization
-        time.sleep(1)
+        time.sleep(2)
         
         self.display.update_status(True)
         self.is_running = True
