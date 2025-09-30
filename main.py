@@ -86,13 +86,17 @@ class MeetingCoach:
 
     def _on_recording_start(self):
         """Callback when RealtimeSTT starts recording"""
-        print("🎤 Recording started...")
         self.is_listening = True
+        # Update dashboard listening state instead of printing message
+        self.dashboard.set_listening_state(True)
+        self.dashboard.update_live_display(self.timeline)
 
     def _on_recording_stop(self):
         """Callback when RealtimeSTT stops recording"""
-        print("🎤 Recording stopped...")
         self.is_listening = False
+        # Update dashboard listening state instead of printing message
+        self.dashboard.set_listening_state(False)
+        self.dashboard.update_live_display(self.timeline)
 
     def _animation_worker(self):
         """Background thread to update listening animation"""
