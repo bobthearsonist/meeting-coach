@@ -68,6 +68,93 @@ class TestLiveDashboard:
         assert dashboard.alert_active == scenario['alert']
         assert dashboard.current_wpm == scenario['wpm']
 
+    @pytest.mark.unit
+    def test_text_wrapping_functionality(self, dashboard):
+        """Test text wrapping utility function."""
+        long_text = "This is a very long piece of text that should be wrapped properly when it exceeds the specified width limit"
+
+        # Test basic wrapping
+        wrapped = dashboard._wrap_text(long_text, 50)
+        assert isinstance(wrapped, list)
+        assert len(wrapped) > 1  # Should wrap into multiple lines
+
+        # Test that no line exceeds the width
+        for line in wrapped:
+            assert len(line) <= 50
+
+        # Test with indentation
+        wrapped_with_indent = dashboard._wrap_text(long_text, 50, "    ")
+        assert wrapped_with_indent[0] == wrapped[0]  # First line unchanged
+        if len(wrapped_with_indent) > 1:
+            assert wrapped_with_indent[1].startswith("    ")  # Subsequent lines indented
+
+    @pytest.mark.unit
+    def test_terminal_width_adaptation(self, dashboard):
+        """Test that dashboard adapts to different terminal widths."""
+        # Test various terminal widths
+        test_widths = [60, 80, 100, 120, 140]
+
+        for width in test_widths:
+            with patch('shutil.get_terminal_size') as mock_size:
+                mock_size.return_value = Mock(columns=width)
+                detected_width = dashboard._get_terminal_width()
+
+                # Should respect min/max bounds
+                assert 60 <= detected_width <= 140
+                assert detected_width == min(max(width, 60), 140)
+
+    @pytest.mark.unit
+    def test_activity_formatting_alignment(self, dashboard):
+        """Test that activity entries maintain proper column alignment."""
+        from timeline import EmotionalTimeline
+
+        timeline = EmotionalTimeline()
+
+        # Add entries with different state lengths to test alignment
+        test_cases = [
+            ("calm", "Short state text"),
+            ("overwhelmed", "This is a much longer state text that should test wrapping"),
+            ("engaged", "Medium length text"),
+            ("intense", "Another text entry"),
+            ("elevated", "Final test entry")
+        ]
+
+        for state, text in test_cases:
+            timeline.add_entry(state, "appropriate", 0.8, text, False)
+
+        # Test that rendering doesn't crash and maintains format
+        try:
+            # Capture output by redirecting stdout
+            import io
+            from contextlib import redirect_stdout
+
+            captured_output = io.StringIO()
+            with redirect_stdout(captured_output):
+                dashboard._render_recent_activity(timeline, 80)
+
+            output = captured_output.getvalue()
+            lines = output.split('\n')
+
+            # Find activity lines (skip headers)
+            activity_lines = [line for line in lines if '|' in line and ':' in line]
+
+            # Verify column alignment by checking pipe positions
+            if activity_lines:
+                first_line = activity_lines[0]
+                pipe_positions = [i for i, char in enumerate(first_line) if char == '|']
+
+                # Check that all lines have pipes in the same positions
+                for line in activity_lines[1:]:
+                    line_pipes = [i for i, char in enumerate(line) if char == '|']
+                    # First two pipes should align (timestamp and state columns)
+                    if len(line_pipes) >= 2 and len(pipe_positions) >= 2:
+                        assert line_pipes[0] == pipe_positions[0], f"First pipe misaligned in: {line}"
+                        assert line_pipes[1] == pipe_positions[1], f"Second pipe misaligned in: {line}"
+
+        except Exception as e:
+            pytest.fail(f"Activity formatting failed: {e}")
+
+
 class TestEmotionalTimeline:
     """Test cases for EmotionalTimeline"""
 

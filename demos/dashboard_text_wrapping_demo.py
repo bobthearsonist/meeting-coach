@@ -1,23 +1,36 @@
 #!/usr/bin/env python3
 """
-Test script to demonstrate dashboard word wrapping and resizing capabilities
+Demo script to demonstrate dashboard word wrapping and terminal resizing capabilities
 """
 import time
+import sys
+import os
+
+# Add the parent directory to the path so we can import the modules
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
 from dashboard import LiveDashboard
 from timeline import EmotionalTimeline
 
-def test_dashboard_with_long_text():
-    """Test the dashboard with long text entries to verify word wrapping"""
+def demo_dashboard_text_wrapping():
+    """Demonstrate the dashboard with long text entries to show word wrapping"""
     dashboard = LiveDashboard()
     timeline = EmotionalTimeline()
 
-    print("Testing dashboard with long text and word wrapping...")
+    print("🎯 Dashboard Text Wrapping & Resizing Demo")
+    print("=" * 50)
+    print("This demo shows how the dashboard handles:")
+    print("- Long text with proper word wrapping")
+    print("- Column alignment across different emotional states")
+    print("- Dynamic terminal resizing")
+    print("\nTry resizing your terminal window during the demo!")
+    print("=" * 50)
+
     dashboard.initialize_display()
+    time.sleep(2)
 
-    time.sleep(1)
-
-    # Test scenarios with progressively longer text
-    test_scenarios = [
+    # Demo scenarios with progressively longer text
+    demo_scenarios = [
         ("calm", "appropriate", 0.8,
          "Starting the meeting with a brief agenda overview",
          "", False),
@@ -39,7 +52,8 @@ def test_dashboard_with_long_text():
          "", False),
     ]
 
-    for i, (state, cue, conf, text, coaching, alert) in enumerate(test_scenarios):
+    for i, (state, cue, conf, text, coaching, alert) in enumerate(demo_scenarios):
+        print(f"\n📝 Adding scenario {i+1}/5: {state.upper()} state...")
         time.sleep(2)
 
         # Add to timeline
@@ -59,19 +73,30 @@ def test_dashboard_with_long_text():
 
         dashboard.update_live_display(timeline)
 
-    print("\nWord wrapping test complete! Try resizing your terminal window and the display should adapt.")
-    print("Press Ctrl+C to exit when ready.")
+    print("\n🎉 Word wrapping demo complete!")
+    print("\n💡 Key features demonstrated:")
+    print("  ✅ Text wrapping with proper alignment")
+    print("  ✅ Column alignment across different state names")
+    print("  ✅ Full text visibility (no truncation)")
+    print("  ✅ Dynamic terminal width adaptation")
+    print("\n🔄 Now running continuous refresh to demo terminal resizing...")
+    print("   Try resizing your terminal window!")
+    print("   Press Ctrl+C to exit when ready.")
 
     # Keep running to allow manual terminal resizing tests
     try:
+        refresh_count = 0
         while True:
             time.sleep(3)
+            refresh_count += 1
             # Refresh the display to show any terminal size changes
             dashboard.update_live_display(timeline)
+            if refresh_count % 5 == 0:
+                print(f"\n📏 Refresh #{refresh_count} - Current terminal width: {dashboard.last_terminal_width} chars")
     except KeyboardInterrupt:
-        pass
+        print("\n👋 Demo ended by user")
     finally:
         dashboard.restore_display()
 
 if __name__ == "__main__":
-    test_dashboard_with_long_text()
+    demo_dashboard_text_wrapping()
