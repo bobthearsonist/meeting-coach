@@ -61,7 +61,7 @@ def get_emotional_state_color(emotional_state: str) -> str:
     color_map = {
         'calm': Colors.GREEN,
         'neutral': Colors.WHITE,
-        'engaged': Colors.BRIGHT_CYAN,
+        'engaged': Colors.BRIGHT_YELLOW,
         'elevated': Colors.YELLOW,
         'intense': Colors.BRIGHT_RED,
         'rapid': Colors.BRIGHT_MAGENTA,
