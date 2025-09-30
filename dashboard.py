@@ -220,22 +220,83 @@ class LiveDashboard:
 
     def _render_recent_activity(self, timeline: EmotionalTimeline, width: int):
         """Render recent activity log"""
-        print("📋 RECENT ACTIVITY (Last 3 entries)")
-        print("-" * 35)
+        print("📋 RECENT ACTIVITY (Last 10 entries)")
+        print("-" * 40)
 
-        recent_entries = timeline.get_recent_entries(5)
+        recent_entries = timeline.get_recent_entries(10)
         if recent_entries:
-            # Show last 3 entries
-            for entry in recent_entries[-3:]:
+            # Show last 10 entries
+            for entry in recent_entries[-10:]:
                 timestamp = datetime.fromtimestamp(entry.timestamp).strftime("%H:%M:%S")
                 state_colored = colorize_emotional_state(entry.emotional_state)
 
                 alert_indicator = "🚨" if entry.alert else "  "
-                print(f"{alert_indicator} {timestamp} | {state_colored} | {entry.text[:30]}")
+                # Show more text (70 characters instead of 30)
+                text_display = entry.text[:70] + ("..." if len(entry.text) > 70 else "")
+                print(f"{alert_indicator} {timestamp} | {state_colored} | {text_display}")
         else:
             print("  No activity yet - start speaking!")
 
+        # Show trending analysis if we have enough entries
+        if recent_entries and len(recent_entries) >= 5:
+            self._render_trending_analysis(recent_entries[-10:])
+
         print()
+
+    def _render_trending_analysis(self, entries):
+        """Render trending analysis for recent entries"""
+        if len(entries) < 5:
+            return
+            
+        # Analyze first half vs second half to detect trends
+        mid_point = len(entries) // 2
+        first_half = entries[:mid_point]
+        second_half = entries[mid_point:]
+        
+        # Count emotional states in each half
+        first_states = {}
+        second_states = {}
+        
+        for entry in first_half:
+            state = entry.emotional_state
+            first_states[state] = first_states.get(state, 0) + 1
+            
+        for entry in second_half:
+            state = entry.emotional_state
+            second_states[state] = second_states.get(state, 0) + 1
+        
+        # Calculate dominant states
+        first_dominant = max(first_states.keys(), key=lambda k: first_states[k]) if first_states else 'unknown'
+        second_dominant = max(second_states.keys(), key=lambda k: second_states[k]) if second_states else 'unknown'
+        
+        # Determine trend
+        trend_indicator = ""
+        if first_dominant != second_dominant:
+            # State has changed
+            calm_states = ['calm', 'engaged', 'appropriate']
+            elevated_states = ['elevated', 'intense', 'overwhelmed', 'rapid']
+            
+            if first_dominant in elevated_states and second_dominant in calm_states:
+                trend_indicator = "📉 Improving"
+            elif first_dominant in calm_states and second_dominant in elevated_states:
+                trend_indicator = "📈 Escalating"
+            else:
+                trend_indicator = f"🔄 {first_dominant} → {second_dominant}"
+        else:
+            trend_indicator = f"➡️  Steady ({second_dominant})"
+        
+        # Calculate alert trend
+        first_half_alerts = sum(1 for entry in first_half if entry.alert)
+        second_half_alerts = sum(1 for entry in second_half if entry.alert)
+        
+        if second_half_alerts > first_half_alerts:
+            alert_trend = " 🚨↗"
+        elif second_half_alerts < first_half_alerts:
+            alert_trend = " ✅↘"
+        else:
+            alert_trend = ""
+            
+        print(f"🎯 Trend: {trend_indicator}{alert_trend}")
 
     def _render_session_stats(self, timeline: EmotionalTimeline, width: int):
         """Render session statistics"""
