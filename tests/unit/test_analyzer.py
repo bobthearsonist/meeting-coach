@@ -343,6 +343,7 @@ class TestCommunicationAnalyzer:
         ('aggressive', '😤'),
         ('elevated', '⬆️'),
         ('calm', '🧘'),
+        ('overly_critical', '👎'),
         ('unknown', '❓'),
         ('nonexistent', '💬')
     ])
@@ -361,3 +362,41 @@ class TestCommunicationAnalyzer:
         """Parametrized test for alert threshold logic."""
         result = mock_analyzer.should_alert('elevated', confidence, threshold)
         assert result == expected
+
+    @pytest.mark.unit
+    def test_get_tone_emoji_overly_critical(self, mock_analyzer):
+        """Test emoji mapping for overly critical tone."""
+        assert mock_analyzer.get_tone_emoji('overly_critical') == '👎'
+
+    @pytest.mark.unit  
+    def test_should_alert_overly_critical(self, mock_analyzer):
+        """Test alert logic for overly critical emotional state."""
+        assert mock_analyzer.should_alert('overly_critical', 0.8) == True
+        assert mock_analyzer.should_alert('overly_critical', 0.6) == False  # Below threshold
+
+    @pytest.mark.unit
+    def test_analyze_tone_overly_critical_response(self, mock_analyzer):
+        """Test successful analysis of overly critical language."""
+        mock_response = {
+            'response': json.dumps({
+                'emotional_state': 'overly_critical',
+                'social_cues': 'inappropriate',
+                'speech_pattern': 'harsh',
+                'confidence': 0.85,
+                'key_indicators': ['harsh language', 'personal attack', 'dismissive tone'],
+                'coaching_feedback': 'Consider using more constructive language when providing feedback.'
+            })
+        }
+
+        with patch('analyzer.ollama.generate', return_value=mock_response):
+            text = "That's a terrible idea and won't work at all. You clearly haven't thought this through properly and should reconsider."
+            result = mock_analyzer.analyze_tone(text)
+
+            assert result['emotional_state'] == 'overly_critical'
+            assert result['social_cues'] == 'inappropriate'
+            assert result['confidence'] == 0.85
+            assert 'harsh language' in result['key_indicators']
+            assert 'constructive language' in result['coaching_feedback']
+
+            # Test backward compatibility
+            assert result['tone'] == result['emotional_state']
