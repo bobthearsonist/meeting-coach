@@ -144,7 +144,8 @@ class TestConsoleApplication:
         finally:
             signal.alarm(0)  # Cancel the alarm
 
-        # Test passed if we got here without argument parsing errors    @pytest.mark.integration
+        # Test passed if we got here without argument parsing errors
+    @pytest.mark.integration
     def test_main_device_argument(self):
         """Test device argument functionality."""
         # Test that device argument is accepted (should fail gracefully with invalid device)
