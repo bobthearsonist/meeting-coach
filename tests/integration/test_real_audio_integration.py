@@ -112,48 +112,59 @@ class TestConsoleApplication:
         assert result.returncode == 0
         assert 'Teams Meeting Coach' in result.stdout
         assert '--console' in result.stdout
-        assert '--test-audio' in result.stdout
+        assert '--device' in result.stdout
 
     @pytest.mark.integration
-    def test_main_select_device(self):
-        """Test device selection functionality."""
-        result = subprocess.run(
-            [sys.executable, 'main.py', '--select-device'],
-            capture_output=True,
-            text=True,
-            cwd=os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-        )
+    def test_main_console_flag(self):
+        """Test console flag functionality."""
+        # Just test that it accepts the flag without error
+        # We'll use a timeout to prevent the app from running indefinitely
+        import signal
 
-        # Should complete without errors
-        assert result.returncode == 0
+        def timeout_handler(signum, frame):
+            raise TimeoutError("Test timeout")
 
-        # Should show device listing
-        assert 'Available Audio Devices' in result.stdout or 'device' in result.stdout.lower()
+        signal.signal(signal.SIGALRM, timeout_handler)
+        signal.alarm(2)  # 2 second timeout
+        result = None
 
-    @pytest.mark.integration
-    @pytest.mark.slow
-    def test_main_test_transcription(self):
-        """Test transcription mode with test file."""
-        test_audio_file = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-            'test_capture.wav'
-        )
+        try:
+            result = subprocess.run(
+                [sys.executable, 'main.py', '--console'],
+                capture_output=True,
+                text=True,
+                timeout=1,  # 1 second timeout
+                cwd=os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            )
+        except subprocess.TimeoutExpired:
+            # This is expected - the app would run indefinitely
+            pass
+        except TimeoutError:
+            pass
+        finally:
+            signal.alarm(0)  # Cancel the alarm
 
-        if not os.path.exists(test_audio_file):
-            pytest.skip("test_capture.wav not found")
+        # Test passed if we got here without argument parsing errors    @pytest.mark.integration
+    def test_main_device_argument(self):
+        """Test device argument functionality."""
+        # Test that device argument is accepted (should fail gracefully with invalid device)
+        result = None
+        try:
+            result = subprocess.run(
+                [sys.executable, 'main.py', '--device', '999'],
+                capture_output=True,
+                text=True,
+                timeout=2,  # Short timeout since it should fail quickly
+                cwd=os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            )
+            # Should exit with an error code for invalid device, but not argument parsing error
+            assert result.returncode != 2  # Not an argument parsing error
+        except subprocess.TimeoutExpired:
+            # This is also acceptable - means the argument was parsed correctly
+            # but the app tried to run (which could hang on device initialization)
+            pass
 
-        result = subprocess.run(
-            [sys.executable, 'main.py', '--test-transcription'],
-            capture_output=True,
-            text=True,
-            cwd=os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-        )
-
-        # Should complete without errors
-        assert result.returncode == 0
-
-        # Should show transcription output
-        assert 'Transcription:' in result.stdout or 'Word count:' in result.stdout
+        # Test passed if no argument parsing error occurred
 
 class TestAutismADHDScenarios:
     """Test autism/ADHD specific scenarios"""

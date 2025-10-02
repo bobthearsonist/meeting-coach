@@ -486,12 +486,12 @@ class TestFullPipeline:
         assert 'total_analyses' in summary
 
         # Verify content
-        assert summary['dominant_tone'] == 'engaged'  # Most frequent
-        assert summary['tone_distribution']['engaged'] == 2
-        assert summary['tone_distribution']['elevated'] == 1
-        assert summary['tone_distribution']['dismissive'] == 1
+        assert summary['dominant_emotional_state'] == 'engaged'  # Most frequent
+        assert summary['state_distribution']['engaged'] == 2
+        assert summary['state_distribution']['elevated'] == 1
+        assert summary['state_distribution']['dismissive'] == 1
         assert summary['total_analyses'] == 5
-        assert len(summary['key_suggestions']) <= 3  # Should limit to top 3
+        assert len(summary['key_feedback']) <= 3  # Should limit to top 3
 
         # Verify average confidence calculation
         expected_avg = (0.8 + 0.6 + 0.9 + 0.7 + 0.8) / 5
