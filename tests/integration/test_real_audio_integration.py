@@ -82,17 +82,17 @@ class TestRealAudioIntegration:
             analysis_result = analyzer.analyze(transcription_result['text'])
 
             # Verify analysis result structure
-            assert 'tone' in analysis_result
+            assert 'emotional_state' in analysis_result
             assert 'confidence' in analysis_result
-            assert 'reasoning' in analysis_result
+            assert 'coaching_feedback' in analysis_result
 
             # Verify reasonable values
             assert 0 <= analysis_result['confidence'] <= 1
-            assert analysis_result['tone'] in ['supportive', 'dismissive', 'neutral', 'aggressive', 'passive', 'unknown']
+            assert analysis_result['emotional_state'] in ['supportive', 'dismissive', 'neutral', 'aggressive', 'passive', 'unknown']
 
             print(f"Analyzed text: '{transcription_result['text']}'")
-            print(f"Tone: {analysis_result['tone']} ({analysis_result['confidence']:.2f})")
-            print(f"Reasoning: {analysis_result['reasoning']}")
+            print(f"Emotional State: {analysis_result['emotional_state']} ({analysis_result['confidence']:.2f})")
+            print(f"Coaching: {analysis_result['coaching_feedback']}")
         else:
             print(f"Transcription too short ({transcription_result['word_count']} words) for analysis")
 
@@ -194,7 +194,7 @@ class TestAutismADHDScenarios:
             result = analyzer.analyze_tone(scenario['text'])
 
             # Verify we get a reasonable response
-            assert 'tone' in result or 'emotional_state' in result
+            assert 'emotional_state' in result
             assert 'confidence' in result
             assert result['confidence'] >= 0
 
@@ -218,7 +218,7 @@ class TestAutismADHDScenarios:
 
         for text in flat_test_texts:
             # Test alert logic with neutral content
-            emoji = analyzer.get_tone_emoji('neutral')
+            emoji = analyzer.get_emotional_state_emoji('neutral')
             should_alert = analyzer.should_alert('neutral', 0.8)
 
             if should_alert:
@@ -331,7 +331,7 @@ class TestFullEndToEndPipeline:
             assert isinstance(filler_counts, dict)
 
             # Test tone emoji (works without Ollama)
-            emoji = analyzer.get_tone_emoji('neutral')
+            emoji = analyzer.get_emotional_state_emoji('neutral')
             assert emoji is not None
 
             print(f"Text: {case['text'][:50]}...")
@@ -381,7 +381,7 @@ class TestVisualInterface:
         # Test emotional state emojis
         states = ['calm', 'engaged', 'elevated', 'intense', 'overwhelmed']
         for state in states:
-            emoji = analyzer.get_tone_emoji(state)
+            emoji = analyzer.get_emotional_state_emoji(state)
             assert emoji is not None
             assert len(emoji) > 0
 

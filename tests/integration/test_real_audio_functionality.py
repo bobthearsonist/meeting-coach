@@ -128,7 +128,7 @@ class TestWithRealAudio:
             analysis_result = analyzer.analyze(transcription_result['text'])
 
             # Verify analysis structure
-            assert 'tone' in analysis_result
+            assert 'emotional_state' in analysis_result
             assert 'confidence' in analysis_result
             assert 'reasoning' in analysis_result
 
@@ -146,13 +146,13 @@ class TestWithRealAudio:
             assert isinstance(should_alert, bool)
 
             # Test emoji generation
-            emoji = analyzer.get_tone_emoji(analysis_result['tone'])
+            emoji = analyzer.get_emotional_state_emoji(analysis_result['emotional_state'])
             assert emoji is not None
             assert len(emoji) > 0
 
             print(f"Real audio analysis:")
             print(f"  Text: '{transcription_result['text']}'")
-            print(f"  Tone: {analysis_result['tone']} ({analysis_result['confidence']:.2f})")
+            print(f"  Emotional State: {analysis_result['emotional_state']} ({analysis_result['confidence']:.2f})")
             print(f"  Alert: {should_alert}")
             print(f"  Emoji: {emoji}")
             print(f"  Reasoning: {analysis_result['reasoning']}")
@@ -268,7 +268,7 @@ class TestApplicationStartup:
             assert transcriber.model is not None
 
             analyzer = CommunicationAnalyzer()
-            assert hasattr(analyzer, 'get_tone_emoji')
+            assert hasattr(analyzer, 'get_emotional_state_emoji')
 
             display = SimpleFeedbackDisplay()
             assert hasattr(display, 'update_tone')

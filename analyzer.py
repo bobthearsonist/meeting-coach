@@ -37,10 +37,12 @@ class CommunicationAnalyzer:
         """
         if len(text.split()) < config.MIN_WORDS_FOR_ANALYSIS:
             return {
-                'tone': 'unknown',
+                'emotional_state': 'unknown',
+                'social_cues': 'unknown',
+                'speech_pattern': 'unknown',
                 'confidence': 0.0,
                 'key_indicators': [],
-                'suggestions': 'Not enough content to analyze',
+                'coaching_feedback': 'Not enough content to analyze',
                 'error': 'insufficient_text'
             }
 
@@ -58,6 +60,10 @@ class CommunicationAnalyzer:
             # Parse JSON response
             response_text = response['response'].strip()
 
+            # Debug: print the raw response to understand what we're getting
+            if config.DEBUG_ANALYSIS:
+                print(f"Raw LLM response: {response_text}")
+
             # Try to extract JSON if it's wrapped in markdown
             if '```json' in response_text:
                 response_text = response_text.split('```json')[1].split('```')[0].strip()
@@ -66,15 +72,13 @@ class CommunicationAnalyzer:
 
             analysis = json.loads(response_text)
 
-            # Ensure all required fields exist (supporting both old and new format)
-            analysis.setdefault('tone', analysis.get('emotional_state', 'neutral'))
-            analysis.setdefault('emotional_state', analysis.get('tone', 'neutral'))
-            analysis.setdefault('social_cues', 'unknown')
+            # Ensure all required fields exist with sensible defaults
+            analysis.setdefault('emotional_state', 'calm')
+            analysis.setdefault('social_cues', 'appropriate')
             analysis.setdefault('speech_pattern', 'normal')
             analysis.setdefault('confidence', 0.5)
             analysis.setdefault('key_indicators', [])
-            analysis.setdefault('suggestions', analysis.get('coaching_feedback', 'No specific suggestions'))
-            analysis.setdefault('coaching_feedback', analysis.get('suggestions', 'No coaching available'))
+            analysis.setdefault('coaching_feedback', 'No specific suggestions')
 
             return analysis
 
@@ -82,34 +86,38 @@ class CommunicationAnalyzer:
             print(f"Error parsing LLM response: {e}")
             print(f"Response was: {response_text}")
             return {
-                'tone': 'neutral',
+                'emotional_state': 'error',
+                'social_cues': 'error',
+                'speech_pattern': 'error',
                 'confidence': 0.0,
                 'key_indicators': [],
-                'suggestions': 'Analysis error',
+                'coaching_feedback': 'Analysis error - could not parse response',
                 'error': 'parse_error'
             }
         except Exception as e:
             print(f"Error during analysis: {e}")
             return {
-                'tone': 'neutral',
+                'emotional_state': 'error',
+                'social_cues': 'error',
+                'speech_pattern': 'error',
                 'confidence': 0.0,
                 'key_indicators': [],
-                'suggestions': 'Analysis unavailable',
+                'coaching_feedback': 'Analysis unavailable',
                 'error': str(e)
             }
 
-    def get_tone_emoji(self, tone: str) -> str:
-        """Get emoji representation of emotional state/tone."""
+    def get_emotional_state_emoji(self, emotional_state: str) -> str:
+        """Get emoji representation of emotional state."""
         emoji_map = {
-            # Original tone mappings
+            # Communication/Social Tones
             'supportive': '🤝',
             'dismissive': '🙄',
-            'neutral': '😐',
             'aggressive': '😤',
             'passive': '😶',
             'positive': '😊',
             'negative': '😕',
-            # New emotional state mappings
+            'neutral': '😐',
+            # Emotional Regulation States
             'elevated': '⬆️',
             'intense': '🔥',
             'rapid': '⚡',
@@ -118,9 +126,11 @@ class CommunicationAnalyzer:
             'distracted': '🤔',
             'overwhelmed': '😵‍💫',
             'overly_critical': '👎',
-            'unknown': '❓'
+            # System States
+            'unknown': '❓',
+            'error': '❌'
         }
-        return emoji_map.get(tone.lower(), '💬')
+        return emoji_map.get(emotional_state.lower(), '💬')
 
     def get_social_cue_emoji(self, social_cue: str) -> str:
         """Get emoji for social cue indicators."""
@@ -131,31 +141,33 @@ class CommunicationAnalyzer:
             'too_quiet': '🤐',
             'appropriate': '👍',
             'off_topic': '🔄',
-            'repetitive': '🔁'
+            'repetitive': '🔁',
+            'unknown': '❓',
+            'error': '❌'
         }
         return emoji_map.get(social_cue.lower(), '💬')
 
-    def should_alert(self, tone: str, confidence: float, threshold: float = 0.7) -> bool:
+    def should_alert(self, emotional_state: str, confidence: float, threshold: float = 0.7) -> bool:
         """
-        Determine if emotional state or social cue should trigger an alert.
+        Determine if emotional state should trigger an alert.
         Higher threshold for autism/ADHD coaching to reduce false positives.
 
         Args:
-            tone: detected emotional state or tone
+            emotional_state: detected emotional state
             confidence: confidence level (0-1)
             threshold: minimum confidence to alert (default 0.7 for more conservative alerting)
 
         Returns:
             True if alert should be shown
         """
-        # Alert on elevated states that might indicate emotional dysregulation
-        elevated_states = ['elevated', 'intense', 'rapid', 'overwhelmed']
+        # Alert on emotional regulation concerns
+        emotional_concerns = ['elevated', 'intense', 'rapid', 'overwhelmed']
 
-        # Alert on problematic social patterns
+        # Alert on potentially problematic communication patterns
         social_concerns = ['dismissive', 'aggressive', 'interrupting', 'dominating', 'off_topic', 'repetitive', 'overly_critical']
 
-        concerning_patterns = elevated_states + social_concerns
-        return tone.lower() in concerning_patterns and confidence >= threshold
+        concerning_states = emotional_concerns + social_concerns
+        return emotional_state.lower() in concerning_states and confidence >= threshold
 
     def should_social_cue_alert(self, social_cue: str, confidence: float, threshold: float = 0.7) -> bool:
         """
@@ -185,29 +197,29 @@ class CommunicationAnalyzer:
         if not analyses:
             return {'error': 'No analyses to summarize'}
 
-        # Count tone occurrences
-        tone_counts = {}
+        # Count emotional state occurrences
+        state_counts = {}
         total_confidence = 0
-        all_suggestions = []
+        all_feedback = []
 
         for analysis in analyses:
-            tone = analysis.get('tone', 'unknown')
-            tone_counts[tone] = tone_counts.get(tone, 0) + 1
+            state = analysis.get('emotional_state', 'unknown')
+            state_counts[state] = state_counts.get(state, 0) + 1
             total_confidence += analysis.get('confidence', 0)
 
-            suggestion = analysis.get('suggestions', '')
-            if suggestion and suggestion not in all_suggestions:
-                all_suggestions.append(suggestion)
+            feedback = analysis.get('coaching_feedback', '')
+            if feedback and feedback not in all_feedback:
+                all_feedback.append(feedback)
 
-        # Find dominant tone
-        dominant_tone = max(tone_counts, key=tone_counts.get)
+        # Find dominant emotional state
+        dominant_state = max(state_counts, key=state_counts.get)
         avg_confidence = total_confidence / len(analyses)
 
         return {
-            'dominant_tone': dominant_tone,
-            'tone_distribution': tone_counts,
+            'dominant_emotional_state': dominant_state,
+            'state_distribution': state_counts,
             'average_confidence': avg_confidence,
-            'key_suggestions': all_suggestions[:3],  # Top 3 suggestions
+            'key_feedback': all_feedback[:3],  # Top 3 feedback items
             'total_analyses': len(analyses)
         }
 
@@ -231,12 +243,16 @@ if __name__ == "__main__":
 
         result = analyzer.analyze_tone(text)
 
-        emoji = analyzer.get_tone_emoji(result['tone'])
-        print(f"Tone: {emoji} {result['tone']} (confidence: {result['confidence']:.2f})")
-        print(f"Suggestions: {result['suggestions']}")
+        emoji = analyzer.get_emotional_state_emoji(result['emotional_state'])
+        print(f"Emotional State: {emoji} {result['emotional_state']} (confidence: {result['confidence']:.2f})")
+        print(f"Social Cues: {analyzer.get_social_cue_emoji(result['social_cues'])} {result['social_cues']}")
+        print(f"Coaching: {result['coaching_feedback']}")
 
         if result.get('key_indicators'):
             print(f"Key indicators: {', '.join(result['key_indicators'])}")
 
-        if analyzer.should_alert(result['tone'], result['confidence']):
-            print("⚠️  Alert: Potentially problematic tone detected")
+        if analyzer.should_alert(result['emotional_state'], result['confidence']):
+            print("⚠️  Alert: Potentially concerning emotional state detected")
+
+        if analyzer.should_social_cue_alert(result['social_cues'], result['confidence']):
+            print("⚠️  Social Alert: Concerning social pattern detected")

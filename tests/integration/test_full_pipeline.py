@@ -348,10 +348,10 @@ class TestFullPipeline:
 
         # Analysis should fail gracefully and return error state
         analysis_result = analyzer.analyze_tone(transcription_result['text'])
-        assert analysis_result['tone'] == 'neutral'  # Long enough text should reach error handler
+        assert analysis_result['emotional_state'] == 'error'  # Long enough text should reach error handler
         assert analysis_result['confidence'] == 0.0
         assert analysis_result['error'] == 'parse_error'
-        assert analysis_result['suggestions'] == 'Analysis error'
+        assert analysis_result['coaching_feedback'] == 'Analysis error - could not parse response'
 
         audio_capture.stop_capture()
 
@@ -445,33 +445,33 @@ class TestFullPipeline:
         # Simulate multiple analysis results from a meeting
         analysis_results = [
             {
-                'tone': 'engaged',
+                'emotional_state': 'engaged',
                 'confidence': 0.8,
-                'suggestions': 'Continue as you are',
+                'coaching_feedback': 'Continue as you are',
                 'key_indicators': ['appreciate', 'input']
             },
             {
-                'tone': 'neutral',
+                'emotional_state': 'neutral',
                 'confidence': 0.6,
-                'suggestions': 'Try to be more expressive',
+                'coaching_feedback': 'Try to be more expressive',
                 'key_indicators': ['results', 'data']
             },
             {
-                'tone': 'elevated',
+                'emotional_state': 'elevated',
                 'confidence': 0.9,
-                'suggestions': 'Consider slowing down',
+                'coaching_feedback': 'Consider slowing down',
                 'key_indicators': ['excited', 'quickly']
             },
             {
-                'tone': 'engaged',
+                'emotional_state': 'engaged',
                 'confidence': 0.7,
-                'suggestions': 'Good enthusiasm',
+                'coaching_feedback': 'Good enthusiasm',
                 'key_indicators': ['great', 'idea']
             },
             {
-                'tone': 'dismissive',
+                'emotional_state': 'dismissive',
                 'confidence': 0.8,
-                'suggestions': 'Show more interest',
+                'coaching_feedback': 'Show more interest',
                 'key_indicators': ['whatever', 'fine']
             }
         ]
@@ -479,10 +479,10 @@ class TestFullPipeline:
         summary = analyzer.generate_summary(analysis_results)
 
         # Verify summary structure
-        assert 'dominant_tone' in summary
-        assert 'tone_distribution' in summary
+        assert 'dominant_emotional_state' in summary
+        assert 'state_distribution' in summary
         assert 'average_confidence' in summary
-        assert 'key_suggestions' in summary
+        assert 'key_feedback' in summary
         assert 'total_analyses' in summary
 
         # Verify content
@@ -510,7 +510,7 @@ class TestFullPipeline:
         ]
 
         for tone in tone_types:
-            emoji = analyzer.get_tone_emoji(tone)
+            emoji = analyzer.get_emotional_state_emoji(tone)
             assert emoji is not None
             assert len(emoji) > 0
             assert emoji != ''
@@ -528,5 +528,5 @@ class TestFullPipeline:
             assert emoji != ''
 
         # Test unknown values return default emoji
-        assert analyzer.get_tone_emoji('unknown_tone') == '💬'
+        assert analyzer.get_emotional_state_emoji('unknown_tone') == '💬'
         assert analyzer.get_social_cue_emoji('unknown_cue') == '💬'

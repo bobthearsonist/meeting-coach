@@ -16,6 +16,7 @@ DEVICE = "cpu"  # Options: cpu, cuda
 # Analysis Settings
 OLLAMA_MODEL = "gemma2:2b"  # LLM model for tone analysis
 MIN_WORDS_FOR_ANALYSIS = 15  # Minimum words before analyzing (need sufficient context)
+DEBUG_ANALYSIS = False  # Set to True to see raw LLM responses
 
 # Speaking Pace Thresholds
 PACE_TOO_FAST = 180  # Words per minute

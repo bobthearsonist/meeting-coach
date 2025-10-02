@@ -32,7 +32,7 @@ def demo_color_system():
     for state, description in emotional_states:
         colored_state = colorize_emotional_state(state)
         analyzer = CommunicationAnalyzer()
-        emoji = analyzer.get_tone_emoji(state)
+        emoji = analyzer.get_emotional_state_emoji(state)
         print(f"  {emoji} {colored_state:12} - {description}")
 
     print(f"\n🤝 SOCIAL CUE COLORS:")

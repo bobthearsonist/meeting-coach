@@ -39,21 +39,21 @@ class TestCommunicationAnalyzer:
         """Sample analysis results for testing summary generation."""
         return [
             {
-                'tone': 'engaged',
+                'emotional_state': 'engaged',
                 'confidence': 0.8,
-                'suggestions': 'Continue as you are',
+                'coaching_feedback': 'Continue as you are',
                 'key_indicators': ['appreciate', 'input']
             },
             {
-                'tone': 'neutral',
+                'emotional_state': 'neutral',
                 'confidence': 0.6,
-                'suggestions': 'Try to be more expressive',
+                'coaching_feedback': 'Try to be more expressive',
                 'key_indicators': ['results', 'data']
             },
             {
-                'tone': 'engaged',
+                'emotional_state': 'engaged',
                 'confidence': 0.9,
-                'suggestions': 'Good enthusiasm',
+                'coaching_feedback': 'Good enthusiasm',
                 'key_indicators': ['excited', 'great']
             }
         ]
@@ -85,10 +85,10 @@ class TestCommunicationAnalyzer:
 
         result = mock_analyzer.analyze_tone(short_text)
 
-        assert result['tone'] == 'unknown'
+        assert result['emotional_state'] == 'unknown'
         assert result['confidence'] == 0.0
         assert result['error'] == 'insufficient_text'
-        assert result['suggestions'] == 'Not enough content to analyze'
+        assert result['coaching_feedback'] == 'Not enough content to analyze'
 
     def test_analyze_tone_successful_analysis(self, mock_analyzer):
         """Test successful tone analysis with valid response."""
@@ -113,10 +113,6 @@ class TestCommunicationAnalyzer:
             assert result['confidence'] == 0.8
             assert 'appreciate' in result['key_indicators']
             assert result['coaching_feedback'] == 'Continue as you are'
-
-            # Test backward compatibility
-            assert result['tone'] == result['emotional_state']
-            assert result['suggestions'] == result['coaching_feedback']
 
     def test_analyze_tone_markdown_wrapped_json(self, mock_analyzer):
         """Test parsing JSON response wrapped in markdown code blocks."""
@@ -172,10 +168,10 @@ class TestCommunicationAnalyzer:
             text = "This is a test message with enough words to trigger analysis and reach the error handling code paths successfully."
             result = mock_analyzer.analyze_tone(text)
 
-            assert result['tone'] == 'neutral'
+            assert result['emotional_state'] == 'error'
             assert result['confidence'] == 0.0
             assert result['error'] == 'parse_error'
-            assert result['suggestions'] == 'Analysis error'
+            assert result['coaching_feedback'] == 'Analysis error - could not parse response'
 
             captured = capsys.readouterr()
             assert "Error parsing LLM response" in captured.out
@@ -186,33 +182,33 @@ class TestCommunicationAnalyzer:
             text = "This is a test message with enough words to trigger analysis and reach the error handling code paths successfully."
             result = mock_analyzer.analyze_tone(text)
 
-            assert result['tone'] == 'neutral'
+            assert result['emotional_state'] == 'error'
             assert result['confidence'] == 0.0
             assert 'Ollama API error' in result['error']
-            assert result['suggestions'] == 'Analysis unavailable'
+            assert result['coaching_feedback'] == 'Analysis unavailable'
 
             captured = capsys.readouterr()
             assert "Error during analysis" in captured.out
 
-    def test_get_tone_emoji_known_tones(self, mock_analyzer):
-        """Test emoji mapping for known tones."""
-        assert mock_analyzer.get_tone_emoji('supportive') == '🤝'
-        assert mock_analyzer.get_tone_emoji('dismissive') == '🙄'
-        assert mock_analyzer.get_tone_emoji('neutral') == '😐'
-        assert mock_analyzer.get_tone_emoji('aggressive') == '😤'
-        assert mock_analyzer.get_tone_emoji('elevated') == '⬆️'
-        assert mock_analyzer.get_tone_emoji('calm') == '🧘'
+    def test_get_emotional_state_emoji_known_states(self, mock_analyzer):
+        """Test emoji mapping for known emotional states."""
+        assert mock_analyzer.get_emotional_state_emoji('supportive') == '🤝'
+        assert mock_analyzer.get_emotional_state_emoji('dismissive') == '🙄'
+        assert mock_analyzer.get_emotional_state_emoji('neutral') == '😐'
+        assert mock_analyzer.get_emotional_state_emoji('aggressive') == '😤'
+        assert mock_analyzer.get_emotional_state_emoji('elevated') == '⬆️'
+        assert mock_analyzer.get_emotional_state_emoji('calm') == '🧘'
 
-    def test_get_tone_emoji_case_insensitive(self, mock_analyzer):
+    def test_get_emotional_state_emoji_case_insensitive(self, mock_analyzer):
         """Test emoji mapping is case insensitive."""
-        assert mock_analyzer.get_tone_emoji('SUPPORTIVE') == '🤝'
-        assert mock_analyzer.get_tone_emoji('Dismissive') == '🙄'
-        assert mock_analyzer.get_tone_emoji('ELEVATED') == '⬆️'
+        assert mock_analyzer.get_emotional_state_emoji('SUPPORTIVE') == '🤝'
+        assert mock_analyzer.get_emotional_state_emoji('Dismissive') == '🙄'
+        assert mock_analyzer.get_emotional_state_emoji('ELEVATED') == '⬆️'
 
-    def test_get_tone_emoji_unknown_tone(self, mock_analyzer):
-        """Test emoji mapping for unknown tones returns default."""
-        assert mock_analyzer.get_tone_emoji('unknown_tone') == '💬'
-        assert mock_analyzer.get_tone_emoji('') == '💬'
+    def test_get_emotional_state_emoji_unknown_state(self, mock_analyzer):
+        """Test emoji mapping for unknown states returns default."""
+        assert mock_analyzer.get_emotional_state_emoji('unknown_state') == '💬'
+        assert mock_analyzer.get_emotional_state_emoji('') == '💬'
 
     def test_get_social_cue_emoji_known_cues(self, mock_analyzer):
         """Test emoji mapping for known social cues."""
@@ -236,8 +232,8 @@ class TestCommunicationAnalyzer:
         """Test alert logic for social concerns."""
         assert mock_analyzer.should_alert('dismissive', 0.8) == True
         assert mock_analyzer.should_alert('aggressive', 0.9) == True
-        assert mock_analyzer.should_alert('interrupting', 0.7) == True
-        assert mock_analyzer.should_alert('dominating', 0.8) == True
+        # Social cues are now handled by should_social_cue_alert
+        assert mock_analyzer.should_social_cue_alert('interrupting', 0.7) == True
 
     def test_should_alert_low_confidence(self, mock_analyzer):
         """Test alert logic with low confidence scores."""
@@ -283,28 +279,28 @@ class TestCommunicationAnalyzer:
     def test_generate_summary_single_analysis(self, mock_analyzer):
         """Test summary generation with single analysis."""
         analyses = [{
-            'tone': 'engaged',
+            'emotional_state': 'engaged',
             'confidence': 0.8,
-            'suggestions': 'Keep up the good work'
+            'coaching_feedback': 'Keep up the good work'
         }]
 
         result = mock_analyzer.generate_summary(analyses)
 
-        assert result['dominant_tone'] == 'engaged'
-        assert result['tone_distribution'] == {'engaged': 1}
+        assert result['dominant_emotional_state'] == 'engaged'
+        assert result['state_distribution'] == {'engaged': 1}
         assert result['average_confidence'] == 0.8
-        assert 'Keep up the good work' in result['key_suggestions']
+        assert 'Keep up the good work' in result['key_feedback']
         assert result['total_analyses'] == 1
 
     def test_generate_summary_multiple_analyses(self, mock_analyzer, sample_analysis_results):
         """Test summary generation with multiple analyses."""
         result = mock_analyzer.generate_summary(sample_analysis_results)
 
-        assert result['dominant_tone'] == 'engaged'  # Most frequent
-        assert result['tone_distribution']['engaged'] == 2
-        assert result['tone_distribution']['neutral'] == 1
+        assert result['dominant_emotional_state'] == 'engaged'  # Most frequent
+        assert result['state_distribution']['engaged'] == 2
+        assert result['state_distribution']['neutral'] == 1
         assert result['average_confidence'] == (0.8 + 0.6 + 0.9) / 3
-        assert len(result['key_suggestions']) <= 3
+        assert len(result['key_feedback']) <= 3
         assert result['total_analyses'] == 3
 
     def test_generate_summary_confidence_calculation(self, mock_analyzer):
@@ -324,19 +320,19 @@ class TestCommunicationAnalyzer:
     def test_generate_summary_duplicate_suggestions(self, mock_analyzer):
         """Test summary generation removes duplicate suggestions."""
         analyses = [
-            {'tone': 'engaged', 'confidence': 0.8, 'suggestions': 'Keep going'},
-            {'tone': 'engaged', 'confidence': 0.7, 'suggestions': 'Keep going'},  # Duplicate
-            {'tone': 'neutral', 'confidence': 0.6, 'suggestions': 'Try harder'}
+            {'emotional_state': 'engaged', 'confidence': 0.8, 'coaching_feedback': 'Keep going'},
+            {'emotional_state': 'engaged', 'confidence': 0.7, 'coaching_feedback': 'Keep going'},  # Duplicate
+            {'emotional_state': 'neutral', 'confidence': 0.6, 'coaching_feedback': 'Try harder'}
         ]
 
         result = mock_analyzer.generate_summary(analyses)
 
         # Should only include unique suggestions
-        assert len(result['key_suggestions']) == 2
-        assert 'Keep going' in result['key_suggestions']
-        assert 'Try harder' in result['key_suggestions']
+        assert len(result['key_feedback']) == 2
+        assert 'Keep going' in result['key_feedback']
+        assert 'Try harder' in result['key_feedback']
 
-    @pytest.mark.parametrize("tone,expected_emoji", [
+    @pytest.mark.parametrize("emotional_state,expected_emoji", [
         ('supportive', '🤝'),
         ('dismissive', '🙄'),
         ('neutral', '😐'),
@@ -346,9 +342,9 @@ class TestCommunicationAnalyzer:
         ('unknown', '❓'),
         ('nonexistent', '💬')
     ])
-    def test_tone_emoji_parametrized(self, mock_analyzer, tone, expected_emoji):
-        """Parametrized test for tone emoji mapping."""
-        assert mock_analyzer.get_tone_emoji(tone) == expected_emoji
+    def test_emotional_state_emoji_parametrized(self, mock_analyzer, emotional_state, expected_emoji):
+        """Parametrized test for emotional state emoji mapping."""
+        assert mock_analyzer.get_emotional_state_emoji(emotional_state) == expected_emoji
 
     @pytest.mark.parametrize("confidence,threshold,expected", [
         (0.8, 0.7, True),   # Above threshold
