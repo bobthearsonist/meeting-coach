@@ -81,6 +81,10 @@ class MeetingCoach:
         self.last_wpm = 0
         self.animation_thread = None
         self.animation_stop_event = threading.Event()
+        
+        # Track speech timing for accurate WPM calculation
+        self.speech_start_time = None
+        self.speech_end_time = None
 
         print(f"✅ RealtimeSTT initialized with model: {config.WHISPER_MODEL}")
 
@@ -88,11 +92,13 @@ class MeetingCoach:
         """Callback when RealtimeSTT starts recording"""
         print("🎤 Recording started...")
         self.is_listening = True
+        self.speech_start_time = time.time()
 
     def _on_recording_stop(self):
         """Callback when RealtimeSTT stops recording"""
         print("🎤 Recording stopped...")
         self.is_listening = False
+        self.speech_end_time = time.time()
 
     def _animation_worker(self):
         """Background thread to update listening animation"""
@@ -123,23 +129,34 @@ class MeetingCoach:
 
         word_count = len(text.split())
 
-        # Calculate speaking pace using RealtimeSTT timing
-        # RealtimeSTT doesn't provide duration directly, so we'll use a reasonable estimation
-        # based on the recording callbacks and typical speech patterns
-
-        # Estimate duration based on word count and typical speaking pace
-        # Use a more realistic estimation: assume the speech took reasonable time
-        estimated_seconds = max(1.0, word_count * 0.4)  # ~0.4 seconds per word (150 WPM)
-        wpm = (word_count / estimated_seconds) * 60 if estimated_seconds > 0 else 0
-
-        # Cap WPM at reasonable limits to avoid display issues
-        wpm = min(max(wpm, 50), 300)  # Between 50-300 WPM
+        # Calculate speaking pace using ACTUAL timing from RealtimeSTT callbacks
+        if self.speech_start_time and self.speech_end_time:
+            actual_duration = self.speech_end_time - self.speech_start_time
+            # Use a minimum duration to avoid division by very small numbers
+            actual_duration = max(actual_duration, 0.1)
+            wpm = (word_count / actual_duration) * 60 if actual_duration > 0 else 0
+            
+            # Apply reasonable bounds to filter out obvious errors
+            wpm = min(max(wpm, 30), 500)  # Between 30-500 WPM (wider range for real data)
+        else:
+            # Fallback to estimation if timing data not available
+            estimated_seconds = max(1.0, word_count * 0.4)  # ~0.4 seconds per word (150 WPM)
+            wpm = (word_count / estimated_seconds) * 60 if estimated_seconds > 0 else 0
+            wpm = min(max(wpm, 50), 300)  # Between 50-300 WPM
+        
         self.last_wpm = wpm
 
-        print(f"🎙️ Detected speech: \"{text[:60]}{'...' if len(text) > 60 else ''}\" ({word_count} words, ~{wpm:.0f} WPM)")
+        print(f"🎙️ Detected speech: \"{text[:60]}{'...' if len(text) > 60 else ''}\" ({word_count} words, ~{wpm:.1f} WPM)")
+        
+        # Debug timing information
+        if self.speech_start_time and self.speech_end_time:
+            duration = self.speech_end_time - self.speech_start_time
+            print(f"⏱️ Actual speech duration: {duration:.2f}s (real timing)")
+        else:
+            print("⏱️ Using estimated timing (no real duration available)")
 
-        # Update pace feedback
-        pace_feedback = self._get_speaking_pace_feedback(wpm)
+        # Update pace feedback using transcriber's proper method
+        pace_feedback = self._get_speaking_pace_feedback_dict(wpm)
         self.display.update_pace(wpm, pace_feedback)
 
         # Count filler words
@@ -242,6 +259,37 @@ class MeetingCoach:
             return "Perfect pace!"
         else:
             return "Good pace"
+
+    def _get_speaking_pace_feedback_dict(self, wpm: float) -> dict:
+        """Get speaking pace feedback as dictionary (consistent with transcriber method)"""
+        if wpm > config.PACE_TOO_FAST:
+            return {
+                'level': 'too_fast',
+                'category': 'fast',
+                'message': f'Speaking too fast ({wpm:.1f} WPM). Try to slow down.',
+                'icon': '🐇'
+            }
+        elif wpm < config.PACE_TOO_SLOW:
+            return {
+                'level': 'too_slow',
+                'category': 'slow',
+                'message': f'Speaking slowly ({wpm:.1f} WPM). Consider picking up the pace.',
+                'icon': '🐢'
+            }
+        elif config.PACE_IDEAL_MIN <= wpm <= config.PACE_IDEAL_MAX:
+            return {
+                'level': 'ideal',
+                'category': 'good',
+                'message': f'Great pace! ({wpm:.1f} WPM)',
+                'icon': '✅'
+            }
+        else:
+            return {
+                'level': 'normal',
+                'category': 'good',
+                'message': f'Pace: {wpm:.1f} WPM',
+                'icon': '🎯'
+            }
 
     def _count_filler_words(self, text: str) -> dict:
         """Count filler words (replaces transcriber method)"""
