@@ -73,7 +73,7 @@ class CommunicationAnalyzer:
             analysis = json.loads(response_text)
 
             # Ensure all required fields exist with sensible defaults
-            analysis.setdefault('emotional_state', 'calm')
+            analysis.setdefault('emotional_state', 'unknown')
             analysis.setdefault('social_cues', 'appropriate')
             analysis.setdefault('speech_pattern', 'normal')
             analysis.setdefault('confidence', 0.5)
