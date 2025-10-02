@@ -10,11 +10,11 @@ Tests that require real audio files and test        # Verify transcription struc
         assert 'word_count' in result
         assert 'duration' in result
 
-        # Calculate WMP manually since transcribe doesn't return it
+        # Calculate WPM manually since transcribe doesn't return it
         if result['duration'] > 0 and result['word_count'] > 0:
-            wmp = transcriber.calculate_wmp(result['word_count'], result['duration'])
-            assert isinstance(wmp, (int, float))
-            assert wmp >= 0cation functionality
+            wpm = transcriber.calculate_wpm(result['word_count'], result['duration'])
+            assert isinstance(wpm, (int, float))
+            assert wpm >= 0
 """
 import pytest
 import numpy as np
