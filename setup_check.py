@@ -151,7 +151,7 @@ def run_quick_test():
         # Test basic functionality
         test_text = "This is a test of the meeting coach system"
         fillers = transcriber.count_filler_words(test_text)
-        emoji = analyzer.get_tone_emoji('supportive')
+        emoji = analyzer.get_emotional_state_emoji('calm')
         print("   ✅ Basic functionality working")
 
         return True

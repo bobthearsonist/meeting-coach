@@ -65,19 +65,19 @@ class TestMeetingCoachPipeline:
             result = analyzer.analyze_tone(sample['text'])
 
             # Verify analysis structure
-            assert 'tone' in result
+            assert 'emotional_state' in result
             assert 'confidence' in result
-            assert isinstance(result['tone'], str)
+            assert isinstance(result['emotional_state'], str)
             assert isinstance(result['confidence'], float)
 
             # Check that tone matches expected pattern for the text
             expected_tone = sample['expected_tone']
             if expected_tone in ['supportive', 'neutral', 'calm']:
                 # These are positive/neutral tones
-                assert result['tone'] not in ['aggressive', 'hostile']
+                assert result['emotional_state'] not in ['aggressive', 'hostile']
             elif expected_tone == 'aggressive':
                 # This should be detected as concerning
-                assert result['tone'] in ['aggressive', 'elevated', 'intense'] or result['confidence'] < 0.5
+                assert result['emotional_state'] in ['aggressive', 'elevated', 'intense'] or result['confidence'] < 0.5
 
     @pytest.mark.integration
     def test_analysis_to_dashboard_pipeline(self, dashboard_scenarios):
@@ -111,7 +111,7 @@ class TestMeetingCoachPipeline:
         """Test the complete pipeline with mocked Ollama."""
         # Mock Ollama response
         mock_response = {
-            'response': '{"tone": "supportive", "confidence": 0.8, "reasoning": "Positive language"}'
+            'response': '{"emotional_state": "supportive", "confidence": 0.8, "coaching_feedback": "Positive language"}'
         }
         mock_generate.return_value = mock_response
 
@@ -138,13 +138,13 @@ class TestMeetingCoachPipeline:
             confidence=analysis_result['confidence'],
             text=transcription_result['text'],
             coaching='',
-            alert=analyzer.should_alert(analysis_result['tone'], analysis_result['confidence']),
+            alert=analyzer.should_alert(analysis_result['emotional_state'], analysis_result['confidence']),
             wpm=wpm
         )
 
         # Verify end-to-end results
         assert transcription_result['text'] is not None
-        assert analysis_result['tone'] == 'supportive'
+        assert analysis_result['emotional_state'] == 'supportive'
         assert analysis_result['confidence'] == 0.8
         assert dashboard.current_state['confidence'] == 0.8
         assert not dashboard.alert_active  # Supportive tone shouldn't alert

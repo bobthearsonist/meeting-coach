@@ -162,7 +162,7 @@ class MeetingCoach:
             coaching_feedback = tone_analysis.get('coaching_feedback', tone_analysis.get('suggestions', ''))
 
             # Get appropriate emojis
-            emotion_emoji = self.analyzer.get_tone_emoji(emotional_state)
+            emotion_emoji = self.analyzer.get_emotional_state_emoji(emotional_state)
             social_emoji = self.analyzer.get_social_cue_emoji(social_cues)
 
             self.display.update_tone(emotional_state, confidence, emotion_emoji)
