@@ -361,7 +361,7 @@ class TestCommunicationAnalyzer:
     @pytest.mark.unit
     def test_get_tone_emoji_overly_critical(self, mock_analyzer):
         """Test emoji mapping for overly critical tone."""
-        assert mock_analyzer.get_tone_emoji('overly_critical') == '👎'
+        assert mock_analyzer.get_emotional_state_emoji('overly_critical') == '👎'
 
     @pytest.mark.unit
     def test_should_alert_overly_critical(self, mock_analyzer):
@@ -369,10 +369,10 @@ class TestCommunicationAnalyzer:
         # High confidence should trigger alert
         assert mock_analyzer.should_alert('overly_critical', 0.8) == True
         assert mock_analyzer.should_alert('overly_critical', 0.9) == True
-        
+
         # Low confidence should not trigger alert
         assert mock_analyzer.should_alert('overly_critical', 0.6) == False
         assert mock_analyzer.should_alert('overly_critical', 0.5) == False
-        
+
         # Boundary case - exactly at threshold
         assert mock_analyzer.should_alert('overly_critical', 0.7) == True
