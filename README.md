@@ -4,6 +4,27 @@
 
 A powerful real-time meeting feedback system that captures Teams audio, transcribes speech, and provides live coaching on speaking pace, tone, and communication effectiveness.
 
+## 🏗️ Project Structure (Monorepo)
+
+This project is organized as a monorepo with two main components:
+
+```
+teams-meeting-coach/
+├── backend/              # Python console application & analysis engine
+│   ├── main.py          # Console application entry point
+│   ├── analyzer.py      # AI-powered communication analysis
+│   ├── transcriber.py   # Real-time speech-to-text
+│   ├── tests/           # Comprehensive test suite
+│   └── README.md        # Backend documentation
+├── frontend/            # React Native UI (in development)
+│   ├── src/
+│   │   └── components/
+│   └── README.md        # Frontend documentation
+├── docs/                # Shared documentation
+├── Makefile            # Monorepo orchestration
+└── README.md           # This file
+```
+
 ## ✨ Features
 
 - **🎤 Live Audio Capture**: Captures Teams audio via BlackHole virtual audio device
@@ -11,55 +32,65 @@ A powerful real-time meeting feedback system that captures Teams audio, transcri
 - **⏱️ Speaking Pace Analysis**: Monitors words per minute with smart alerts
 - **🎭 Tone Detection**: AI-powered analysis of communication style and sentiment
 - **🔄 Filler Word Tracking**: Counts and reports usage of "um", "uh", "like", etc.
-- **📊 Live Feedback Display**: Clean menu bar app or console interface
+- **📊 Live Feedback Display**: Clean console interface (UI app in development)
 - **🤖 Local AI Processing**: Uses Ollama for private, offline tone analysis
 
 ## 🚀 Quick Start
 
-### Automated Installation (Recommended)
+### Installation
 
 ```bash
+# Clone the repository
 git clone <your-repo>
 cd teams-meeting-coach
-chmod +x install_deps.sh
-./install_deps.sh
+
+# Install both backend and frontend
+make install
+
+# Or install individually
+make backend-install    # Python backend only
+make frontend-install   # React Native frontend only
 ```
 
-This script will:
+The backend installation will:
 - Install BlackHole audio driver
 - Install Ollama and download the LLM model
 - Set up Python virtual environment
 - Install all dependencies
 - Run setup verification
 
-### Manual Installation
+### Usage
 
-1. **Install System Dependencies**
-   ```bash
-   # Install BlackHole audio driver
-   brew install blackhole-2ch
+```bash
+# Run the backend console application
+make backend-dev
 
-   # Install Ollama for AI analysis
-   brew install ollama
-   ```
+# Start frontend development server (when ready)
+make frontend-dev
 
-2. **Set Up Python Environment**
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate
-   pip install -r requirements.txt
-   ```
+# Or run both simultaneously
+make dev
+```
 
-3. **Configure Ollama**
-   ```bash
-   brew services start ollama
-   ollama pull llama3
-   ```
+## 🎮 Backend Console Application
 
-4. **Verify Setup**
-   ```bash
-   python setup_check.py
-   ```
+The Python backend provides a terminal-based interface with real-time feedback:
+
+```bash
+cd backend
+./run_with_venv.sh
+
+# Or use Make
+make backend-dev
+```
+
+See [backend/README.md](backend/README.md) for detailed backend documentation.
+
+## 📱 Frontend UI (In Development)
+
+The React Native frontend is currently a UI mockup showing the planned interface design. Integration with the Python backend is in progress.
+
+See [frontend/README.md](frontend/README.md) for frontend documentation.
 
 ## 🎵 Audio Configuration
 
@@ -77,28 +108,6 @@ This script will:
    - Keep **Microphone** as your preferred mic
 
 This setup allows the coach to "listen" to Teams audio while you still hear everything normally.
-
-## 🎮 Usage
-
-### Menu Bar App (Recommended)
-```bash
-./run_with_venv.sh
-```
-
-### Console Mode
-```bash
-./run_with_venv.sh --console
-```
-
-### Test Audio Setup
-```bash
-./run_with_venv.sh --test-audio
-```
-
-### Test Transcription
-```bash
-./run_with_venv.sh --test-transcription
-```
 
 ## 📊 What You'll See
 
@@ -118,9 +127,85 @@ The coach provides real-time feedback on:
 ### Filler Words
 Real-time tracking of: "um", "uh", "like", "you know", "basically", "actually", "literally"
 
+## 🛠️ Development
+
+### Available Commands
+
+```bash
+# See all available commands
+make help
+
+# Installation
+make install              # Install both backend and frontend
+make backend-install      # Backend only
+make frontend-install     # Frontend only
+
+# Development
+make dev                  # Start both backend and frontend
+make backend-dev          # Run backend console app
+make frontend-dev         # Start frontend Metro bundler
+
+# Testing
+make test                 # Run all tests
+make backend-test         # Backend tests only
+make frontend-test        # Frontend tests only
+make test-fast            # Fast tests (no slow external deps)
+make test-coverage        # Backend tests with coverage
+
+# Code Quality
+make lint                 # Lint all code
+make format               # Format all code
+make backend-lint         # Backend linting
+make frontend-lint        # Frontend linting
+
+# Cleanup
+make clean                # Clean all temporary files
+make backend-clean        # Clean backend files
+make frontend-clean       # Clean frontend files
+
+# Project Info
+make status               # Show project structure and status
+```
+
+### Working with Individual Components
+
+You can also work directly in each component:
+
+```bash
+# Backend (uses Make)
+cd backend
+make test
+make lint
+make format
+
+# Frontend (uses npm)
+cd frontend
+npm start
+npm test
+npm run lint
+```
+
+## 🧪 Testing
+
+Run comprehensive tests:
+
+```bash
+# Run all tests (backend + frontend)
+make test
+
+# Backend tests
+make backend-test
+
+# Fast tests only (useful during development)
+make test-fast
+
+# Tests with coverage report
+make test-coverage
+```
+
 ## ⚙️ Configuration
 
-Edit `config.py` to customize:
+Backend configuration is in `backend/config.py`:
 
 ```python
 # Audio settings
@@ -156,95 +241,23 @@ Pace Analysis  Filler Words  Tone Analysis
     └─────────────┼─────────────┘
                   ↓
             Feedback Display
-         (Menu Bar / Console)
+         (Console / React Native UI)
 ```
-
-## 🧪 Testing
-
-Run comprehensive tests:
-
-```bash
-# Test individual components
-python test_transcription.py
-python test_analyzer.py
-
-# Test complete pipeline
-python test_end_to_end.py
-
-# Verify setup
-python setup_check.py
-```
-
-## 🛠️ Development Setup
-
-This project uses a Python virtual environment and Make for task automation.
-
-### Virtual Environment Configuration
-
-The project includes automatic virtual environment detection through:
-
-- **`.python-version`** - Specifies Python 3.12+ requirement (similar to `.nvmrc` for Node.js)
-- **VS Code settings** (`.vscode/settings.json`) - Automatically activates venv in integrated terminal
-- **Shell scripts** - `run_with_venv.sh` and `run_tests_venv.sh` handle activation
-- **Make targets** - All Python commands automatically use the virtual environment
-
-### Development Commands
-
-Use Make for all development tasks:
-
-```bash
-# Install dependencies
-make install
-
-# Run tests
-make test                # All tests
-make test-unit          # Unit tests only
-make test-integration   # Integration tests only
-make test-fast          # Fast tests (no slow external deps)
-
-# Code quality
-make lint               # Linting
-make format             # Code formatting
-
-# Run demos
-make run-demos          # All demonstration scripts
-```
-
-### Direct Virtual Environment Usage
-
-If you need to run Python commands directly:
-
-```bash
-# Use the convenience scripts
-./run_with_venv.sh python script.py
-./run_tests_venv.sh test_module.py
-
-# Or manually activate
-source venv/bin/activate
-python script.py
-```
-
-### Environment Files
-
-- **`.python-version`** - Python version requirement (for pyenv, VS Code, etc.)
-- **`requirements.txt`** - Python dependencies
-- **`Makefile`** - Development task automation
-- **`.vscode/settings.json`** - VS Code Python configuration
 
 ## 🔧 Troubleshooting
 
 ### No Audio Captured
-- **Check BlackHole**: Run `./run_with_venv.sh --test-audio`
+- **Check BlackHole**: Run `cd backend && ./run_with_venv.sh --test-audio`
 - **Verify Teams Setup**: Ensure Teams speaker is set to Multi-Output Device
 - **Check Permissions**: macOS may require microphone permissions
 
 ### Slow Transcription
-- **Use Smaller Model**: Set `WHISPER_MODEL = "tiny"` in config.py
-- **Increase Chunk Duration**: Set `CHUNK_DURATION = 20` in config.py
+- **Use Smaller Model**: Set `WHISPER_MODEL = "tiny"` in backend/config.py
+- **Increase Chunk Duration**: Set `CHUNK_DURATION = 20`
 - **Use GPU**: Set `DEVICE = "cuda"` if available
 
 ### High CPU Usage
-- **Optimize Whisper**: Set `COMPUTE_TYPE = "int8"` in config.py
+- **Optimize Whisper**: Set `COMPUTE_TYPE = "int8"` in backend/config.py
 - **Reduce Analysis Frequency**: Increase `MIN_WORDS_FOR_ANALYSIS`
 - **Use Smaller LLM**: Try a smaller Ollama model
 
@@ -260,32 +273,6 @@ ollama list
 ollama pull llama3
 ```
 
-### Audio Device Issues
-```bash
-# List all audio devices
-./run_with_venv.sh --test-audio
-
-# Manually set device in config.py
-BLACKHOLE_DEVICE_INDEX = 7  # Use index from test output
-```
-
-## 📁 Project Structure
-
-```
-teams-meeting-coach/
-├── main.py              # Main application entry point
-├── audio_capture.py     # BlackHole audio capture
-├── transcriber.py       # Faster-Whisper integration
-├── analyzer.py          # Ollama tone analysis
-├── feedback_display.py  # Menu bar and console UI
-├── config.py           # Configuration settings
-├── requirements.txt    # Python dependencies
-├── run_with_venv.sh    # Convenient runner script
-├── install_deps.sh     # Automated installation
-├── setup_check.py      # Setup verification
-└── test_*.py          # Test scripts
-```
-
 ## 🔒 Privacy & Security
 
 - **Local Processing**: All analysis runs locally on your machine
@@ -299,6 +286,7 @@ teams-meeting-coach/
 - **Presentation Practice**: Monitor your delivery during practice sessions
 - **Communication Training**: Build awareness of speaking habits
 - **Accessibility**: Real-time transcription for hearing assistance
+- **Neurodivergent Support**: Helpful for ADHD and autism spectrum individuals
 
 ## 🤝 Contributing
 
@@ -306,7 +294,8 @@ teams-meeting-coach/
 2. Create a feature branch
 3. Make your changes
 4. Add tests if applicable
-5. Submit a pull request
+5. Run `make lint` and `make test`
+6. Submit a pull request
 
 ## 📄 License
 
@@ -318,4 +307,4 @@ MIT License - see LICENSE file for details
 - **Ollama**: Local LLM inference
 - **BlackHole**: Virtual audio driver
 - **PyAudio**: Audio I/O library
-- **Rumps**: macOS menu bar apps in Python
+- **React Native**: Cross-platform mobile framework

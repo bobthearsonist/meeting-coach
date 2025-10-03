@@ -1,0 +1,39 @@
+{
+  "name": "meeting-coach-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "React Native frontend for Teams Meeting Coach",
+  "scripts": {
+    "start": "react-native start",
+    "ios": "react-native run-ios",
+    "android": "react-native run-android",
+    "macos": "react-native run-macos",
+    "web": "npx serve -s public -p 3000",
+    "build-web": "npx webpack --mode production",
+    "test": "jest",
+    "lint": "eslint .",
+    "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx}\""
+  },
+  "dependencies": {
+    "react": "18.2.0",
+    "react-native": "0.73.11",
+    "react-native-macos": "0.73.36"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0",
+    "@babel/preset-env": "^7.20.0",
+    "@babel/runtime": "^7.20.0",
+    "@react-native-community/cli": "12.3.6",
+    "@react-native-community/cli-platform-ios": "12.3.6",
+    "@react-native/babel-preset": "0.73.21",
+    "@react-native/eslint-config": "0.73.2",
+    "@react-native/metro-config": "0.73.5",
+    "@react-native/typescript-config": "0.73.1",
+    "eslint": "^8.19.0",
+    "jest": "^29.2.1",
+    "prettier": "^2.8.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
