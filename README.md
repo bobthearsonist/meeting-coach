@@ -310,7 +310,9 @@ teams-meeting-coach/
 
 ## 📄 License
 
-MIT License - see LICENSE file for details
+Apache 2.0 with Commons Clause - see LICENSE file for details.
+
+**Summary**: Free for personal, educational, and internal use. Commercial use (selling the software or offering it as a paid service) requires a separate commercial license.
 
 ## 🙏 Acknowledgments
 
