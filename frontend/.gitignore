@@ -100,3 +100,6 @@ Pods/
 # React Native macOS specific
 ios/build/
 macos/build/
+macos/DerivedData/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
