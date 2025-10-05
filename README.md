@@ -297,6 +297,8 @@ ollama pull llama3
 5. Run `make lint` and `make test`
 6. Submit a pull request
 
+This project follows [Conventional Commits](https://www.conventionalcommits.org/) for commit messages (e.g., `feat:`, `fix:`, `docs:`, `chore:`).
+
 ## 📄 License
 
 MIT License - see LICENSE file for details
