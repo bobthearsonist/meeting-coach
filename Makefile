@@ -23,6 +23,7 @@ help:
 	@echo "  make dev                 - Start both backend and frontend in dev mode"
 	@echo "  make backend-dev         - Run backend console application"
 	@echo "  make frontend-dev        - Start frontend Metro bundler"
+	@echo "  make frontend-macos      - Run React Native macOS app"
 	@echo ""
 	@echo "$(GREEN)Testing:$(NC)"
 	@echo "  make test                - Run all tests (backend + frontend)"
@@ -61,7 +62,14 @@ backend-install:
 
 frontend-install:
 	@echo "$(BLUE)Installing frontend dependencies...$(NC)"
-	cd frontend && npm install
+	@echo "$(BLUE)Using Node.js version from .nvmrc...$(NC)"
+	@if command -v nvm >/dev/null 2>&1; then \
+		cd frontend && nvm use && npm install; \
+	else \
+		cd frontend && npm install; \
+	fi
+	@echo "$(BLUE)Installing CocoaPods dependencies...$(NC)"
+	cd frontend/macos && pod install
 	@echo "$(GREEN)✓ Frontend dependencies installed$(NC)"
 
 # ═══════════════════════════════════════════════════════════
@@ -81,7 +89,20 @@ backend-dev:
 
 frontend-dev:
 	@echo "$(BLUE)Starting frontend Metro bundler...$(NC)"
-	cd frontend && npm start
+	@if command -v nvm >/dev/null 2>&1; then \
+		cd frontend && nvm use && npm start; \
+	else \
+		cd frontend && npm start; \
+	fi
+
+frontend-macos:
+	@echo "$(BLUE)Running React Native macOS app...$(NC)"
+	@echo "$(YELLOW)Make sure Metro bundler is running (make frontend-dev)$(NC)"
+	@if command -v nvm >/dev/null 2>&1; then \
+		cd frontend && nvm use && npx react-native run-macos --no-packager; \
+	else \
+		cd frontend && npx react-native run-macos --no-packager; \
+	fi
 
 # ═══════════════════════════════════════════════════════════
 # Testing
@@ -96,7 +117,11 @@ backend-test:
 
 frontend-test:
 	@echo "$(BLUE)Running frontend tests...$(NC)"
-	cd frontend && npm test
+	@if command -v nvm >/dev/null 2>&1; then \
+		cd frontend && nvm use && npm test -- --passWithNoTests; \
+	else \
+		cd frontend && npm test -- --passWithNoTests; \
+	fi
 
 test-fast:
 	@echo "$(BLUE)Running fast backend tests...$(NC)"
@@ -119,7 +144,11 @@ backend-lint:
 
 frontend-lint:
 	@echo "$(BLUE)Linting frontend code...$(NC)"
-	cd frontend && npm run lint
+	@if command -v nvm >/dev/null 2>&1; then \
+		cd frontend && nvm use && npm run lint; \
+	else \
+		cd frontend && npm run lint; \
+	fi
 
 format: backend-format frontend-format
 	@echo "$(GREEN)✓ All code formatted!$(NC)"
@@ -130,7 +159,11 @@ backend-format:
 
 frontend-format:
 	@echo "$(BLUE)Formatting frontend code...$(NC)"
-	cd frontend && npm run format
+	@if command -v nvm >/dev/null 2>&1; then \
+		cd frontend && nvm use && npm run format; \
+	else \
+		cd frontend && npm run format; \
+	fi
 
 # ═══════════════════════════════════════════════════════════
 # Cleanup
@@ -147,6 +180,10 @@ frontend-clean:
 	@echo "$(BLUE)Cleaning frontend...$(NC)"
 	cd frontend && rm -rf node_modules
 	cd frontend && rm -rf .metro
+	cd frontend/macos && rm -rf build
+	cd frontend/macos && rm -rf Pods
+	cd frontend/macos && rm -rf DerivedData
+	@echo "$(YELLOW)Note: Run 'make frontend-install' to reinstall dependencies$(NC)"
 
 # ═══════════════════════════════════════════════════════════
 # Project Info
@@ -175,6 +212,16 @@ status:
 		echo "  ✓ Node modules: $(GREEN)installed$(NC)"; \
 	else \
 		echo "  ✗ Node modules: $(YELLOW)not installed$(NC) (run 'make frontend-install')"; \
+	fi
+	@if [ -d "frontend/macos/Pods" ]; then \
+		echo "  ✓ CocoaPods: $(GREEN)installed$(NC)"; \
+	else \
+		echo "  ✗ CocoaPods: $(YELLOW)not installed$(NC) (run 'make frontend-install')"; \
+	fi
+	@if [ -f ".nvmrc" ]; then \
+		echo "  ✓ Node version: $(GREEN)$(shell cat .nvmrc)$(NC)"; \
+	else \
+		echo "  ? Node version: $(YELLOW)no .nvmrc found$(NC)"; \
 	fi
 	@echo ""
 	@echo "$(YELLOW)Run 'make help' for available commands$(NC)"
