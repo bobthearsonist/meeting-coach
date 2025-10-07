@@ -4,7 +4,7 @@ Speech-to-text transcription using Faster-Whisper
 from faster_whisper import WhisperModel
 import numpy as np
 from typing import Dict, List
-import config
+from src import config
 import re
 
 

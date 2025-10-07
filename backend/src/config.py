@@ -42,12 +42,12 @@ Focus on objective assessment to help someone with autism and ADHD understand th
 
 Text: "{text}"
 
-Provide a JSON response with:
+Provide a VALID JSON response with properly formatted arrays (use commas between array elements):
 1. emotional_state: "calm", "engaged", "elevated", "intense", "rapid", "distracted", "overwhelmed", or "overly_critical"
 2. social_cues: "appropriate", "interrupting", "dominating", "monotone", "too_quiet", "off_topic", or "repetitive"
 3. speech_pattern: "normal", "rushed", "rambling", "clear", "hesitant", "loud", or "quiet"
 4. confidence: 0.0-1.0 (how certain you are of the assessment)
-5. key_indicators: list of specific words/phrases that support your assessment
+5. key_indicators: array of specific words/phrases (use commas between items: ["word1", "word2"])
 6. coaching_feedback: practical, supportive suggestion if needed (one sentence, or "Continue as you are" if appropriate)
 
 Assessment guidelines:

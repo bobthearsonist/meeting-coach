@@ -8,10 +8,10 @@ from unittest.mock import Mock, patch, MagicMock
 import time
 import json
 
-import config
-from audio_capture import AudioCapture
-from transcriber import Transcriber
-from analyzer import CommunicationAnalyzer
+from src import config
+from src.core.audio_capture import AudioCapture
+from src.core.transcriber import Transcriber
+from src.core.analyzer import CommunicationAnalyzer
 
 
 @pytest.mark.integration
@@ -65,10 +65,10 @@ class TestFullPipeline:
             })
         }
 
-    @patch('audio_capture.pyaudio.PyAudio')
-    @patch('transcriber.WhisperModel')
-    @patch('analyzer.ollama.list')
-    @patch('analyzer.ollama.generate')
+    @patch('src.core.audio_capture.pyaudio.PyAudio')
+    @patch('src.core.transcriber.WhisperModel')
+    @patch('src.core.analyzer.ollama.list')
+    @patch('src.core.analyzer.ollama.generate')
     def test_complete_audio_to_analysis_pipeline(self, mock_ollama_generate, mock_ollama_list,
                                                   mock_whisper_model_class, mock_pyaudio_class,
                                                   mock_audio_data, mock_transcription_response,
@@ -170,10 +170,10 @@ class TestFullPipeline:
 
         audio_capture.stop_capture()
 
-    @patch('audio_capture.pyaudio.PyAudio')
-    @patch('transcriber.WhisperModel')
-    @patch('analyzer.ollama.list')
-    @patch('analyzer.ollama.generate')
+    @patch('src.core.audio_capture.pyaudio.PyAudio')
+    @patch('src.core.transcriber.WhisperModel')
+    @patch('src.core.analyzer.ollama.list')
+    @patch('src.core.analyzer.ollama.generate')
     def test_pipeline_with_concerning_analysis(self, mock_ollama_generate, mock_ollama_list,
                                                mock_whisper_model_class, mock_pyaudio_class,
                                                mock_audio_data):
@@ -271,10 +271,10 @@ class TestFullPipeline:
 
         audio_capture.stop_capture()
 
-    @patch('audio_capture.pyaudio.PyAudio')
-    @patch('transcriber.WhisperModel')
-    @patch('analyzer.ollama.list')
-    @patch('analyzer.ollama.generate')
+    @patch('src.core.audio_capture.pyaudio.PyAudio')
+    @patch('src.core.transcriber.WhisperModel')
+    @patch('src.core.analyzer.ollama.list')
+    @patch('src.core.analyzer.ollama.generate')
     def test_pipeline_error_handling(self, mock_ollama_generate, mock_ollama_list,
                                      mock_whisper_model_class, mock_pyaudio_class,
                                      mock_audio_data):
@@ -355,10 +355,10 @@ class TestFullPipeline:
 
         audio_capture.stop_capture()
 
-    @patch('audio_capture.pyaudio.PyAudio')
-    @patch('transcriber.WhisperModel')
-    @patch('analyzer.ollama.list')
-    @patch('analyzer.ollama.generate')
+    @patch('src.core.audio_capture.pyaudio.PyAudio')
+    @patch('src.core.transcriber.WhisperModel')
+    @patch('src.core.analyzer.ollama.list')
+    @patch('src.core.analyzer.ollama.generate')
     def test_pipeline_performance_timing(self, mock_ollama_generate, mock_ollama_list,
                                           mock_whisper_model_class, mock_pyaudio_class,
                                           mock_audio_data, mock_transcription_response,

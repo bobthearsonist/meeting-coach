@@ -9,8 +9,8 @@ import os
 # Add the project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-from dashboard import LiveDashboard
-from timeline import EmotionalTimeline
+from src.ui.dashboard import LiveDashboard
+from src.ui.timeline import EmotionalTimeline
 
 class TestLiveDashboard:
     """Test cases for LiveDashboard"""
@@ -106,7 +106,7 @@ class TestLiveDashboard:
     @pytest.mark.unit
     def test_activity_formatting_alignment(self, dashboard):
         """Test that activity entries maintain proper column alignment."""
-        from timeline import EmotionalTimeline
+        from src.ui.timeline import EmotionalTimeline
 
         timeline = EmotionalTimeline()
 

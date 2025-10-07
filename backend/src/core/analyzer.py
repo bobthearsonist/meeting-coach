@@ -3,8 +3,28 @@ Communication analysis using local LLM (Ollama)
 """
 import ollama
 import json
+import re
 from typing import Dict, Optional
-import config
+from src import config
+
+
+def fix_malformed_json(text: str) -> str:
+    """
+    Attempt to fix common JSON formatting errors from LLM responses.
+
+    Args:
+        text: Potentially malformed JSON string
+
+    Returns:
+        Fixed JSON string
+    """
+    # Fix missing commas between array elements on different lines
+    text = re.sub(r'"\s*\n\s*"', '",\n    "', text)
+
+    # Fix missing commas between object properties
+    text = re.sub(r'"\s*\n\s*"([a-z_]+)":', '",\n  "\\1":', text)
+
+    return text
 
 
 class CommunicationAnalyzer:
@@ -70,7 +90,19 @@ class CommunicationAnalyzer:
             elif '```' in response_text:
                 response_text = response_text.split('```')[1].split('```')[0].strip()
 
-            analysis = json.loads(response_text)
+            # Try to fix common JSON formatting issues
+            response_text = fix_malformed_json(response_text)
+
+            try:
+                analysis = json.loads(response_text)
+            except json.JSONDecodeError as e:
+                # If still fails, try one more aggressive fix
+                print(f"First parse attempt failed: {e}")
+                print(f"Attempting to fix JSON...")
+
+                # Try to fix trailing commas
+                response_text = re.sub(r',(\s*[}\]])', r'\1', response_text)
+                analysis = json.loads(response_text)
 
             # Ensure all required fields exist with sensible defaults
             analysis.setdefault('emotional_state', 'unknown')

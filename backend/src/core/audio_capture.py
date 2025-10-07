@@ -5,7 +5,7 @@ import pyaudio
 import numpy as np
 import wave
 from typing import Generator, Optional
-import config
+from src import config
 
 
 class AudioCapture:

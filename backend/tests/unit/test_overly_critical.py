@@ -10,7 +10,7 @@ import os
 # Add the project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-from analyzer import CommunicationAnalyzer
+from src.core.analyzer import CommunicationAnalyzer
 
 
 class TestOverlyCriticalDetection:
@@ -101,7 +101,7 @@ class TestOverlyCriticalDetection:
 
     @pytest.mark.unit
     @pytest.mark.requires_ollama
-    @patch('analyzer.ollama.generate')
+    @patch('src.core.analyzer.ollama.generate')
     def test_analyze_overly_critical_patterns(self, mock_generate, analyzer, overly_critical_examples):
         """Test that overly critical patterns are detected correctly."""
 
@@ -131,7 +131,7 @@ class TestOverlyCriticalDetection:
 
     @pytest.mark.unit
     @pytest.mark.requires_ollama
-    @patch('analyzer.ollama.generate')
+    @patch('src.core.analyzer.ollama.generate')
     def test_constructive_criticism_not_flagged(self, mock_generate, analyzer, constructive_criticism_examples):
         """Test that constructive criticism is not flagged as overly critical."""
 

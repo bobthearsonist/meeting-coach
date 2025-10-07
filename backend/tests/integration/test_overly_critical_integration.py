@@ -10,7 +10,7 @@ import os
 # Add the project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-from analyzer import CommunicationAnalyzer
+from src.core.analyzer import CommunicationAnalyzer
 
 
 class TestOverlyCriticalIntegration:
@@ -42,7 +42,7 @@ class TestOverlyCriticalIntegration:
         ]
 
         # Mock Ollama to simulate realistic overly critical detection
-        with patch('analyzer.ollama.generate') as mock_generate:
+        with patch('src.core.analyzer.ollama.generate') as mock_generate:
             mock_generate.return_value = {
                 'response': json.dumps({
                     "emotional_state": "overly_critical",
@@ -104,7 +104,7 @@ class TestOverlyCriticalIntegration:
 
         # Mock Ollama to simulate constructive feedback detection
         for case in constructive_examples:
-            with patch('analyzer.ollama.generate') as mock_generate:
+            with patch('src.core.analyzer.ollama.generate') as mock_generate:
                 mock_generate.return_value = {
                     'response': json.dumps({
                         "emotional_state": case['expected_state'],
@@ -137,7 +137,7 @@ class TestOverlyCriticalIntegration:
         confidence_levels = [0.9, 0.8, 0.7, 0.6, 0.5]
 
         for confidence in confidence_levels:
-            with patch('analyzer.ollama.generate') as mock_generate:
+            with patch('src.core.analyzer.ollama.generate') as mock_generate:
                 mock_generate.return_value = {
                     'response': json.dumps({
                         "emotional_state": "overly_critical",
