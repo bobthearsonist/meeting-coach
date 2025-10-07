@@ -1,48 +1,54 @@
 """
-Teams Meeting Coach - Main Application (RealtimeSTT Version)
-Provides real-time feedback on speaking pace, tone, and communication style
+Teams Meeting Coach - Main Application (WebSocket Version)
+The backend always runs as a WebSocket server broadcasting updates.
+The console dashboard is now a WebSocket client that displays the updates.
+
+Usage:
+    python main.py              # Starts WebSocket server + integrated engine
+    python console_client.py    # Connect console dashboard (separate terminal)
 """
 import sys
 import time
 import threading
 import argparse
+import warnings
+import logging
+import os
+
+# Suppress ctranslate2 float16 warnings
+os.environ['CT2_VERBOSE'] = '0'
+logging.getLogger('ctranslate2').setLevel(logging.ERROR)
+warnings.filterwarnings('ignore', message='.*float16.*')
+warnings.filterwarnings('ignore', message='.*compute type.*')
+
 from RealtimeSTT import AudioToTextRecorder
-from analyzer import CommunicationAnalyzer
-from feedback_display import FeedbackDisplay, SimpleFeedbackDisplay
-from timeline import EmotionalTimeline
-from colors import Colors, colorize_emotional_state, colorize_social_cue, colorize_alert
-from dashboard import LiveDashboard
-import config
+from src.core.analyzer import CommunicationAnalyzer
+from src.ui.timeline import EmotionalTimeline
+from src.ui.colors import colorize_emotional_state, colorize_social_cue, colorize_alert
+from src.server.ws_server import MeetingCoachWebSocketServer
+from src import config
 
 
 class MeetingCoach:
-    def __init__(self, use_menu_bar: bool = True, device_index: int = None):
+    def __init__(self, ws_server: MeetingCoachWebSocketServer, device_index: int = None):
         """
-        Initialize the Meeting Coach system using RealtimeSTT.
+        Initialize the Meeting Coach system with WebSocket broadcasting.
 
         Args:
-            use_menu_bar: Use menu bar app (True) or console output (False)
+            ws_server: WebSocket server instance for broadcasting updates
             device_index: Specific device index to use (for RealtimeSTT)
         """
-        print("Initializing Teams Meeting Coach with RealtimeSTT...")
+        print("Initializing Teams Meeting Coach WebSocket Engine...")
+
+        # WebSocket server reference
+        self.ws_server = ws_server
+        self.session_start_time = time.time()
 
         # Initialize core components
         self.analyzer = CommunicationAnalyzer()
         self.timeline = EmotionalTimeline(window_minutes=15, max_entries=200)
-        self.dashboard = LiveDashboard()
 
-        # Initialize display
-        if use_menu_bar:
-            try:
-                self.display = FeedbackDisplay()
-            except Exception as e:
-                print(f"Could not initialize menu bar app: {e}")
-                print("Falling back to console display")
-                self.display = SimpleFeedbackDisplay()
-        else:
-            self.display = SimpleFeedbackDisplay()
-
-        # Initialize RealtimeSTT (replaces AudioCapture + Transcriber + threading)
+        # Initialize RealtimeSTT
         print("🎤 Initializing RealtimeSTT recorder...")
         try:
             self.recorder = AudioToTextRecorder(
@@ -79,73 +85,78 @@ class MeetingCoach:
         self.is_running = False
         self.is_listening = False
         self.last_wpm = 0
-        self.animation_thread = None
-        self.animation_stop_event = threading.Event()
 
-        print(f"✅ RealtimeSTT initialized with model: {config.WHISPER_MODEL}")
+        print(f"✅ Meeting Coach initialized with model: {config.WHISPER_MODEL}")
 
     def _on_recording_start(self):
         """Callback when RealtimeSTT starts recording"""
         print("🎤 Recording started...")
         self.is_listening = True
 
+        # Broadcast listening status
+        self.broadcast_update({
+            'type': 'recording_status',
+            'is_listening': True
+        })
+
     def _on_recording_stop(self):
         """Callback when RealtimeSTT stops recording"""
         print("🎤 Recording stopped...")
         self.is_listening = False
 
-    def _animation_worker(self):
-        """Background thread to update listening animation"""
-        while not self.animation_stop_event.wait(1.0):  # Update every 1 second (less aggressive)
-            if self.is_running and self.is_listening:
-                # Only advance animation if we're actively in listening state
-                self.dashboard.set_listening_state(True)  # This advances animation
-                # Update display less frequently to reduce flicker
-                try:
-                    self.dashboard.update_live_display(self.timeline)
-                except Exception as e:
-                    # Ignore display errors in background thread
-                    pass
+        # Broadcast listening status
+        self.broadcast_update({
+            'type': 'recording_status',
+            'is_listening': False
+        })
+
+    def broadcast_update(self, data: dict):
+        """Broadcast update to all connected WebSocket clients"""
+        data['timestamp'] = time.time()
+        self.ws_server.broadcast_sync(data)
 
     def process_speech(self, text: str):
         """
         Process complete speech utterances from RealtimeSTT.
-        This replaces the complex buffering and chunking logic.
+        Broadcasts all updates via WebSocket to connected clients.
 
         Args:
             text: Complete speech utterance detected by RealtimeSTT
         """
         if not text or len(text.strip()) < 3:
-            # Even for short text, update dashboard to show activity
-            self.dashboard.set_listening_state(False)
-            self.dashboard.update_live_display(self.timeline)
             return
 
         word_count = len(text.split())
 
-        # Calculate speaking pace using RealtimeSTT timing
-        # RealtimeSTT doesn't provide duration directly, so we'll use a reasonable estimation
-        # based on the recording callbacks and typical speech patterns
-
-        # Estimate duration based on word count and typical speaking pace
-        # Use a more realistic estimation: assume the speech took reasonable time
+        # Calculate speaking pace
         estimated_seconds = max(1.0, word_count * 0.4)  # ~0.4 seconds per word (150 WPM)
         wpm = (word_count / estimated_seconds) * 60 if estimated_seconds > 0 else 0
-
-        # Cap WPM at reasonable limits to avoid display issues
-        wpm = min(max(wpm, 50), 300)  # Between 50-300 WPM
+        wpm = min(max(wpm, 50), 300)  # Cap between 50-300 WPM
         self.last_wpm = wpm
 
         print(f"🎙️ Detected speech: \"{text[:60]}{'...' if len(text) > 60 else ''}\" ({word_count} words, ~{wpm:.0f} WPM)")
 
-        # Update pace feedback
-        pace_feedback = self._get_speaking_pace_feedback(wpm)
-        self.display.update_pace(wpm, pace_feedback)
-
         # Count filler words
         filler_counts = self._count_filler_words(text)
-        if filler_counts:
-            self.display.update_filler_words(filler_counts)
+
+        # Broadcast transcription immediately
+        self.broadcast_update({
+            'type': 'transcription',
+            'text': text,
+            'wpm': wpm,
+            'word_count': word_count,
+            'filler_counts': filler_counts
+        })
+
+        # Check speaking pace for alerts
+        pace_feedback = self._get_speaking_pace_feedback(wpm)
+        if 'Too' in pace_feedback or 'slow' in pace_feedback.lower():
+            self.broadcast_update({
+                'type': 'alert',
+                'message': pace_feedback,
+                'severity': 'warning',
+                'category': 'pace'
+            })
 
         # Only analyze if we have enough content
         if word_count >= config.MIN_WORDS_FOR_ANALYSIS:
@@ -161,29 +172,11 @@ class MeetingCoach:
             confidence = tone_analysis.get('confidence', 0.0)
             coaching_feedback = tone_analysis.get('coaching_feedback', tone_analysis.get('suggestions', ''))
 
-            # Get appropriate emojis
-            emotion_emoji = self.analyzer.get_emotional_state_emoji(emotional_state)
-            social_emoji = self.analyzer.get_social_cue_emoji(social_cues)
-
-            self.display.update_tone(emotional_state, confidence, emotion_emoji)
-
             # Enhanced alerting for autism/ADHD coaching
             emotional_alert = self.analyzer.should_alert(emotional_state, confidence)
             social_alert = self.analyzer.should_social_cue_alert(social_cues, confidence)
 
-            # Update dashboard with current status
-            self.dashboard.update_current_status(
-                emotional_state=emotional_state,
-                social_cue=social_cues,
-                confidence=confidence,
-                text=text,
-                coaching=coaching_feedback,
-                alert=emotional_alert or social_alert,
-                wpm=wpm,
-                filler_counts=filler_counts
-            )
-
-            # Add to timeline with full text
+            # Add to timeline
             self.timeline.add_entry(
                 emotional_state=emotional_state,
                 social_cue=social_cues,
@@ -192,34 +185,48 @@ class MeetingCoach:
                 alert=emotional_alert or social_alert
             )
 
-            # Create comprehensive feedback object
-            feedback = {
-                'text': text,
-                'tone': emotional_state,
+            # Broadcast emotional state update
+            self.broadcast_update({
+                'type': 'emotion_update',
                 'emotional_state': emotional_state,
-                'social_cues': social_cues,
-                'speech_pattern': speech_pattern,
-                'confidence': confidence,
-                'suggestion': coaching_feedback,
-                'alert': emotional_alert or social_alert,
-                'key_indicators': tone_analysis.get('key_indicators', [])
-            }
-            self.display.add_feedback(feedback)
-        else:
-            # For short utterances, still update dashboard with basic info
-            # AND add to timeline so it shows up in recent activity
-            self.dashboard.update_current_status(
-                emotional_state='neutral',
-                social_cue='appropriate',
-                confidence=0.0,
-                text=text,
-                coaching='',
-                alert=False,
-                wpm=wpm,
-                filler_counts=filler_counts
-            )
+                'confidence': confidence
+            })
 
-            # Add short utterances to timeline too (without LLM analysis)
+            # Broadcast full meeting update
+            self.broadcast_update({
+                'type': 'meeting_update',
+                'emotional_state': emotional_state,
+                'social_cue': social_cues,
+                'confidence': confidence,
+                'wpm': wpm,
+                'text': text,
+                'coaching': coaching_feedback,
+                'alert': emotional_alert or social_alert,
+                'filler_counts': filler_counts,
+                'speech_pattern': speech_pattern
+            })
+
+            # Broadcast alerts if needed
+            if emotional_alert:
+                self.broadcast_update({
+                    'type': 'alert',
+                    'message': f'Emotional state: {emotional_state.upper()} - {coaching_feedback}',
+                    'severity': 'warning',
+                    'category': 'emotional',
+                    'emotional_state': emotional_state
+                })
+
+            if social_alert:
+                self.broadcast_update({
+                    'type': 'alert',
+                    'message': f'Social cue alert: {social_cues}',
+                    'severity': 'warning',
+                    'category': 'social',
+                    'social_cue': social_cues
+                })
+
+        else:
+            # For short utterances, broadcast basic update
             self.timeline.add_entry(
                 emotional_state='neutral',
                 social_cue='appropriate',
@@ -228,9 +235,43 @@ class MeetingCoach:
                 alert=False
             )
 
-        # Always clear listening state and update live dashboard display after processing
-        self.dashboard.set_listening_state(False)
-        self.dashboard.update_live_display(self.timeline)
+            self.broadcast_update({
+                'type': 'meeting_update',
+                'emotional_state': 'neutral',
+                'social_cue': 'appropriate',
+                'confidence': 0.0,
+                'wpm': wpm,
+                'text': text,
+                'coaching': '',
+                'alert': False,
+                'filler_counts': filler_counts
+            })
+
+        # Broadcast timeline summary
+        self._broadcast_timeline_summary()
+
+    def _broadcast_timeline_summary(self):
+        """Broadcast current timeline summary"""
+        summary = self.timeline.get_session_summary()
+        recent_entries = self.timeline.get_recent_entries(10)
+
+        # Convert timeline entries to serializable format
+        timeline_data = []
+        for entry in recent_entries:
+            timeline_data.append({
+                'emotional_state': entry.emotional_state,
+                'social_cue': entry.social_cue,
+                'confidence': entry.confidence,
+                'text': entry.text,
+                'alert': entry.alert,
+                'timestamp': entry.timestamp
+            })
+
+        self.broadcast_update({
+            'type': 'timeline_update',
+            'summary': summary,
+            'recent_entries': timeline_data
+        })
 
     def _get_speaking_pace_feedback(self, wpm: float) -> str:
         """Get speaking pace feedback (replaces transcriber method)"""
@@ -256,44 +297,32 @@ class MeetingCoach:
         return filler_counts
 
     def run(self):
-        """Start the meeting coach using RealtimeSTT."""
-        # Collect initialization information to display
-        initialization_info = {
-            'audio_device': 'RealtimeSTT Auto-Selected',
-            'whisper_model': config.WHISPER_MODEL,
-            'ollama_model': self.analyzer.model
-        }
+        """Start the meeting coach with WebSocket broadcasting."""
+        print("🚀 Starting Meeting Coach WebSocket Engine...")
+        print("🎤 Speak naturally - RealtimeSTT will detect speech automatically")
+        print("📡 Broadcasting updates to all connected clients")
+        print("💡 Open console_client.py in another terminal to see the dashboard")
+        print("🛑 Press Ctrl+C to stop")
 
-        # Initialize the live dashboard with initialization info
-        self.dashboard.initialize_display(initialization_info)
+        # Broadcast session start
+        self.broadcast_update({
+            'type': 'session_status',
+            'status': 'started',
+            'message': 'Meeting coach session started',
+            'config': {
+                'whisper_model': config.WHISPER_MODEL,
+                'ollama_model': self.analyzer.model
+            }
+        })
 
-        # Brief pause to show initialization
-        time.sleep(2)
-
-        self.display.update_status(True)
         self.is_running = True
+        self.session_start_time = time.time()
 
         try:
-            print("🚀 Starting RealtimeSTT audio processing...")
-            print("🎤 Speak naturally - RealtimeSTT will detect speech boundaries automatically")
-            print("🛑 Press Ctrl+C to stop")
-
-            # Start animation thread for dynamic listening indicator
-            self.animation_thread = threading.Thread(target=self._animation_worker, daemon=True)
-            self.animation_thread.start()
-
-            # Show initial dashboard state
-            self.dashboard.update_live_display(self.timeline)
-
-            # Use the correct RealtimeSTT pattern: continuous callback in loop
+            # Use the continuous RealtimeSTT pattern
             while self.is_running:
                 try:
-                    # Set listening state before waiting for speech
-                    self.dashboard.set_listening_state(True)
-                    self.dashboard.update_live_display(self.timeline)
-
-                    # Wait for speech - this blocks until complete speech utterance is detected
-                    # Use the callback pattern
+                    # Wait for speech - blocks until complete speech utterance is detected
                     self.recorder.text(self.process_speech)
 
                     # Brief pause to prevent overwhelming the system
@@ -303,7 +332,11 @@ class MeetingCoach:
                     break
                 except Exception as e:
                     print(f"⚠️ RealtimeSTT error: {e}")
-                    time.sleep(0.5)  # Longer pause on error before retrying
+                    self.broadcast_update({
+                        'type': 'error',
+                        'message': f'Processing error: {str(e)}'
+                    })
+                    time.sleep(0.5)
 
         except KeyboardInterrupt:
             print("\n\n🛑 Stopping Meeting Coach...")
@@ -312,81 +345,57 @@ class MeetingCoach:
             self.cleanup()
 
     def cleanup(self):
-        """Cleanup resources and show session summary."""
+        """Cleanup resources and broadcast session summary."""
         print("🧹 Starting cleanup...")
 
-        # Signal to stop the recording loop
         self.is_running = False
 
-        # Stop animation thread
-        if self.animation_thread and self.animation_thread.is_alive():
-            self.animation_stop_event.set()
-            self.animation_thread.join(timeout=1.0)
-
-        # Clear listening state
-        self.dashboard.set_listening_state(False)
-
-        # RealtimeSTT cleanup - shutdown the recorder
+        # RealtimeSTT cleanup
         try:
             self.recorder.shutdown()
             print("✅ RealtimeSTT shut down")
         except Exception as e:
             print(f"⚠️ Error shutting down RealtimeSTT: {e}")
 
-        self.display.update_status(False)
-
-        # Restore terminal display before printing summary
-        try:
-            self.dashboard.restore_display()
-        except Exception:
-            # Fallback
-            self.dashboard.clear_screen()
-
-        print("="*70)
-        print("📊 FINAL SESSION SUMMARY")
-        print("="*70)
-
-        # Show final timeline
-        self.timeline.display_timeline(minutes=15, width=70)
-
-        # Show session summary
+        # Broadcast final session summary
         summary = self.timeline.get_session_summary()
-        duration_min = summary.get('session_duration_minutes', 0)
+        session_duration = time.time() - self.session_start_time
 
-        print(f"\n🕐 Session Duration: {duration_min:.1f} minutes")
+        self.broadcast_update({
+            'type': 'session_status',
+            'status': 'stopped',
+            'message': 'Meeting coach session ended',
+            'summary': summary,
+            'duration_seconds': session_duration
+        })
+
+        print("="*70)
+        print("� SESSION COMPLETE")
+        print("="*70)
+        print(f"🕐 Duration: {session_duration/60:.1f} minutes")
         print(f"📝 Total Analyses: {summary.get('total_entries', 0)}")
-
+        print(f"🚨 Alerts: {summary.get('alert_count', 0)}")
         if summary.get('dominant_state'):
             dominant = summary['dominant_state']
             dominant_colored = colorize_emotional_state(dominant)
-            print(f"🎯 Dominant State: {dominant_colored}")
-
-        alert_count = summary.get('alert_count', 0)
-        if alert_count > 0:
-            alert_text = colorize_alert(f"{alert_count} coaching alerts", True)
-            print(f"🚨 Alerts: {alert_text}")
-
-        state_dist = summary.get('state_distribution', {})
-        if state_dist:
-            print(f"📈 State Distribution:")
-            for state, count in sorted(state_dist.items(), key=lambda x: x[1], reverse=True):
-                state_colored = colorize_emotional_state(state)
-                percentage = (count / summary['total_entries']) * 100 if summary['total_entries'] > 0 else 0
-                print(f"    {state_colored}: {count} times ({percentage:.1f}%)")
-
-        print("\n" + "="*70)
-        print("🎉 Great work on your emotional awareness during this session! 🧠")
-        print("💡 Review the patterns above to understand your communication style")
+            print(f"� Dominant State: {dominant_colored}")
         print("="*70)
 
 
 def main():
-    """Main entry point"""
-    parser = argparse.ArgumentParser(description="Teams Meeting Coach - Real-time Communication Analysis")
+    """Main entry point - starts WebSocket server with MeetingCoach engine"""
+    parser = argparse.ArgumentParser(description="Teams Meeting Coach - WebSocket Server")
     parser.add_argument(
-        "--console",
-        action="store_true",
-        help="Use console output instead of menu bar"
+        "--host",
+        type=str,
+        default="localhost",
+        help="WebSocket server host (default: localhost)"
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=3001,
+        help="WebSocket server port (default: 3001)"
     )
     parser.add_argument(
         "--device",
@@ -396,13 +405,33 @@ def main():
 
     args = parser.parse_args()
 
-    # Create and run the meeting coach
+    print("🧠 Teams Meeting Coach - WebSocket Server")
+    print("=" * 70)
+    print(f"📡 Starting WebSocket server on ws://{args.host}:{args.port}")
+    print(f"💡 Connect clients with: python -m src.server.console_client --url ws://{args.host}:{args.port}")
+    print("=" * 70)
+
+    # Create WebSocket server
+    ws_server = MeetingCoachWebSocketServer(host=args.host, port=args.port)
+
+    # Create Meeting Coach engine
     coach = MeetingCoach(
-        use_menu_bar=not args.console,
+        ws_server=ws_server,
         device_index=args.device
     )
 
-    coach.run()
+    # Run WebSocket server in background thread
+    server_thread = threading.Thread(target=ws_server.run, daemon=True)
+    server_thread.start()
+
+    # Give server time to start
+    time.sleep(2)
+
+    # Run the meeting coach engine (blocking)
+    try:
+        coach.run()
+    except KeyboardInterrupt:
+        print("\n👋 Goodbye!")
 
 
 if __name__ == "__main__":

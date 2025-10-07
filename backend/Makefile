@@ -1,13 +1,24 @@
 # Makefile for Meeting Coach project
 
-.PHONY: help install test test-unit test-integration test-fast test-coverage clean lint format docs run-demos
+.PHONY: help install test test-unit test-integration test-fast test-coverage clean lint format docs run-demos run-server run-console run run-with-logs stop logs
 
 # Default target
 help:
-	@echo "Teams Meeting Coach - Test Management"
+	@echo "Teams Meeting Coach - Development Commands"
 	@echo ""
-	@echo "Available targets:"
+	@echo "🚀 Quick Start:"
+	@echo "  run                  - Start with dashboard (logs to file)"
+	@echo "  run-server           - Start Meeting Coach engine only"
+	@echo "  run-console          - Start console dashboard only (server must be running)"
+	@echo "  run-with-logs        - Start with separate terminal windows"
+	@echo "  stop                 - Stop background Meeting Coach process"
+	@echo "  logs                 - View Meeting Coach logs in real-time"
+	@echo ""
+	@echo "📦 Installation:"
 	@echo "  install              - Install dependencies"
+	@echo "  install-dev          - Install dev dependencies"
+	@echo ""
+	@echo "🧪 Testing:"
 	@echo "  test                 - Run all tests"
 	@echo "  test-unit            - Run unit tests only"
 	@echo "  test-integration     - Run integration tests only"
@@ -17,19 +28,71 @@ help:
 	@echo "  test-requires-audio  - Run tests that require audio hardware"
 	@echo "  test-real-audio      - Run tests with real audio files"
 	@echo "  test-coverage        - Run tests with coverage reporting"
-	@echo "  run-demos            - Run demonstration scripts"
+	@echo ""
+	@echo "🎨 Development:"
 	@echo "  lint                 - Run code linting"
 	@echo "  format               - Format code"
-	@echo "  check-deps           - Check dependencies and setup"
-	@echo "  create-test-audio    - Create test audio file"
 	@echo "  clean                - Clean up temporary files"
+
+# Python executable (uses root venv)
+PYTHON := $(shell if [ -d "../venv" ]; then echo "../venv/bin/python"; else echo "python3"; fi)
+PIP := $(shell if [ -d "../venv" ]; then echo "../venv/bin/pip"; else echo "pip3"; fi)
 
 # Install dependencies
 install:
-	pip install -r requirements.txt
+	$(PIP) install -r requirements.txt
 
 install-dev: install
-	pip install black flake8 mypy isort
+	$(PIP) install black flake8 mypy isort
+
+# WebSocket Server Commands
+run-server:
+	@echo "🚀 Starting Meeting Coach Engine with WebSocket server on ws://localhost:3001"
+	@echo "Press Ctrl+C to stop"
+	$(PYTHON) main.py
+
+run-console:
+	@echo "🖥️  Starting console client dashboard"
+	@echo "💡 Make sure the server is already running (make run-server)"
+	@echo "Press Ctrl+C to stop"
+	$(PYTHON) -m src.server.console_client
+
+run:
+	@echo "🚀 Starting Teams Meeting Coach"
+	@echo "📝 Server logs will be written to: meeting-coach.log"
+	@echo "📊 Dashboard will appear below..."
+	@echo ""
+	@sleep 1
+	@($(PYTHON) main.py > meeting-coach.log 2>&1 & echo $$! > .meeting-coach.pid; \
+		sleep 3; \
+		$(PYTHON) -m src.server.console_client; \
+		kill $$(cat .meeting-coach.pid) 2>/dev/null || true; \
+		rm -f .meeting-coach.pid)
+
+run-with-logs:
+	@echo "🚀 Starting Teams Meeting Coach"
+	@echo "Server: ws://localhost:3001"
+	@echo ""
+	@echo "Opening two terminal windows:"
+	@echo "1. Meeting Coach Engine + WebSocket Server"
+	@echo "2. Console Client Dashboard"
+	@echo ""
+	@osascript -e 'tell application "Terminal"' \
+		-e 'do script "cd $(PWD) && $(PYTHON) main.py"' \
+		-e 'delay 3' \
+		-e 'do script "cd $(PWD) && $(PYTHON) -m src.server.console_client"' \
+		-e 'end tell'
+	@echo "✅ Terminals opened! Press Ctrl+C in either window to stop both."
+
+stop:
+	@echo "🛑 Stopping Meeting Coach..."
+	@kill $$(cat .meeting-coach.pid) 2>/dev/null || echo "No running instance found"
+	@rm -f .meeting-coach.pid
+	@echo "✅ Stopped"
+
+logs:
+	@echo "📝 Viewing Meeting Coach logs (Ctrl+C to exit)..."
+	@tail -f meeting-coach.log
 
 # Test targets
 test:
@@ -114,41 +177,18 @@ format:
 	@echo "Sorting imports with isort..."
 	isort *.py tests/ demos/ --profile=black
 
-# Setup validation
-check-deps:
-	python setup_check.py
-
 # Create test audio file
 create-test-audio:
-	python main.py --test-audio
+	$(PYTHON) main.py --test-audio
 
 # Debug helpers
 debug-audio:
-	python main.py --select-device
+	$(PYTHON) main.py --select-device
 
 debug-transcription:
-	python main.py --test-transcription
+	$(PYTHON) main.py --test-transcription
 
 # Clean up
-clean:
-	rm -rf .pytest_cache/
-	rm -rf htmlcov/
-	rm -rf __pycache__/
-	rm -rf tests/__pycache__/
-	rm -rf tests/unit/__pycache__/
-	rm -rf tests/integration/__pycache__/
-	rm -rf .coverage
-	find . -name "*.pyc" -delete
-	find . -name "*.pyo" -delete
-
-# Development workflow helpers
-dev-test: test-unit test-fast
-	@echo "✅ Quick development tests completed"
-
-ci-test: install test-coverage lint
-	@echo "✅ Full CI test suite completed"
-
-# Cleanup
 clean:
 	find . -type f -name "*.pyc" -delete
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
@@ -158,6 +198,13 @@ clean:
 	rm -rf .pytest_cache/
 	rm -rf dist/
 	rm -rf build/
+
+# Development workflow helpers
+dev-test: test-unit test-fast
+	@echo "✅ Quick development tests completed"
+
+ci-test: install test-coverage lint
+	@echo "✅ Full CI test suite completed"
 
 # Documentation
 docs:
@@ -172,9 +219,8 @@ setup-dev: dev-install
 	@echo "Development environment setup complete!"
 	@echo "Run 'make test-fast' to verify everything works."
 
-# CI targets
-ci-test:
-	python run_tests.py --fast --coverage
+# CI targets (using first definition from line 182)
+# ci-test: install test-coverage lint (defined above)
 
 ci-full-test:
 	python run_tests.py all --coverage

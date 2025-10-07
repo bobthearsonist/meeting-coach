@@ -10,8 +10,8 @@ import os
 # Add the project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-from transcriber import Transcriber
-import config
+from src.core.transcriber import Transcriber
+from src import config
 
 class TestTranscriber:
     """Test cases for Transcriber"""
@@ -156,7 +156,7 @@ class TestTranscriber:
         assert np.min(processed) >= -1.0
 
     @pytest.mark.unit
-    @patch('transcriber.WhisperModel')
+    @patch('src.core.transcriber.WhisperModel')
     def test_transcribe_with_mock_whisper(self, mock_whisper_model, transcriber, sample_audio_data):
         """Test transcription with mocked Whisper model."""
         # Mock the Whisper model

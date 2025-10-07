@@ -3,9 +3,9 @@ Timeline tracking for emotional states and social cues over time
 """
 import time
 from collections import deque
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from datetime import datetime, timedelta
-from colors import Colors, colorize_emotional_state, get_emotional_state_color
+from src.ui.colors import Colors, colorize_emotional_state, get_emotional_state_color
 
 
 class TimelineEntry:
@@ -46,10 +46,11 @@ class EmotionalTimeline:
         self.start_time = time.time()
 
     def add_entry(self, emotional_state: str, social_cue: str, confidence: float,
-                  text: str = "", alert: bool = False) -> None:
+                  text: str = "", alert: bool = False, timestamp: Optional[float] = None) -> None:
         """Add a new timeline entry"""
+        entry_timestamp = timestamp if timestamp is not None else time.time()
         entry = TimelineEntry(
-            timestamp=time.time(),
+            timestamp=entry_timestamp,
             emotional_state=emotional_state,
             social_cue=social_cue,
             confidence=confidence,
@@ -57,6 +58,28 @@ class EmotionalTimeline:
             alert=alert
         )
         self.entries.append(entry)
+
+    def load_entries(self, serialized_entries: List[Dict[str, Any]]) -> None:
+        """Load timeline entries from serialized data"""
+        self.entries.clear()
+
+        if not serialized_entries:
+            return
+
+        for entry_data in serialized_entries[-self.max_entries:]:
+            entry_timestamp = entry_data.get('timestamp', time.time())
+            self.entries.append(
+                TimelineEntry(
+                    timestamp=entry_timestamp,
+                    emotional_state=entry_data.get('emotional_state', 'unknown'),
+                    social_cue=entry_data.get('social_cue', 'unknown'),
+                    confidence=entry_data.get('confidence', 0.0),
+                    text=entry_data.get('text', ''),
+                    alert=entry_data.get('alert', False)
+                )
+            )
+
+        self.start_time = self.entries[0].timestamp
 
     def get_recent_entries(self, minutes: int = None) -> List[TimelineEntry]:
         """Get entries from the last N minutes"""

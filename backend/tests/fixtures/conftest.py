@@ -4,7 +4,7 @@ Test fixtures and utilities for the meeting coach tests
 import pytest
 import numpy as np
 from typing import Dict, Any
-import config
+from src import config
 
 @pytest.fixture
 def sample_audio_data():

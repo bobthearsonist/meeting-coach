@@ -7,8 +7,8 @@ import json
 from unittest.mock import Mock, patch, MagicMock
 from typing import Dict, Any
 
-import analyzer
-import config
+from src.core import analyzer
+from src import config
 
 
 class TestCommunicationAnalyzer:
@@ -31,7 +31,7 @@ class TestCommunicationAnalyzer:
     @pytest.fixture
     def mock_analyzer(self):
         """Create analyzer instance with mocked Ollama connection."""
-        with patch('analyzer.ollama.list'):
+        with patch('src.core.analyzer.ollama.list'):
             return analyzer.CommunicationAnalyzer(model="test-model")
 
     @pytest.fixture
@@ -60,20 +60,20 @@ class TestCommunicationAnalyzer:
 
     def test_init_with_default_model(self):
         """Test analyzer initialization with default model."""
-        with patch('analyzer.ollama.list'):
+        with patch('src.core.analyzer.ollama.list'):
             analyzer_instance = analyzer.CommunicationAnalyzer()
             assert analyzer_instance.model == config.OLLAMA_MODEL
 
     def test_init_with_custom_model(self):
         """Test analyzer initialization with custom model."""
         custom_model = "custom-test-model"
-        with patch('analyzer.ollama.list'):
+        with patch('src.core.analyzer.ollama.list'):
             analyzer_instance = analyzer.CommunicationAnalyzer(model=custom_model)
             assert analyzer_instance.model == custom_model
 
     def test_init_ollama_connection_error(self, capsys):
         """Test initialization when Ollama is not available."""
-        with patch('analyzer.ollama.list', side_effect=Exception("Connection failed")):
+        with patch('src.core.analyzer.ollama.list', side_effect=Exception("Connection failed")):
             analyzer_instance = analyzer.CommunicationAnalyzer()
             captured = capsys.readouterr()
             assert "Warning: Could not connect to Ollama" in captured.out
@@ -103,7 +103,7 @@ class TestCommunicationAnalyzer:
             })
         }
 
-        with patch('analyzer.ollama.generate', return_value=mock_ollama_response):
+        with patch('src.core.analyzer.ollama.generate', return_value=mock_ollama_response):
             text = "I really appreciate your input on this project. That's a great point you've made and I value your perspective."
             result = mock_analyzer.analyze_tone(text)
 
@@ -129,7 +129,7 @@ class TestCommunicationAnalyzer:
             'response': f"```json\n{json.dumps(json_content)}\n```"
         }
 
-        with patch('analyzer.ollama.generate', return_value=mock_generate_response):
+        with patch('src.core.analyzer.ollama.generate', return_value=mock_generate_response):
             text = "This is a test message with enough words to trigger analysis and reach the JSON parsing code paths successfully."
             result = mock_analyzer.analyze_tone(text)
 
@@ -151,7 +151,7 @@ class TestCommunicationAnalyzer:
             'response': f"```\n{json.dumps(json_content)}\n```"
         }
 
-        with patch('analyzer.ollama.generate', return_value=mock_generate_response):
+        with patch('src.core.analyzer.ollama.generate', return_value=mock_generate_response):
             text = "This is another test message with sufficient content for analysis and reaching the JSON parsing code paths."
             result = mock_analyzer.analyze_tone(text)
 
@@ -164,7 +164,7 @@ class TestCommunicationAnalyzer:
             'response': "Invalid JSON response from LLM"
         }
 
-        with patch('analyzer.ollama.generate', return_value=mock_generate_response):
+        with patch('src.core.analyzer.ollama.generate', return_value=mock_generate_response):
             text = "This is a test message with enough words to trigger analysis and reach the error handling code paths successfully."
             result = mock_analyzer.analyze_tone(text)
 
@@ -178,7 +178,7 @@ class TestCommunicationAnalyzer:
 
     def test_analyze_tone_ollama_exception(self, mock_analyzer, capsys):
         """Test handling of Ollama API exceptions."""
-        with patch('analyzer.ollama.generate', side_effect=Exception("Ollama API error")):
+        with patch('src.core.analyzer.ollama.generate', side_effect=Exception("Ollama API error")):
             text = "This is a test message with enough words to trigger analysis and reach the error handling code paths successfully."
             result = mock_analyzer.analyze_tone(text)
 

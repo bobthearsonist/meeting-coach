@@ -1,27 +1,112 @@
 # Meeting Coach Backend
 
-Python backend and console application for Teams Meeting Coach - real-time emotional monitoring for neurodivergent individuals.
+Real-time communication coach with emotional monitoring and speaking pace feedback for neurodivergent individuals.
+
+## Architecture
+
+**WebSocket-based Client-Server Architecture**
+
+```
+┌─────────────────────────────────────────────────┐
+│         Backend (main.py - Port 8000)           │
+│                                                 │
+│  ┌──────────────┐    ┌──────────────┐         │
+│  │ RealtimeSTT  │ -> │  Analyzer    │         │
+│  │ (Audio)      │    │  (LLM)       │         │
+│  └──────────────┘    └──────────────┘         │
+│         ↓                    ↓                  │
+│  ┌─────────────────────────────────┐          │
+│  │   Timeline & State Tracking     │          │
+│  └─────────────────────────────────┘          │
+│         ↓                                       │
+│  ┌─────────────────────────────────┐          │
+│  │   WebSocket Broadcasting        │          │
+│  └─────────────────────────────────┘          │
+└─────────────────┬───────────────────────────────┘
+                  ↓
+    ┌─────────────┴─────────────┐
+    ↓                           ↓
+┌─────────────┐         ┌──────────────┐
+│Console Client│         │React Native  │
+│(console_     │         │App (frontend)│
+│ client.py)   │         │              │
+└─────────────┘         └──────────────┘
+```
+
+### Key Design Decisions
+
+**WebSocket over HTTP/SSE**
+- Bidirectional real-time communication with <100ms latency
+- Supports multiple simultaneous clients (console + mobile app)
+- Alternative considered: Server-Sent Events (SSE) - rejected due to one-way communication
+
+**Single Engine, Multiple Clients**
+- Eliminates code duplication, single source of truth
+- Backend broadcasts, clients display - clean separation of concerns
+- Before: Dual modes (console vs menu bar) with duplicated rendering logic
+
+**Python with Async/Await**
+- Native async support for WebSocket server + concurrent audio processing
+- `asyncio` for WebSocket, `threading` for RealtimeSTT integration
+
+## Technology Stack
+
+| Component | Technology | Why |
+|-----------|-----------|-----|
+| **Audio Capture** | [RealtimeSTT](https://github.com/KoljaB/RealtimeSTT) | Best-in-class VAD (voice activity detection), automatic speech boundary detection |
+| **LLM Analysis** | Ollama (llama2/mistral) | Privacy-first local LLM, no API costs, works offline |
+| **WebSocket** | `websockets` 15.0.1 | Industry standard for real-time bidirectional communication |
+| **Console UI** | Custom ANSI (colors.py, dashboard.py) | Full control over layout, real-time animations |
+| **Timeline** | Custom state machine | Tracks emotional states over session |
 
 ## Setup
 
 ```bash
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
+# Install dependencies (uses virtual environment automatically)
 make install
+
+# Or manually:
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 ```
+
+### Prerequisites
+
+- Python 3.12+
+- [Ollama](https://ollama.ai) installed and running
+- Microphone access
 
 ## Usage
 
-```bash
-# Run the console application
-python main.py
+### Start Backend Server
 
-# Run with virtual environment helper
-./run_with_venv.sh
+```bash
+cd backend
+python main.py
 ```
+
+This starts:
+- WebSocket server on `ws://localhost:8000`
+- Audio capture from default microphone
+- Real-time transcription & LLM analysis
+- Broadcasting to all connected clients
+
+### Connect Console Client
+
+```bash
+# In another terminal
+cd backend
+python console_client.py
+```
+
+The console client displays real-time updates:
+- Transcription
+- Emotional state (calm, engaged, anxious, etc.)
+- Speaking pace (WPM)
+- Filler word counts (um, uh, like)
+- Coaching feedback
+- Alerts (too fast, too many fillers, etc.)
 
 ## Testing
 
@@ -29,14 +114,131 @@ python main.py
 # Run all tests
 make test
 
-# Run unit tests only
+# Run fast unit tests only (no Ollama/audio hardware)
 make test-unit
-
-# Run fast tests (no slow/external deps)
-make test-fast
 
 # Run with coverage
 make test-coverage
+
+# Format and lint
+make format
+make lint
+```
+
+### Test Organization
+
+- **Unit tests** (`tests/unit/`) - Fast, mocked, no external dependencies
+- **Integration tests** (`tests/integration/`) - End-to-end with real components
+
+### Test Markers
+
+- `@pytest.mark.unit` - Unit tests
+- `@pytest.mark.integration` - Integration tests
+- `@pytest.mark.slow` - Tests > 5 seconds
+- `@pytest.mark.requires_ollama` - Needs Ollama server
+- `@pytest.mark.requires_audio` - Needs audio hardware
+
+### Troubleshooting Tests
+
+**Audio tests failing:**
+- Skip: `pytest tests/ -m "not requires_audio"`
+
+**Ollama tests failing:**
+- Install and start Ollama, pull model: `ollama pull llama2`
+- Skip: `pytest tests/ -m "not requires_ollama"`
+
+**Slow execution:**
+- Run fast tests only: `make test-fast`
+
+## WebSocket Protocol
+
+### Server → Client Messages
+
+#### `meeting_update` - Full State Update
+```json
+{
+  "type": "meeting_update",
+  "emotional_state": "calm",
+  "social_cue": "appropriate",
+  "confidence": 0.9,
+  "wpm": 150,
+  "text": "Hello, this is a test",
+  "coaching": "Great pace! Keep it up.",
+  "alert": false,
+  "filler_counts": {"um": 2, "uh": 1},
+  "timestamp": 1696598400.123
+}
+```
+
+#### `transcription` - New Speech Detected
+```json
+{
+  "type": "transcription",
+  "text": "Hello this is what I said",
+  "wpm": 145,
+  "word_count": 5,
+  "timestamp": 1696598401.456
+}
+```
+
+#### `emotion_update` - State Changed
+```json
+{
+  "type": "emotion_update",
+  "emotional_state": "engaged",
+  "confidence": 0.85,
+  "timestamp": 1696598402.789
+}
+```
+
+#### `alert` - Coaching Alert
+```json
+{
+  "type": "alert",
+  "message": "Speaking too fast! Slow down.",
+  "severity": "warning",
+  "category": "pace",
+  "timestamp": 1696598403.012
+}
+```
+
+#### `session_status` - Session Started/Stopped
+```json
+{
+  "type": "session_status",
+  "status": "started",
+  "message": "Session started",
+  "timestamp": 1696598404.345
+}
+```
+
+### Client → Server Messages
+
+```json
+{"type": "start_session", "config": {"model": "base", "language": "en"}}
+{"type": "stop_session"}
+{"type": "ping"}
+```
+
+## Project Structure
+
+```
+backend/
+├── main.py                  # WebSocket server + MeetingCoach engine
+├── ws_server.py            # WebSocket server implementation
+├── console_client.py       # Console WebSocket client
+├── analyzer.py             # LLM emotional analysis
+├── transcriber.py          # RealtimeSTT wrapper
+├── audio_capture.py        # Audio device management
+├── timeline.py             # State tracking over time
+├── dashboard.py            # Console UI rendering
+├── colors.py               # ANSI color constants
+├── config.py               # Configuration constants
+├── tests/                  # Test suite
+│   ├── unit/              # Unit tests
+│   ├── integration/       # Integration tests
+│   └── fixtures/          # Test data
+└── demos/                  # Demo applications
 ```
 
 ## Development
@@ -45,316 +247,12 @@ make test-coverage
 # Install dev dependencies
 make install-dev
 
-# Format code
+# Format code (black, isort)
 make format
 
-# Lint code
+# Lint code (flake8, mypy)
 make lint
 
-# Run demos
-make run-demos
+# See all commands
+make help
 ```
-
-## Available Make Targets
-
-Run `make help` to see all available commands.
-
-## Structure
-
-```
-backend/
-├── analyzer.py              # Communication analysis
-├── audio_capture.py         # Audio input handling
-├── transcriber.py           # Speech-to-text
-├── dashboard.py             # Console UI
-├── main.py                  # Main entry point
-├── tests/                   # Test suite
-└── demos/                   # Demo applications
-```
-
-## Testing Infrastructure
-
-The Teams Meeting Coach backend uses a comprehensive testing infrastructure following Python best practices with pytest.
-
-### Test Structure
-
-```text
-tests/
-├── __init__.py
-├── conftest.py                 # Shared test configuration and fixtures
-├── fixtures/
-│   ├── conftest.py            # Test fixtures and utilities
-│   └── test_capture.wav       # Real audio file for testing
-├── unit/                      # Fast unit tests
-│   ├── __init__.py
-│   ├── test_analyzer.py       # CommunicationAnalyzer tests
-│   ├── test_transcriber.py    # Transcriber tests
-│   └── test_dashboard.py      # Dashboard and timeline tests
-└── integration/               # Slower integration tests
-    ├── __init__.py
-    ├── test_pipeline.py       # End-to-end pipeline tests
-    ├── test_real_audio_integration.py      # Console app integration
-    └── test_real_audio_functionality.py    # Real audio file tests
-```
-
-### Test Categories
-
-#### Unit Tests (`tests/unit/`)
-
-- **Fast execution** (< 1 second each)
-- **No external dependencies** (no Ollama, no audio hardware)
-- **Isolated component testing**
-- Use mocking for external services
-- Test individual functions and classes
-
-#### Integration Tests (`tests/integration/`)
-
-- **End-to-end workflows**
-- **Real component interaction**
-- **External dependency testing**
-- May require Ollama, audio hardware, or real files
-
-### Test Markers
-
-Tests are marked with pytest markers for selective execution:
-
-- `@pytest.mark.unit` - Unit tests
-- `@pytest.mark.integration` - Integration tests
-- `@pytest.mark.slow` - Tests that take > 5 seconds
-- `@pytest.mark.requires_ollama` - Tests needing Ollama server
-- `@pytest.mark.requires_audio` - Tests needing audio hardware
-
-### Running Tests
-
-#### Quick Test Commands
-
-```bash
-# Run all tests
-make test
-
-# Run only fast unit tests
-make test-unit
-
-# Run integration tests
-make test-integration
-
-# Run tests without slow external dependencies
-make test-fast
-```
-
-#### Specific Test Categories
-
-```bash
-# Tests requiring Ollama (will skip if not available)
-make test-requires-ollama
-
-# Tests requiring audio hardware
-make test-requires-audio
-
-# Tests using real audio files
-make test-real-audio
-
-# Test specific components
-make test-analyzer
-make test-transcriber
-make test-dashboard
-```
-
-#### Coverage and Quality
-
-```bash
-# Run tests with coverage report
-make test-coverage
-
-# Run code linting
-make lint
-
-# Format code
-make format
-```
-
-#### Direct pytest Commands
-
-```bash
-# Run specific test file
-pytest tests/unit/test_analyzer.py -v
-
-# Run tests matching pattern
-pytest tests/ -k "test_audio" -v
-
-# Run with specific markers
-pytest tests/ -m "unit and not slow" -v
-
-# Run with coverage
-pytest tests/ --cov=. --cov-report=html
-```
-
-### Test Fixtures
-
-#### Audio Data Fixtures
-
-- `sample_audio_data` - Synthetic audio for testing transcription
-- `sample_transcription_results` - Mock transcription outputs
-- `test_audio_file` - Path to real test audio file
-
-#### Analysis Fixtures
-
-- `communication_analysis_test_cases` - Test cases for tone analysis
-- `dashboard_scenarios` - Dashboard testing scenarios
-- `MockOllamaResponse` - Mock Ollama API responses
-
-#### Configuration Fixtures
-
-- `temp_test_dir` - Temporary directory for test outputs
-- `test_data_dir` - Directory containing test data files
-
-### Real Audio Testing
-
-The project includes tests that use a real audio file (`test_capture.wav`) for more realistic testing:
-
-#### Creating Test Audio
-
-```bash
-# Generate test audio file by recording 5 seconds
-make create-test-audio
-# or
-python main.py --test-audio
-```
-
-#### Audio File Tests
-
-- **Transcription accuracy** with real speech
-- **Filler word detection** on actual recordings
-- **Speaking pace analysis** with real timing
-- **Complete pipeline** from audio → transcription → analysis
-
-### Mocking Strategy
-
-#### External Services
-
-- **Ollama API calls** are mocked in unit tests
-- **Real Ollama testing** available in integration tests with `@pytest.mark.requires_ollama`
-- **Audio hardware** mocked in unit tests, real testing with `@pytest.mark.requires_audio`
-
-#### Example Mock Usage
-
-```python
-@patch('analyzer.ollama.chat')
-def test_analyzer_with_mock_ollama(mock_chat, analyzer):
-    mock_response = {
-        'message': {
-            'content': '{"tone": "supportive", "confidence": 0.8}'
-        }
-    }
-    mock_chat.return_value = mock_response
-
-    result = analyzer.analyze("Test text")
-    assert result['tone'] == 'supportive'
-```
-
-### Test Data Management
-
-#### Synthetic Data
-
-- Generated in test fixtures for consistent, repeatable testing
-- No external dependencies
-- Fast execution
-
-#### Real Data
-
-- `test_capture.wav` for realistic audio testing
-- Optional - tests skip if not available
-- Provides validation against real-world scenarios
-
-### Continuous Integration
-
-#### Development Workflow
-
-```bash
-# Quick tests during development
-make dev-test
-
-# Full CI test suite
-make ci-test
-```
-
-#### Test Selection Strategy
-
-1. **Development**: Run `make test-fast` (< 10 seconds)
-2. **Pre-commit**: Run `make test-unit` (< 30 seconds)
-3. **CI Pipeline**: Run `make test` (full suite)
-4. **Release**: Run `make ci-test` (with coverage)
-
-### Autism/ADHD Specific Testing
-
-The project includes specialized tests for autism and ADHD coaching scenarios:
-
-#### Scenario Testing
-
-- **Elevated/excited states** (ADHD hyperfocus)
-- **Interrupting patterns**
-- **Special interest domination**
-- **Overwhelmed/shutdown responses**
-- **Repetitive speech patterns**
-
-#### Emotion Analysis Accuracy
-
-- **False positive testing** with neutral content
-- **True positive validation** with problematic content
-- **Confidence threshold testing**
-
-### Performance Testing
-
-#### Benchmarks
-
-- **Transcription speed** vs. audio duration
-- **Memory usage** during processing
-- **Response time** for analysis
-
-#### Realistic Testing
-
-- **5-second audio chunks** (typical meeting segments)
-- **Speaking pace analysis** (WPM calculations)
-- **Real-time processing** simulation
-
-### Debugging and Development
-
-#### Debug Helpers
-
-```bash
-# Check audio devices
-make debug-audio
-
-# Test transcription with existing file
-make debug-transcription
-
-# Validate setup
-make check-deps
-```
-
-#### Test Development Tips
-
-1. **Start with unit tests** - Fast feedback loop
-2. **Use fixtures** - Consistent test data
-3. **Mock external dependencies** - Reliable testing
-4. **Add integration tests** - Real-world validation
-5. **Use appropriate markers** - Selective test execution
-
-### Common Issues and Solutions
-
-#### Audio Tests Failing
-- Ensure audio hardware is available: `make debug-audio`
-- Create test audio file: `make create-test-audio`
-- Skip audio tests: `pytest tests/ -m "not requires_audio"`
-
-#### Ollama Tests Failing
-- Install and start Ollama server
-- Configure correct model in `config.py`
-- Skip Ollama tests: `pytest tests/ -m "not requires_ollama"`
-
-#### Slow Test Execution
-- Run only fast tests: `make test-fast`
-- Use specific markers: `pytest tests/ -m "unit"`
-- Check for blocking operations in unit tests
-
-This testing infrastructure ensures reliable, maintainable, and comprehensive test coverage while supporting efficient development workflows.

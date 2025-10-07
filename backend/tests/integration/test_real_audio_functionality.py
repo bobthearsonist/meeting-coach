@@ -25,9 +25,9 @@ import sys
 # Add the project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-from transcriber import Transcriber
-from analyzer import CommunicationAnalyzer
-import config
+from src.core.transcriber import Transcriber
+from src.core.analyzer import CommunicationAnalyzer
+from src import config
 
 class TestWithRealAudio:
     """Tests using the actual test_capture.wav file"""
@@ -254,12 +254,12 @@ class TestApplicationStartup:
     @pytest.mark.integration
     def test_main_components_initialize_with_real_conditions(self):
         """Test that main components can initialize under real conditions."""
-        from audio_capture import AudioCapture
-        from transcriber import Transcriber
-        from analyzer import CommunicationAnalyzer
-        from feedback_display import SimpleFeedbackDisplay
-        from dashboard import LiveDashboard
-        from timeline import EmotionalTimeline
+        from src.core.audio_capture import AudioCapture
+        from src.core.transcriber import Transcriber
+        from src.core.analyzer import CommunicationAnalyzer
+        from src.ui.feedback_display import SimpleFeedbackDisplay
+        from src.ui.dashboard import LiveDashboard
+        from src.ui.timeline import EmotionalTimeline
 
         # These should all initialize without errors
         try:
@@ -288,7 +288,7 @@ class TestApplicationStartup:
     @pytest.mark.requires_audio
     def test_audio_capture_with_real_devices(self):
         """Test audio capture with real audio devices."""
-        from audio_capture import AudioCapture
+        from src.core.audio_capture import AudioCapture
 
         try:
             # Test microphone mode

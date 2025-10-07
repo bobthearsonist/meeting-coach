@@ -13,10 +13,10 @@ import tempfile
 # Add the project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-import config
-from transcriber import Transcriber
-from analyzer import CommunicationAnalyzer
-from audio_capture import AudioCapture
+from src import config
+from src.core.transcriber import Transcriber
+from src.core.analyzer import CommunicationAnalyzer
+from src.core.audio_capture import AudioCapture
 
 class TestRealAudioIntegration:
     """Integration tests using real audio files"""
@@ -111,7 +111,7 @@ class TestConsoleApplication:
 
         assert result.returncode == 0
         assert 'Teams Meeting Coach' in result.stdout
-        assert '--console' in result.stdout
+        assert '--host' in result.stdout or '--port' in result.stdout
         assert '--device' in result.stdout
 
     @pytest.mark.integration
@@ -250,10 +250,10 @@ class TestFullEndToEndPipeline:
     @pytest.mark.slow
     def test_synthetic_audio_pipeline(self):
         """Test complete pipeline with synthetic audio."""
-        from audio_capture import AudioCapture
-        from transcriber import Transcriber
-        from analyzer import CommunicationAnalyzer
-        from feedback_display import SimpleFeedbackDisplay
+        from src.core.audio_capture import AudioCapture
+        from src.core.transcriber import Transcriber
+        from src.core.analyzer import CommunicationAnalyzer
+        from src.ui.feedback_display import SimpleFeedbackDisplay
 
         # Initialize components
         transcriber = Transcriber()
@@ -303,8 +303,8 @@ class TestFullEndToEndPipeline:
     @pytest.mark.integration
     def test_synthetic_text_pipeline(self):
         """Test pipeline with predefined text (no audio transcription)."""
-        from transcriber import Transcriber
-        from analyzer import CommunicationAnalyzer
+        from src.core.transcriber import Transcriber
+        from src.core.analyzer import CommunicationAnalyzer
 
         transcriber = Transcriber()
         analyzer = CommunicationAnalyzer()
@@ -357,7 +357,7 @@ class TestFullEndToEndPipeline:
         are correctly detected. The implementation uses regex with word boundaries
         which properly handles punctuation.
         """
-        from transcriber import Transcriber
+        from src.core.transcriber import Transcriber
 
         transcriber = Transcriber()
 
@@ -385,8 +385,8 @@ class TestVisualInterface:
     @pytest.mark.integration
     def test_color_functionality(self):
         """Test color and emoji functionality."""
-        from colors import colorize_emotional_state, colorize_social_cue, colorize_alert
-        from analyzer import CommunicationAnalyzer
+        from src.ui.colors import colorize_emotional_state, colorize_social_cue, colorize_alert
+        from src.core.analyzer import CommunicationAnalyzer
 
         analyzer = CommunicationAnalyzer()
 
@@ -415,8 +415,8 @@ class TestVisualInterface:
     @pytest.mark.integration
     def test_timeline_functionality(self):
         """Test timeline and dashboard components."""
-        from timeline import EmotionalTimeline
-        from dashboard import LiveDashboard
+        from src.ui.timeline import EmotionalTimeline
+        from src.ui.dashboard import LiveDashboard
 
         timeline = EmotionalTimeline(window_minutes=10)
         dashboard = LiveDashboard()

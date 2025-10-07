@@ -10,11 +10,11 @@ import os
 # Add the project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-from audio_capture import AudioCapture
-from transcriber import Transcriber
-from analyzer import CommunicationAnalyzer
-from dashboard import LiveDashboard
-import config
+from src.core.audio_capture import AudioCapture
+from src.core.transcriber import Transcriber
+from src.core.analyzer import CommunicationAnalyzer
+from src.ui.dashboard import LiveDashboard
+from src import config
 
 class TestMeetingCoachPipeline:
     """Integration tests for the complete pipeline"""
@@ -106,7 +106,7 @@ class TestMeetingCoachPipeline:
 
     @pytest.mark.integration
     @pytest.mark.slow
-    @patch('analyzer.ollama.generate')
+    @patch('src.core.analyzer.ollama.generate')
     def test_complete_pipeline_mock_ollama(self, mock_generate, sample_audio_data):
         """Test the complete pipeline with mocked Ollama."""
         # Mock Ollama response

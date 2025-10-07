@@ -9,8 +9,8 @@ import shutil
 import textwrap
 from typing import Dict, Optional, List
 from datetime import datetime
-from colors import Colors, colorize_emotional_state, colorize_social_cue, colorize_alert
-from timeline import EmotionalTimeline
+from src.ui.colors import Colors, colorize_emotional_state, colorize_social_cue, colorize_alert
+from src.ui.timeline import EmotionalTimeline
 
 
 class LiveDashboard:
@@ -381,7 +381,7 @@ class LiveDashboard:
 
     def _get_state_color(self, state: str) -> str:
         """Get color for emotional state"""
-        from colors import get_emotional_state_color
+        from src.ui.colors import get_emotional_state_color
         return get_emotional_state_color(state)
 
     def update_current_status(self, emotional_state: str, social_cue: str, confidence: float,

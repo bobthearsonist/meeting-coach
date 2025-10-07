@@ -4,7 +4,7 @@ Menu bar app for displaying live feedback
 import rumps
 from typing import Dict, Optional
 from collections import deque
-import config
+from src import config
 
 
 class FeedbackDisplay(rumps.App):
