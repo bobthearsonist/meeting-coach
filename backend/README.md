@@ -138,18 +138,6 @@ make lint
 - `@pytest.mark.requires_ollama` - Needs Ollama server
 - `@pytest.mark.requires_audio` - Needs audio hardware
 
-### Troubleshooting Tests
-
-**Audio tests failing:**
-- Skip: `pytest tests/ -m "not requires_audio"`
-
-**Ollama tests failing:**
-- Install and start Ollama, pull model: `ollama pull llama2`
-- Skip: `pytest tests/ -m "not requires_ollama"`
-
-**Slow execution:**
-- Run fast tests only: `make test-fast`
-
 ## WebSocket Protocol
 
 ### Server → Client Messages
