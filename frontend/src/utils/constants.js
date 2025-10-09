@@ -12,6 +12,22 @@ export const API_CONFIG = {
   RETRY_ATTEMPTS: 3,
 };
 
+// WebSocket configuration
+export const WEBSOCKET = {
+  URL: 'ws://localhost:3001',
+  AUTO_RECONNECT: true,
+  MAX_RECONNECT_ATTEMPTS: 10,
+  BASE_RECONNECT_DELAY_MS: 1000,
+  MAX_RECONNECT_DELAY_MS: 10000,
+  RECONNECT_DELAY_GROWTH_FACTOR: 2,
+  CONNECTION_TIMEOUT_MS: 5000,
+  HEARTBEAT_INTERVAL_MS: 25000,
+  HEARTBEAT_MESSAGE: {
+    type: 'ping',
+  },
+  DEBUG: false,
+};
+
 // Polling intervals (in milliseconds)
 export const POLLING = {
   DASHBOARD_UPDATE: 1000, // Update dashboard every 1 second
@@ -139,4 +155,5 @@ export default {
   STORAGE_KEYS,
   ERROR_MESSAGES,
   SUCCESS_MESSAGES,
+  WEBSOCKET,
 };
