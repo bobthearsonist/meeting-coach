@@ -38,6 +38,7 @@ test_capture.*
 
 # IDE
 .vscode/
+.claude/
 .idea/
 *.swp
 *.swo
