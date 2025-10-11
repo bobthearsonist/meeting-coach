@@ -79,7 +79,12 @@ export default function StatusPanel() {
 
 const styles = StyleSheet.create({
   container: {
+    backgroundColor: theme.colors.background.primary,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.lg,
     marginBottom: theme.spacing.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border.light,
   },
   sectionTitle: {
     fontSize: theme.fontSize.lg,
