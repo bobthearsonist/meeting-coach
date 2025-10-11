@@ -24,3 +24,28 @@ The project automatically handles virtual environment activation through:
 - Python version specification (`.python-version`)
 
 **See the "🛠️ Development Setup" section in README.md for complete details.**
+
+## Frontend Test Structure
+
+**IMPORTANT:** This project uses **colocated tests**, NOT a separate `__tests__` folder.
+
+**Correct test file placement:**
+```
+frontend/src/components/
+  StatusPanel.jsx
+  StatusPanel.test.js          ✅ Correct - colocated with component
+  EmotionalTimeline.jsx
+  EmotionalTimeline.test.js    ✅ Correct - colocated with component
+
+frontend/src/screens/
+  MeetingCoachScreen.jsx
+  MeetingCoachScreen.test.js   ✅ Correct - colocated with screen
+```
+
+**WRONG - Do NOT create:**
+```
+frontend/src/components/__tests__/StatusPanel.test.js  ❌ WRONG
+frontend/src/screens/__tests__/MeetingCoachScreen.test.js  ❌ WRONG
+```
+
+**Pattern:** Test files should be in the SAME directory as the file being tested, with `.test.js` suffix.
