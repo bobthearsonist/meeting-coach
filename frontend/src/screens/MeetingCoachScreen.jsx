@@ -6,7 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
-import theme from '../utils/theme';
+import theme, { commonStyles } from '../utils/theme';
 import useMeetingData from '../hooks/useMeetingData';
 import websocketService, {ConnectionStatus} from '../services/websocketService';
 import StatusPanel from '../components/StatusPanel';
@@ -271,12 +271,7 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
   },
   section: {
-    backgroundColor: theme.colors.background.primary,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border.light,
+    ...commonStyles.section,
   },
   header: {
     flexDirection: 'row',

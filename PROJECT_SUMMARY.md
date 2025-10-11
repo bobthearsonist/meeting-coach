@@ -54,6 +54,7 @@ cd backend && python console_client.py  # Terminal 2
 
 **TODO:**
 
+- Convert `commonStyles.section` to a `<Section>` wrapper component for dynamic theming (dark/light mode support)
 - Add ThemeContext for managing dark/light themes (future enhancement)
 
 ---
@@ -303,12 +304,12 @@ export const MeetingProvider = ({ children }) => {
 // useMeetingData.js - Custom hook for components
 export const useMeetingData = () => {
   const { state, dispatch } = useContext(MeetingContext);
-  
+
   const updateEmotionalState = useCallback(
     (newState) => dispatch({ type: actionTypes.UPDATE_EMOTION, payload: newState }),
     [dispatch]
   );
-  
+
   return { emotionalState: state.emotionalState, updateEmotionalState, ... };
 };
 
