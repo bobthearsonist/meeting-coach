@@ -12,10 +12,13 @@ export const theme = {
     // Emotional states (from backend/colors.py)
     emotional: {
       calm: '#4ade80', // Green - relaxed, comfortable
-      engaged: '#60a5fa', // Blue - focused, interested
+      engaged: '#fbbf24', // Amber - focused, interested (bright yellow in terminal)
       elevated: '#fbbf24', // Amber - energized, excited
       intense: '#fb923c', // Orange - strong emotion
+      rapid: '#d946ef', // Magenta - fast-paced, quick speech
       overwhelmed: '#ef4444', // Red - stressed, overstimulated
+      distracted: '#6b7280', // Gray - unfocused, wandering attention
+      overly_critical: '#dc2626', // Dark red - harsh, judgmental tone
       neutral: '#9ca3af', // Gray - baseline state
       unknown: '#6b7280', // Dark gray - no data
     },
