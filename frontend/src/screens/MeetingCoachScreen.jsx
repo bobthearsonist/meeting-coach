@@ -1,4 +1,18 @@
-import React, { useEffect } from 'react';
+import React, {useEffect} from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+} from 'react-native';
+import theme from '../utils/theme';
+import useMeetingData from '../hooks/useMeetingData';
+import websocketService, {ConnectionStatus} from '../services/websocketService';
+import StatusPanel from '../components/StatusPanel';
+
+/**
+ * MeetingCoachScreen - Main screen for the Meeting Coach application{ useEffect } from 'react';
 import {
   View,
   Text,
@@ -151,62 +165,7 @@ export default function MeetingCoachScreen() {
         </View>
 
         {/* Status Dashboard */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📊 Current Status</Text>
-
-          <View style={styles.statusGrid}>
-            <View style={[styles.statusBox, styles.emotionalState]}>
-              <Text style={styles.statusLabel}>Emotional State</Text>
-              <Text
-                style={[
-                  styles.statusValue,
-                  {
-                    color:
-                      theme.colors.emotional[emotionalState] ||
-                      theme.colors.text.primary,
-                  },
-                ]}
-              >
-                {emotionalState}
-              </Text>
-            </View>
-            <View style={[styles.statusBox, styles.socialCues]}>
-              <Text style={styles.statusLabel}>Social Cues</Text>
-              <Text
-                style={[
-                  styles.statusValue,
-                  { color: theme.colors.social.appropriate },
-                ]}
-              >
-                appropriate
-              </Text>
-            </View>
-            <View style={[styles.statusBox, styles.confidence]}>
-              <Text style={styles.statusLabel}>Confidence</Text>
-              <Text
-                style={[styles.statusValue, { color: theme.colors.confidence }]}
-              >
-                0.9
-              </Text>
-            </View>
-            <View style={[styles.statusBox, styles.speechPace]}>
-              <Text style={styles.statusLabel}>Speech Pace</Text>
-              <Text
-                style={[
-                  styles.statusValue,
-                  { color: theme.colors.status.success },
-                ]}
-              >
-                150<Text style={styles.unit}> WPM</Text>
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.alert}>
-            <Text style={styles.checkMark}>✓</Text>
-            <Text style={styles.alertText}>All good – no alerts</Text>
-          </View>
-        </View>
+        <StatusPanel />
 
         {/* Emotional Timeline */}
         <View style={styles.section}>
@@ -380,67 +339,6 @@ const styles = StyleSheet.create({
     fontWeight: theme.fontWeight.semibold,
     color: theme.colors.text.primary,
     marginBottom: theme.spacing.lg,
-  },
-  statusGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: theme.spacing.lg,
-    marginBottom: theme.spacing.lg,
-  },
-  statusBox: {
-    flex: 1,
-    minWidth: 100,
-    padding: theme.spacing.lg,
-    borderRadius: theme.borderRadius.md,
-    borderLeftWidth: 4,
-  },
-  emotionalState: {
-    backgroundColor: theme.colors.background.calmTint,
-    borderLeftColor: theme.colors.emotional.calm,
-  },
-  socialCues: {
-    backgroundColor: theme.colors.background.engagedTint,
-    borderLeftColor: theme.colors.social.appropriate,
-  },
-  confidence: {
-    backgroundColor: theme.colors.background.confidenceTint,
-    borderLeftColor: theme.colors.confidence,
-  },
-  speechPace: {
-    backgroundColor: theme.colors.background.successTint,
-    borderLeftColor: theme.colors.status.success,
-  },
-  statusLabel: {
-    fontSize: theme.fontSize.xs,
-    fontWeight: theme.fontWeight.medium,
-    color: theme.colors.text.secondary,
-    marginBottom: 4,
-  },
-  statusValue: {
-    fontSize: theme.fontSize.xxl,
-    fontWeight: theme.fontWeight.bold,
-  },
-  unit: {
-    fontSize: theme.fontSize.sm,
-  },
-  alert: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.background.successTint,
-    borderWidth: 1,
-    borderColor: theme.colors.borderTint.success,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
-    gap: theme.spacing.sm,
-  },
-  checkMark: {
-    color: theme.colors.status.success,
-    fontSize: theme.fontSize.xl,
-  },
-  alertText: {
-    fontSize: theme.fontSize.sm,
-    fontWeight: theme.fontWeight.medium,
-    color: theme.colors.status.success,
   },
   timelineHeader: {
     flexDirection: 'row',
