@@ -1,5 +1,11 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+} from 'react-native';
 import theme from '../utils/theme';
 
 /**
@@ -17,6 +23,16 @@ import theme from '../utils/theme';
  * to Context/hooks for real-time WebSocket data.
  */
 export default function MeetingCoachScreen() {
+  const handleSettingsPress = () => {
+    // TODO: Open settings modal/sheet
+    console.log('Settings pressed');
+  };
+
+  const handleHistoryPress = () => {
+    // TODO: Open history modal/sheet
+    console.log('History pressed');
+  };
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.content}>
@@ -34,9 +50,25 @@ export default function MeetingCoachScreen() {
                 </Text>
               </View>
             </View>
-            <View style={styles.recording}>
-              <View style={styles.recordingDot} />
-              <Text style={styles.recordingText}>Recording</Text>
+            <View style={styles.headerRight}>
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={handleHistoryPress}
+                testID="history-button"
+              >
+                <Text style={styles.iconButtonText}>📜</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={handleSettingsPress}
+                testID="settings-button"
+              >
+                <Text style={styles.iconButtonText}>⚙️</Text>
+              </TouchableOpacity>
+              <View style={styles.recording}>
+                <View style={styles.recordingDot} />
+                <Text style={styles.recordingText}>Recording</Text>
+              </View>
             </View>
           </View>
         </View>
@@ -216,6 +248,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: theme.spacing.md,
     flex: 1,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+  },
+  iconButton: {
+    padding: theme.spacing.sm,
+    borderRadius: theme.borderRadius.lg,
+    backgroundColor: theme.colors.background.secondary,
+  },
+  iconButtonText: {
+    fontSize: theme.fontSize.xl,
   },
   emoji: {
     fontSize: theme.fontSize.huge,
