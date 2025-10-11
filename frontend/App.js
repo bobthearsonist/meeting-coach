@@ -1,6 +1,6 @@
 import React from 'react';
-import MeetingCoachUI from './src/components/MeetingCoachUI';
+import MeetingCoachScreen from './src/screens/MeetingCoachScreen';
 
 export default function App() {
-  return <MeetingCoachUI />;
+  return <MeetingCoachScreen />;
 }

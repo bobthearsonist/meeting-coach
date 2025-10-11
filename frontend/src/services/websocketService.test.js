@@ -9,7 +9,7 @@ import {
   getConnectionState,
   ConnectionStatus,
   __reset,
-} from '../websocketService';
+} from './websocketService';
 
 jest.mock('reconnecting-websocket', () => {
   const instances = [];

@@ -12,7 +12,7 @@
 
 **Backend (✅ COMPLETE):** Python WebSocket server with real-time audio transcription (RealtimeSTT), LLM emotional analysis (Ollama llama2), broadcasting engine. Working console client as reference implementation. Files: `backend/main.py` (server), `backend/console_client.py` (client).
 
-**Frontend (🔄 IN PROGRESS):** React Native 0.73.11 project with macOS support. Theme system complete (`frontend/src/utils/theme.js`), constants complete (`frontend/src/utils/constants.js`), WebSocket service layer implemented with `reconnecting-websocket` (`frontend/src/services/websocketService.js` + unit tests), basic UI mockup (`frontend/src/components/MeetingCoachUI.jsx`), ready to carve into dedicated components starting with a coarse-grained screen layout.
+**Frontend (🔄 IN PROGRESS):** React Native 0.73.11 project with macOS support. Theme system complete (`frontend/src/utils/theme.js`), constants complete (`frontend/src/utils/constants.js`), WebSocket service layer implemented with `reconnecting-websocket` (`frontend/src/services/websocketService.js` + unit tests), ✅ **coarse-grained screen layout extracted** (`frontend/src/screens/MeetingCoachScreen.jsx` + tests), ✅ **Jest testing configured** with colocated test pattern, ready to split into focused subcomponents.
 
 **Architecture:**
 
@@ -21,7 +21,8 @@ Python Backend (WebSocket Server: ws://localhost:8000)
     ↓ Real-time JSON messages
 React Native App (Mobile Client)
   ├── WebSocket Service Layer ✅
-  ├── Component Extraction (Coarse → Fine) ← NEXT STEP
+  ├── Screen Layout (Coarse) ✅
+  ├── Component Extraction (Fine-grained) ← NEXT STEP
   ├── Context for State Management
   ├── Custom Hooks for Data Access
   └── UI Components (Real-time Updates)
@@ -29,7 +30,7 @@ React Native App (Mobile Client)
 
 **Learning Goals:** Professional React patterns (service layer, Context API, custom hooks), real-time WebSocket integration, component composition and state management, theme system and design consistency.
 
-**Current Task:** Extract the first standalone UI component by promoting the existing screen markup into `frontend/src/screens/MeetingCoachScreen.jsx`, setting the stage for focused subcomponents and future state wiring.
+**Current Task:** Begin extracting focused subcomponents from `MeetingCoachScreen.jsx` - starting with high-level regions (StatusPanel, EmotionalTimeline, ActivityFeed, SessionStats).
 
 **To Test Backend:**
 
@@ -39,7 +40,17 @@ cd backend && python console_client.py  # Terminal 2
 # Then speak into microphone to see real-time updates
 ```
 
-**Next Step:** Finish the coarse screen extraction, then iterate on splitting out high-level regions (status panel, transcript feed, coaching alerts) before introducing shared state.
+**Next Steps:**
+
+1. Extract StatusPanel component (emotional state, social cues, confidence, speech pace)
+2. Extract EmotionalTimeline component (timeline visualization)
+3. Extract ActivityFeed component (transcript items)
+4. Extract SessionStats component (footer stats)
+5. Wire components to Context/hooks for real-time data
+6. **Add Navigation** (optional learning exercise)
+   - Install React Navigation dependencies
+   - Create AppNavigator with Stack Navigator
+   - Demonstrates navigation pattern for future screens (Settings, History, Onboarding)
 
 ---
 
@@ -113,13 +124,14 @@ This project is designed as a **learning exercise** to understand professional R
 - ✅ Project setup with macOS support
 - ✅ Theme system (`frontend/src/utils/theme.js`) - Centralized design tokens
 - ✅ Constants (`frontend/src/utils/constants.js`) - App-wide configuration
-- ✅ Initial UI mockup (`frontend/src/components/MeetingCoachUI.jsx`)
 - ✅ WebSocket service layer with reconnecting-websocket + Jest tests (`frontend/src/services/websocketService.js`)
+- ✅ Screen extraction (`frontend/src/screens/MeetingCoachScreen.jsx`) - Coarse-grained layout ready for component breakdown
+- ✅ Jest testing setup with React Native preset and colocated test pattern
 
 **Next Steps (Learning Goals):**
 
-- � Component Extraction (coarse screen → focused subcomponents)
-- �🔄 Meeting Context (State Management)
+- 🔄 Component Extraction (split screen → focused subcomponents: StatusPanel, EmotionalTimeline, ActivityFeed, SessionStats)
+- 🔄 Meeting Context (State Management)
 - 🔄 Custom Hooks Pattern
 - 🔄 Real-Time Data Integration
 
@@ -255,11 +267,12 @@ websocketService.disconnect();
 
 **Tasks:**
 
-- Create `frontend/src/screens/MeetingCoachScreen.jsx` as the new top-level screen
-- Migrate existing layout from `MeetingCoachUI.jsx` into the screen component
-- Identify logical sub-sections (StatusPanel, TranscriptFeed, CoachingTips)
-- Gradually extract those sections into focused child components
-- Keep props simple for now; wire data once Context is available
+- ✅ Create `frontend/src/screens/MeetingCoachScreen.jsx` as the new top-level screen
+- ✅ Migrate existing layout from `MeetingCoachUI.jsx` into the screen component
+- ✅ Set up Jest testing with React Native preset and colocated test pattern
+- 🔄 Identify logical sub-sections (StatusPanel, TranscriptFeed, CoachingTips)
+- 🔄 Gradually extract those sections into focused child components
+- 🔄 Keep props simple for now; wire data once Context is available
 
 **Concepts:**
 

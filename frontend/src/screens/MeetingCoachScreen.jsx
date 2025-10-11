@@ -2,7 +2,21 @@ import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import theme from '../utils/theme';
 
-export default function MeetingCoachUI() {
+/**
+ * MeetingCoachScreen - Main screen for the Meeting Coach application
+ *
+ * This is the coarse-grained screen layout that will be progressively refined
+ * into focused subcomponents:
+ * - Header with status indicator
+ * - Status dashboard with emotional state, social cues, confidence, speech pace
+ * - Emotional timeline visualization
+ * - Recent activity feed (transcripts)
+ * - Session stats footer
+ *
+ * Future iterations will extract these into dedicated components and wire them
+ * to Context/hooks for real-time WebSocket data.
+ */
+export default function MeetingCoachScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.content}>
