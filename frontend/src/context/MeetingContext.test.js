@@ -1,7 +1,7 @@
 import React from 'react';
 import { renderHook, act } from '@testing-library/react-native';
 import { MeetingProvider } from './MeetingContext';
-import useMeetingData from './hooks/useMeetingData';
+import useMeetingData from '../hooks/useMeetingData';
 import * as actionTypes from './actionTypes';
 
 describe('MeetingContext', () => {
