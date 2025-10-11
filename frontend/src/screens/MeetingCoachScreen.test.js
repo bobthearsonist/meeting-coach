@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
 import MeetingCoachScreen from './MeetingCoachScreen';
 
 describe('MeetingCoachScreen', () => {
@@ -52,5 +52,30 @@ describe('MeetingCoachScreen', () => {
     const { getByText } = render(<MeetingCoachScreen />);
 
     expect(getByText('All good – no alerts')).toBeTruthy();
+  });
+
+  // Button interaction tests
+  describe('Button Interactions', () => {
+    it('should not throw when settings button is pressed', () => {
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const { getByTestId } = render(<MeetingCoachScreen />);
+
+      const settingsButton = getByTestId('settings-button');
+      expect(() => fireEvent.press(settingsButton)).not.toThrow();
+      expect(consoleSpy).toHaveBeenCalledWith('Settings pressed');
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should not throw when history button is pressed', () => {
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const { getByTestId } = render(<MeetingCoachScreen />);
+
+      const historyButton = getByTestId('history-button');
+      expect(() => fireEvent.press(historyButton)).not.toThrow();
+      expect(consoleSpy).toHaveBeenCalledWith('History pressed');
+
+      consoleSpy.mockRestore();
+    });
   });
 });
