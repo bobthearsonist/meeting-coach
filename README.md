@@ -312,3 +312,6 @@ Apache 2.0 with Commons Clause - see LICENSE file for details.
 - **BlackHole**: Virtual audio driver
 - **PyAudio**: Audio I/O library
 - **React Native**: Cross-platform mobile framework
+---
+
+**For detailed project status, architecture decisions, and next steps, see [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)**

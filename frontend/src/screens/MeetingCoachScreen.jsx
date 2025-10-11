@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import theme from '../utils/theme';
+import useMeetingData from '../hooks/useMeetingData';
+import websocketService, { ConnectionStatus } from '../services/websocketService';
 
 /**
  * MeetingCoachScreen - Main screen for the Meeting Coach application
@@ -19,10 +21,74 @@ import theme from '../utils/theme';
  * - Recent activity feed (transcripts)
  * - Session stats footer
  *
- * Future iterations will extract these into dedicated components and wire them
- * to Context/hooks for real-time WebSocket data.
+ * Now wired to Context/hooks for real-time WebSocket data.
  */
 export default function MeetingCoachScreen() {
+  // Access state and actions from our custom hook
+  const {
+    emotionalState,
+    wpm,
+    isConnected,
+    isSessionActive,
+    isRecording,
+    updateEmotionalState,
+    updateWpm,
+    setConnectionStatus,
+    setSessionStatus,
+    setRecordingStatus,
+  } = useMeetingData();
+
+  // Handle WebSocket connection and subscriptions (replaces componentDidMount/Unmount)
+  useEffect(() => {
+    // Connect to WebSocket server
+    websocketService.connect('ws://localhost:8000').catch((err) => {
+      console.error('Failed to connect to WebSocket:', err);
+    });
+
+    // Subscribe to connection status changes
+    const unsubscribeStatus = websocketService.onStatusChange(({ status }) => {
+      setConnectionStatus(status === ConnectionStatus.OPEN);
+    });
+
+    // Subscribe to meeting updates from backend
+    const unsubscribeMeeting = websocketService.subscribe(
+      'meeting_update',
+      (payload) => {
+        if (payload.emotional_state) {
+          updateEmotionalState(payload.emotional_state);
+        }
+        if (payload.wpm !== undefined) {
+          updateWpm(payload.wpm);
+        }
+      }
+    );
+
+    // Subscribe to session status (session started/stopped)
+    const unsubscribeSession = websocketService.subscribe(
+      'session_status',
+      (payload) => {
+        setSessionStatus(payload.status === 'started');
+      }
+    );
+
+    // Subscribe to recording status (microphone listening state)
+    const unsubscribeRecording = websocketService.subscribe(
+      'recording_status',
+      (payload) => {
+        setRecordingStatus(payload.is_listening === true);
+      }
+    );
+
+    // Cleanup on unmount (replaces componentWillUnmount)
+    return () => {
+      unsubscribeStatus();
+      unsubscribeMeeting();
+      unsubscribeSession();
+      unsubscribeRecording();
+      websocketService.disconnect();
+    };
+  }, []); // Empty dependency array = run once on mount
+
   const handleSettingsPress = () => {
     // TODO: Open settings modal/sheet
     console.log('Settings pressed');
@@ -66,8 +132,19 @@ export default function MeetingCoachScreen() {
                 <Text style={styles.iconButtonText}>⚙️</Text>
               </TouchableOpacity>
               <View style={styles.recording}>
-                <View style={styles.recordingDot} />
-                <Text style={styles.recordingText}>Recording</Text>
+                <View
+                  style={[
+                    styles.recordingDot,
+                    isRecording && styles.recordingDotActive,
+                  ]}
+                />
+                <Text style={styles.recordingText}>
+                  {isRecording
+                    ? 'Recording'
+                    : isConnected
+                    ? 'Connected'
+                    : 'Disconnected'}
+                </Text>
               </View>
             </View>
           </View>
@@ -83,10 +160,14 @@ export default function MeetingCoachScreen() {
               <Text
                 style={[
                   styles.statusValue,
-                  { color: theme.colors.emotional.calm },
+                  {
+                    color:
+                      theme.colors.emotional[emotionalState] ||
+                      theme.colors.text.primary,
+                  },
                 ]}
               >
-                calm
+                {emotionalState}
               </Text>
             </View>
             <View style={[styles.statusBox, styles.socialCues]}>
