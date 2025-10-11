@@ -1,7 +1,7 @@
 import React from 'react';
-import {View, Text, StyleSheet} from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import useMeetingData from '../hooks/useMeetingData';
-import theme from '../utils/theme';
+import theme, { commonStyles } from '../utils/theme';
 
 /**
  * StatusPanel - Displays current meeting status metrics
@@ -15,7 +15,7 @@ import theme from '../utils/theme';
  * Accesses global state via useMeetingData hook.
  */
 export default function StatusPanel() {
-  const {emotionalState, wpm} = useMeetingData();
+  const { emotionalState, wpm } = useMeetingData();
 
   return (
     <View style={styles.container}>
@@ -32,7 +32,8 @@ export default function StatusPanel() {
                   theme.colors.emotional[emotionalState] ||
                   theme.colors.text.primary,
               },
-            ]}>
+            ]}
+          >
             {emotionalState}
           </Text>
         </View>
@@ -42,8 +43,9 @@ export default function StatusPanel() {
           <Text
             style={[
               styles.statusValue,
-              {color: theme.colors.social.appropriate},
-            ]}>
+              { color: theme.colors.social.appropriate },
+            ]}
+          >
             appropriate
           </Text>
         </View>
@@ -51,7 +53,8 @@ export default function StatusPanel() {
         <View style={[styles.statusBox, styles.confidence]}>
           <Text style={styles.statusLabel}>Confidence</Text>
           <Text
-            style={[styles.statusValue, {color: theme.colors.confidence}]}>
+            style={[styles.statusValue, { color: theme.colors.confidence }]}
+          >
             0.9
           </Text>
         </View>
@@ -59,10 +62,8 @@ export default function StatusPanel() {
         <View style={[styles.statusBox, styles.speechPace]}>
           <Text style={styles.statusLabel}>Speech Pace</Text>
           <Text
-            style={[
-              styles.statusValue,
-              {color: theme.colors.status.success},
-            ]}>
+            style={[styles.statusValue, { color: theme.colors.status.success }]}
+          >
             {wpm}
             <Text style={styles.unit}> WPM</Text>
           </Text>
@@ -79,12 +80,7 @@ export default function StatusPanel() {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.background.primary,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border.light,
+    ...commonStyles.section,
   },
   sectionTitle: {
     fontSize: theme.fontSize.lg,

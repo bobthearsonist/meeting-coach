@@ -161,4 +161,25 @@ export const getSocialColor = (cue) => {
   return theme.colors.social[normalizedCue] || theme.colors.social.unknown;
 };
 
+/**
+ * Common style patterns used across components
+ *
+ * LEARNING: Shared style objects reduce duplication and ensure consistency.
+ * Later we can convert these to a wrapper component for dynamic theming (dark mode).
+ */
+export const commonStyles = {
+  /**
+   * Standard section container with border and padding
+   * Used for StatusPanel, EmotionalTimeline, ActivityFeed, etc.
+   */
+  section: {
+    backgroundColor: theme.colors.background.primary,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border.light,
+  },
+};
+
 export default theme;
