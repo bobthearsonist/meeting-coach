@@ -114,69 +114,74 @@ export default function MeetingCoachScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        {/* Header Section */}
-        <View style={styles.section}>
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Text style={styles.emoji}>🧠</Text>
-              <View>
-                <Text style={styles.headerTitle}>
-                  Live Emotional Monitoring
-                </Text>
-                <Text style={styles.headerSubtitle}>
-                  Autism/ADHD Meeting Coach
-                </Text>
+    <View style={styles.container}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <View style={styles.content}>
+          {/* Header Section */}
+          <View style={styles.section}>
+            <View style={styles.header}>
+              <View style={styles.headerLeft}>
+                <Text style={styles.emoji}>🧠</Text>
+                <View>
+                  <Text style={styles.headerTitle}>
+                    Live Emotional Monitoring
+                  </Text>
+                  <Text style={styles.headerSubtitle}>
+                    Autism/ADHD Meeting Coach
+                  </Text>
+                </View>
               </View>
-            </View>
-            <View style={styles.headerRight}>
-              <TouchableOpacity
-                style={styles.iconButton}
-                onPress={handleHistoryPress}
-                testID="history-button"
-              >
-                <Text style={styles.iconButtonText}>📜</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.iconButton}
-                onPress={handleSettingsPress}
-                testID="settings-button"
-              >
-                <Text style={styles.iconButtonText}>⚙️</Text>
-              </TouchableOpacity>
-              <View style={styles.recording}>
-                <View
-                  style={[
-                    styles.recordingDot,
-                    isRecording && styles.recordingDotActive,
-                  ]}
-                />
-                <Text style={styles.recordingText}>
-                  {isRecording
-                    ? 'Recording'
-                    : isConnected
-                    ? 'Connected'
-                    : 'Disconnected'}
-                </Text>
+              <View style={styles.headerRight}>
+                <TouchableOpacity
+                  style={styles.iconButton}
+                  onPress={handleHistoryPress}
+                  testID="history-button"
+                >
+                  <Text style={styles.iconButtonText}>📜</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.iconButton}
+                  onPress={handleSettingsPress}
+                  testID="settings-button"
+                >
+                  <Text style={styles.iconButtonText}>⚙️</Text>
+                </TouchableOpacity>
+                <View style={styles.recording}>
+                  <View
+                    style={[
+                      styles.recordingDot,
+                      isRecording && styles.recordingDotActive,
+                    ]}
+                  />
+                  <Text style={styles.recordingText}>
+                    {isRecording
+                      ? 'Recording'
+                      : isConnected
+                      ? 'Connected'
+                      : 'Disconnected'}
+                  </Text>
+                </View>
               </View>
             </View>
           </View>
+
+          {/* Status Dashboard */}
+          <StatusPanel />
+
+          {/* Emotional Timeline Visualization */}
+          <EmotionalTimeline />
+
+          {/* Recent Activity Feed */}
+          <ActivityFeed />
         </View>
+      </ScrollView>
 
-        {/* Status Dashboard */}
-        <StatusPanel />
-
-        {/* Emotional Timeline Visualization */}
-        <EmotionalTimeline />
-
-        {/* Recent Activity Feed */}
-        <ActivityFeed />
-
-        {/* Session Stats Footer */}
-        <SessionStats />
-      </View>
-    </ScrollView>
+      {/* Session Stats Footer - Floating */}
+      <SessionStats />
+    </View>
   );
 }
 
@@ -184,6 +189,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background.primary,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 140, // Space for floating footer (adjust based on footer height)
   },
   content: {
     flex: 1,

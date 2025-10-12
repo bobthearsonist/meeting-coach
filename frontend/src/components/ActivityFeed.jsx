@@ -34,15 +34,15 @@ export default function ActivityFeed() {
     [],
   );
 
-  // Get recent entries from timeline, limit to last 5
+  // Get recent entries from timeline, limit to last 10
   const recentActivities = useMemo(() => {
     if (!timeline?.recentEntries || timeline.recentEntries.length === 0) {
       return [];
     }
 
-    // Reverse to show newest first, take last 5
+    // Reverse to show newest first, take last 10
     return timeline.recentEntries
-      .slice(-5)
+      .slice(-10)
       .reverse()
       .map((entry, index) => ({
         id: `${entry.timestamp}-${index}`,
