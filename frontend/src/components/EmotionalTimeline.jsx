@@ -1,7 +1,7 @@
-import React, {useMemo} from 'react';
-import {View, Text, StyleSheet} from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import useMeetingData from '../hooks/useMeetingData';
-import theme, {commonStyles} from '../utils/theme';
+import theme, { commonStyles } from '../utils/theme';
 
 /**
  * EmotionalTimeline - Displays emotional state timeline visualization
@@ -16,10 +16,13 @@ import theme, {commonStyles} from '../utils/theme';
  * The timeline bar uses flex properties to show relative duration of each state.
  * Wire to real timeline data from backend via timeline_update WebSocket messages.
  *
+ * SLIDING WINDOW: Filters entries to show only the last 5 minutes of data,
+ * creating a proper sliding time window that moves forward as new data arrives.
+ *
  * Accesses global state via useMeetingData hook.
  */
 export default function EmotionalTimeline() {
-  const {timeline} = useMeetingData();
+  const { timeline } = useMeetingData();
 
   // Emoji mapping for emotional states
   const emojiMap = {
@@ -34,15 +37,29 @@ export default function EmotionalTimeline() {
     unknown: '❓',
   };
 
-  // Calculate time range from recent entries
-  const timeRange = useMemo(() => {
+  // Filter entries to last 5 minutes (sliding window)
+  const windowedEntries = useMemo(() => {
     if (!timeline?.recentEntries || timeline.recentEntries.length === 0) {
-      return 'No data';
+      return [];
     }
 
     const entries = timeline.recentEntries;
-    const oldestTimestamp = entries[0].timestamp;
-    const newestTimestamp = entries[entries.length - 1].timestamp;
+    const latestTimestamp = entries[entries.length - 1].timestamp;
+    const fiveMinutesAgo = latestTimestamp - 5 * 60; // 5 minutes in seconds
+
+    // Filter to only entries within the last 5 minutes
+    return entries.filter((entry) => entry.timestamp >= fiveMinutesAgo);
+  }, [timeline?.recentEntries]);
+
+  // Calculate time range from windowed entries
+  const timeRange = useMemo(() => {
+    if (windowedEntries.length === 0) {
+      return 'No data';
+    }
+
+    const oldestTimestamp = windowedEntries[0].timestamp;
+    const newestTimestamp =
+      windowedEntries[windowedEntries.length - 1].timestamp;
 
     const formatTime = (timestamp) => {
       const date = new Date(timestamp * 1000); // Convert from Unix timestamp
@@ -54,25 +71,49 @@ export default function EmotionalTimeline() {
     };
 
     return `${formatTime(oldestTimestamp)} – ${formatTime(newestTimestamp)}`;
-  }, [timeline?.recentEntries]);
+  }, [windowedEntries]);
 
-  // Get dominant state from summary
-  const dominantState = timeline?.summary?.dominant_state || 'unknown';
-  const averageConfidence = timeline?.summary?.average_confidence || 0.0;
-  const stateDistribution = timeline?.summary?.state_distribution || {};
+  // Calculate dominant state and average confidence from windowed entries
+  const { dominantState, averageConfidence, stateDistribution } =
+    useMemo(() => {
+      if (windowedEntries.length === 0) {
+        return {
+          dominantState: 'unknown',
+          averageConfidence: 0.0,
+          stateDistribution: {},
+        };
+      }
 
-  // Calculate timeline segments based on state distribution
+      // Build state distribution from windowed entries
+      const distribution = {};
+      let totalConfidence = 0;
+
+      windowedEntries.forEach((entry) => {
+        const state = entry.emotional_state || 'neutral';
+        distribution[state] = (distribution[state] || 0) + 1;
+        totalConfidence += entry.confidence || 0;
+      });
+
+      // Find dominant state
+      const dominant = Object.entries(distribution).reduce(
+        (max, [state, count]) => (count > max.count ? { state, count } : max),
+        { state: 'unknown', count: 0 }
+      );
+
+      return {
+        dominantState: dominant.state,
+        averageConfidence: totalConfidence / windowedEntries.length,
+        stateDistribution: distribution,
+      };
+    }, [windowedEntries]);
+
+  // Calculate timeline segments based on state distribution from windowed entries
   const timelineSegments = useMemo(() => {
     if (!stateDistribution || Object.keys(stateDistribution).length === 0) {
       return [
-        {state: 'unknown', flex: 1, color: theme.colors.emotional.neutral},
+        { state: 'unknown', flex: 1, color: theme.colors.emotional.neutral },
       ];
     }
-
-    const totalCount = Object.values(stateDistribution).reduce(
-      (sum, count) => sum + count,
-      0,
-    );
 
     return Object.entries(stateDistribution).map(([state, count]) => ({
       state,
@@ -93,8 +134,8 @@ export default function EmotionalTimeline() {
           <Text style={styles.dominantLabel}>
             Dominant:{' '}
             <Text style={styles.dominantValue}>
-              {emojiMap[dominantState] || '❓'}{' '}
-              {dominantState.toUpperCase()} ({averageConfidence.toFixed(1)})
+              {emojiMap[dominantState] || '❓'} {dominantState.toUpperCase()} (
+              {averageConfidence.toFixed(1)})
             </Text>
           </Text>
         </View>
@@ -106,7 +147,7 @@ export default function EmotionalTimeline() {
               key={`${segment.state}-${index}`}
               style={[
                 styles.timelineSegment,
-                {flex: segment.flex, backgroundColor: segment.color},
+                { flex: segment.flex, backgroundColor: segment.color },
               ]}
             />
           ))}

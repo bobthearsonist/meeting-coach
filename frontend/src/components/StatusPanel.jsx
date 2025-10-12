@@ -44,7 +44,13 @@ export default function StatusPanel() {
 
   // Determine social cue color based on value
   const getSocialCueColor = (cue) => {
-    const concerning = ['interrupting', 'dominating', 'too_quiet', 'off_topic', 'repetitive'];
+    const concerning = [
+      'interrupting',
+      'dominating',
+      'too_quiet',
+      'off_topic',
+      'repetitive',
+    ];
     if (concerning.includes(cue.toLowerCase())) {
       return theme.colors.social.concerning;
     }
@@ -107,7 +113,9 @@ export default function StatusPanel() {
       <View style={styles.alert}>
         <Text style={styles.checkMark}>{alertCount > 0 ? '⚠️' : '✓'}</Text>
         <Text style={styles.alertText}>
-          {alertCount > 0 ? `${alertCount} alert${alertCount > 1 ? 's' : ''}` : 'All good – no alerts'}
+          {alertCount > 0
+            ? `${alertCount} alert${alertCount > 1 ? 's' : ''}`
+            : 'All good – no alerts'}
         </Text>
       </View>
     </View>
