@@ -11,41 +11,8 @@ import {
   __reset,
 } from './websocketService';
 
-jest.mock('reconnecting-websocket', () => {
-  const instances = [];
-
-  const Mock = jest.fn().mockImplementation(() => {
-    const listeners = new Map();
-
-    const socket = {
-      readyState: 0,
-      url: 'ws://localhost:3001',
-      send: jest.fn(),
-      close: jest.fn(),
-      addEventListener: jest.fn((event, handler) => {
-        const handlers = listeners.get(event) ?? new Set();
-        handlers.add(handler);
-        listeners.set(event, handlers);
-      }),
-      removeEventListener: jest.fn((event, handler) => {
-        const handlers = listeners.get(event);
-        handlers?.delete(handler);
-      }),
-      dispatch(event, payload) {
-        const handlers = listeners.get(event);
-        handlers?.forEach((handler) => handler(payload));
-      },
-    };
-
-    instances.push(socket);
-    return socket;
-  });
-
-  Mock.__getInstances = () => instances;
-  Mock.__clearInstances = () => instances.splice(0, instances.length);
-
-  return Mock;
-});
+// Note: ReconnectingWebSocket is mocked globally in jest.setup.js
+// We can use the __getInstances and __clearInstances methods from that mock
 
 const getMockSocket = () => {
   const instances = ReconnectingWebSocket.__getInstances();
