@@ -47,6 +47,13 @@ export const useMeetingData = () => {
     [dispatch]
   );
 
+  const updateTimeline = useCallback(
+    (timelineData) => {
+      dispatch({ type: actionTypes.UPDATE_TIMELINE, payload: timelineData });
+    },
+    [dispatch]
+  );
+
   return {
     emotionalState: state.emotionalState,
     wpm: state.wpm,
@@ -54,12 +61,14 @@ export const useMeetingData = () => {
     isSessionActive: state.isSessionActive,
     isRecording: state.isRecording,
     alerts: state.alerts,
+    timeline: state.timeline,
     updateEmotionalState,
     updateWpm,
     setConnectionStatus,
     setSessionStatus,
     setRecordingStatus,
     addAlert,
+    updateTimeline,
   };
 };
 

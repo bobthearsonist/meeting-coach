@@ -13,19 +13,6 @@ import StatusPanel from '../components/StatusPanel';
 import EmotionalTimeline from '../components/EmotionalTimeline';
 
 /**
- * MeetingCoachScreen - Main screen for the Meeting Coach application{ useEffect } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-} from 'react-native';
-import theme from '../utils/theme';
-import useMeetingData from '../hooks/useMeetingData';
-import websocketService, { ConnectionStatus } from '../services/websocketService';
-
-/**
  * MeetingCoachScreen - Main screen for the Meeting Coach application
  *
  * This is the coarse-grained screen layout that will be progressively refined
@@ -51,6 +38,7 @@ export default function MeetingCoachScreen() {
     setConnectionStatus,
     setSessionStatus,
     setRecordingStatus,
+    updateTimeline,
   } = useMeetingData();
 
   // Handle WebSocket connection and subscriptions (replaces componentDidMount/Unmount)
@@ -94,12 +82,21 @@ export default function MeetingCoachScreen() {
       }
     );
 
+    // Subscribe to timeline updates from backend
+    const unsubscribeTimeline = websocketService.subscribe(
+      'timeline_update',
+      (payload) => {
+        updateTimeline(payload);
+      }
+    );
+
     // Cleanup on unmount (replaces componentWillUnmount)
     return () => {
       unsubscribeStatus();
       unsubscribeMeeting();
       unsubscribeSession();
       unsubscribeRecording();
+      unsubscribeTimeline();
       websocketService.disconnect();
     };
   }, []); // Empty dependency array = run once on mount
