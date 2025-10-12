@@ -13,6 +13,7 @@ import StatusPanel from '../components/StatusPanel';
 import EmotionalTimeline from '../components/EmotionalTimeline';
 import ActivityFeed from '../components/ActivityFeed';
 import SessionStats from '../components/SessionStats';
+import TopSessionDrawer from '../components/TopSessionDrawer';
 
 /**
  * MeetingCoachScreen - Main screen for the Meeting Coach application
@@ -120,54 +121,10 @@ export default function MeetingCoachScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.content}>
-          {/* Header Section */}
-          <View style={styles.section}>
-            <View style={styles.header}>
-              <View style={styles.headerLeft}>
-                <Text style={styles.emoji}>🧠</Text>
-                <View>
-                  <Text style={styles.headerTitle}>
-                    Live Emotional Monitoring
-                  </Text>
-                  <Text style={styles.headerSubtitle}>
-                    Autism/ADHD Meeting Coach
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.headerRight}>
-                <TouchableOpacity
-                  style={styles.iconButton}
-                  onPress={handleHistoryPress}
-                  testID="history-button"
-                >
-                  <Text style={styles.iconButtonText}>📜</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.iconButton}
-                  onPress={handleSettingsPress}
-                  testID="settings-button"
-                >
-                  <Text style={styles.iconButtonText}>⚙️</Text>
-                </TouchableOpacity>
-                <View style={styles.recording}>
-                  <View
-                    style={[
-                      styles.recordingDot,
-                      isRecording && styles.recordingDotActive,
-                    ]}
-                  />
-                  <Text style={styles.recordingText}>
-                    {isRecording
-                      ? 'Recording'
-                      : isConnected
-                      ? 'Connected'
-                      : 'Disconnected'}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </View>
-
+          <TopSessionDrawer
+            onHistoryPress={handleHistoryPress}
+            onSettingsPress={handleSettingsPress}
+          />
           {/* Status Dashboard */}
           <StatusPanel />
 
@@ -178,6 +135,8 @@ export default function MeetingCoachScreen() {
           <ActivityFeed />
         </View>
       </ScrollView>
+
+      {/* Removed duplicate TopSessionDrawer */}
 
       {/* Session Stats Footer - Floating */}
       <SessionStats />
@@ -194,70 +153,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 140, // Space for floating footer (adjust based on footer height)
+    paddingBottom: 140, // space for footer
   },
   content: {
     flex: 1,
     padding: theme.spacing.lg,
-  },
-  section: {
-    ...commonStyles.section,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.md,
-    flex: 1,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.md,
-  },
-  iconButton: {
-    padding: theme.spacing.sm,
-    borderRadius: theme.borderRadius.lg,
-    backgroundColor: theme.colors.background.secondary,
-  },
-  iconButtonText: {
-    fontSize: theme.fontSize.xl,
-  },
-  emoji: {
-    fontSize: theme.fontSize.huge,
-  },
-  headerTitle: {
-    fontSize: theme.fontSize.xl,
-    fontWeight: theme.fontWeight.bold,
-    color: theme.colors.text.primary,
-  },
-  headerSubtitle: {
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.text.secondary,
-  },
-  recording: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.background.errorTint,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: theme.borderRadius.xl,
-    gap: theme.spacing.sm,
-  },
-  recordingDot: {
-    width: 8,
-    height: 8,
-    borderRadius: theme.borderRadius.full,
-    backgroundColor: theme.colors.recording,
-  },
-  recordingText: {
-    fontSize: theme.fontSize.sm,
-    fontWeight: theme.fontWeight.medium,
-    color: theme.colors.status.error,
   },
   sectionTitle: {
     fontSize: theme.fontSize.lg,
