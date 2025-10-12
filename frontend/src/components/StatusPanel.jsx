@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import useMeetingData from '../hooks/useMeetingData';
 import theme, { commonStyles } from '../utils/theme';
@@ -15,7 +15,41 @@ import theme, { commonStyles } from '../utils/theme';
  * Accesses global state via useMeetingData hook.
  */
 export default function StatusPanel() {
-  const { emotionalState, wpm } = useMeetingData();
+  const { emotionalState, wpm, timeline } = useMeetingData();
+
+  // Get the most recent social cue from timeline entries
+  const mostRecentSocialCue = useMemo(() => {
+    if (!timeline?.recentEntries || timeline.recentEntries.length === 0) {
+      return 'appropriate';
+    }
+    const lastEntry = timeline.recentEntries[timeline.recentEntries.length - 1];
+    return lastEntry.social_cue || 'appropriate';
+  }, [timeline?.recentEntries]);
+
+  // Get average confidence from timeline summary
+  const averageConfidence = useMemo(() => {
+    if (!timeline?.summary?.average_confidence) {
+      return 0.0;
+    }
+    return timeline.summary.average_confidence;
+  }, [timeline?.summary]);
+
+  // Get alert count from timeline summary
+  const alertCount = useMemo(() => {
+    if (!timeline?.summary?.alert_count) {
+      return 0;
+    }
+    return timeline.summary.alert_count;
+  }, [timeline?.summary]);
+
+  // Determine social cue color based on value
+  const getSocialCueColor = (cue) => {
+    const concerning = ['interrupting', 'dominating', 'too_quiet', 'off_topic', 'repetitive'];
+    if (concerning.includes(cue.toLowerCase())) {
+      return theme.colors.social.concerning;
+    }
+    return theme.colors.social.appropriate;
+  };
 
   return (
     <View style={styles.container}>
@@ -43,10 +77,10 @@ export default function StatusPanel() {
           <Text
             style={[
               styles.statusValue,
-              { color: theme.colors.social.appropriate },
+              { color: getSocialCueColor(mostRecentSocialCue) },
             ]}
           >
-            appropriate
+            {mostRecentSocialCue}
           </Text>
         </View>
 
@@ -55,7 +89,7 @@ export default function StatusPanel() {
           <Text
             style={[styles.statusValue, { color: theme.colors.confidence }]}
           >
-            0.9
+            {averageConfidence.toFixed(2)}
           </Text>
         </View>
 
@@ -64,15 +98,17 @@ export default function StatusPanel() {
           <Text
             style={[styles.statusValue, { color: theme.colors.status.success }]}
           >
-            {wpm}
+            {Math.round(wpm)}
             <Text style={styles.unit}> WPM</Text>
           </Text>
         </View>
       </View>
 
       <View style={styles.alert}>
-        <Text style={styles.checkMark}>✓</Text>
-        <Text style={styles.alertText}>All good – no alerts</Text>
+        <Text style={styles.checkMark}>{alertCount > 0 ? '⚠️' : '✓'}</Text>
+        <Text style={styles.alertText}>
+          {alertCount > 0 ? `${alertCount} alert${alertCount > 1 ? 's' : ''}` : 'All good – no alerts'}
+        </Text>
       </View>
     </View>
   );
