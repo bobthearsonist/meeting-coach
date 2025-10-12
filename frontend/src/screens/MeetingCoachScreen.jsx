@@ -11,6 +11,7 @@ import useMeetingData from '../hooks/useMeetingData';
 import websocketService, {ConnectionStatus} from '../services/websocketService';
 import StatusPanel from '../components/StatusPanel';
 import EmotionalTimeline from '../components/EmotionalTimeline';
+import ActivityFeed from '../components/ActivityFeed';
 
 /**
  * MeetingCoachScreen - Main screen for the Meeting Coach application
@@ -165,44 +166,11 @@ export default function MeetingCoachScreen() {
         {/* Status Dashboard */}
         <StatusPanel />
 
-        {/* Emotional Timeline */}
+        {/* Emotional Timeline Visualization */}
         <EmotionalTimeline />
 
         {/* Recent Activity Feed */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>💬 Recent Activity</Text>
-
-          <View style={styles.activityList}>
-            <View style={styles.activityItem}>
-              <Text style={styles.timestamp}>17:21:57</Text>
-              <View style={styles.activityDot} />
-              <Text style={styles.activityText}>
-                "All right, so I think it's only fair that the guys that helped
-                us build this car see how well their work is holding up."
-              </Text>
-            </View>
-
-            <View style={styles.activityItem}>
-              <Text style={styles.timestamp}>17:21:49</Text>
-              <View style={styles.activityDot} />
-              <Text style={styles.activityText}>
-                "I'm not really sure. If I had the right list job from 1 to 10,
-                I'm giving it a million because no one wants to do this. It's
-                just not gonna happen."
-              </Text>
-            </View>
-
-            <View style={styles.activityItem}>
-              <Text style={styles.timestamp}>17:21:40</Text>
-              <View style={styles.activityDot} />
-              <Text style={styles.activityText}>
-                "Really bad. This deal is probably making us not able to take
-                this to a free jump and fix it because it's just too far
-                down..."
-              </Text>
-            </View>
-          </View>
-        </View>
+        <ActivityFeed />
 
         {/* Session Stats Footer */}
         <View style={styles.footer}>
@@ -310,37 +278,6 @@ const styles = StyleSheet.create({
     fontWeight: theme.fontWeight.semibold,
     color: theme.colors.text.primary,
     marginBottom: theme.spacing.lg,
-  },
-  activityList: {
-    gap: theme.spacing.md,
-  },
-  activityItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: theme.spacing.md,
-    backgroundColor: theme.colors.background.secondary,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border.light,
-    gap: theme.spacing.md,
-  },
-  timestamp: {
-    width: 64,
-    fontSize: theme.fontSize.xs,
-    color: theme.colors.text.secondary,
-  },
-  activityDot: {
-    width: 8,
-    height: 8,
-    borderRadius: theme.borderRadius.full,
-    backgroundColor: theme.colors.emotional.calm,
-    marginTop: 4,
-  },
-  activityText: {
-    flex: 1,
-    fontSize: theme.fontSize.sm,
-    color: theme.colors.text.primary,
-    lineHeight: 18,
   },
   footer: {
     marginTop: theme.spacing.lg,
