@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import {View, Text, StyleSheet} from 'react-native';
 import useMeetingData from '../hooks/useMeetingData';
 import theme, {commonStyles} from '../utils/theme';
@@ -14,12 +14,72 @@ import theme, {commonStyles} from '../utils/theme';
  *
  * LEARNING: This component visualizes emotional state changes over time.
  * The timeline bar uses flex properties to show relative duration of each state.
- * Future enhancement: Wire to real timeline data from backend.
+ * Wire to real timeline data from backend via timeline_update WebSocket messages.
  *
  * Accesses global state via useMeetingData hook.
  */
 export default function EmotionalTimeline() {
-  const {emotionalState} = useMeetingData();
+  const {timeline} = useMeetingData();
+
+  // Emoji mapping for emotional states
+  const emojiMap = {
+    calm: '🧘',
+    neutral: '😐',
+    engaged: '✨',
+    elevated: '⬆️',
+    intense: '🔥',
+    rapid: '⚡',
+    overwhelmed: '😵‍💫',
+    distracted: '🤔',
+    unknown: '❓',
+  };
+
+  // Calculate time range from recent entries
+  const timeRange = useMemo(() => {
+    if (!timeline?.recentEntries || timeline.recentEntries.length === 0) {
+      return 'No data';
+    }
+
+    const entries = timeline.recentEntries;
+    const oldestTimestamp = entries[0].timestamp;
+    const newestTimestamp = entries[entries.length - 1].timestamp;
+
+    const formatTime = (timestamp) => {
+      const date = new Date(timestamp * 1000); // Convert from Unix timestamp
+      return date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+    };
+
+    return `${formatTime(oldestTimestamp)} – ${formatTime(newestTimestamp)}`;
+  }, [timeline?.recentEntries]);
+
+  // Get dominant state from summary
+  const dominantState = timeline?.summary?.dominant_state || 'unknown';
+  const averageConfidence = timeline?.summary?.average_confidence || 0.0;
+  const stateDistribution = timeline?.summary?.state_distribution || {};
+
+  // Calculate timeline segments based on state distribution
+  const timelineSegments = useMemo(() => {
+    if (!stateDistribution || Object.keys(stateDistribution).length === 0) {
+      return [
+        {state: 'unknown', flex: 1, color: theme.colors.emotional.neutral},
+      ];
+    }
+
+    const totalCount = Object.values(stateDistribution).reduce(
+      (sum, count) => sum + count,
+      0,
+    );
+
+    return Object.entries(stateDistribution).map(([state, count]) => ({
+      state,
+      flex: count,
+      color: theme.colors.emotional[state] || theme.colors.emotional.neutral,
+    }));
+  }, [stateDistribution]);
 
   return (
     <View style={styles.container}>
@@ -32,16 +92,24 @@ export default function EmotionalTimeline() {
         <View style={styles.dominant}>
           <Text style={styles.dominantLabel}>
             Dominant:{' '}
-            <Text style={styles.dominantValue}>🧘 CALM (0.9)</Text>
+            <Text style={styles.dominantValue}>
+              {emojiMap[dominantState] || '❓'}{' '}
+              {dominantState.toUpperCase()} ({averageConfidence.toFixed(1)})
+            </Text>
           </Text>
         </View>
-        <Text style={styles.range}>Range: 17:19 – 17:21</Text>
+        <Text style={styles.range}>Range: {timeRange}</Text>
 
         <View style={styles.timelineBar}>
-          <View style={styles.timelineSegment1} />
-          <View style={styles.timelineSegment2} />
-          <View style={styles.timelineSegment3} />
-          <View style={styles.timelineSegment4} />
+          {timelineSegments.map((segment, index) => (
+            <View
+              key={`${segment.state}-${index}`}
+              style={[
+                styles.timelineSegment,
+                {flex: segment.flex, backgroundColor: segment.color},
+              ]}
+            />
+          ))}
         </View>
       </View>
     </View>
@@ -95,20 +163,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.md,
     overflow: 'hidden',
   },
-  timelineSegment1: {
-    flex: 1,
-    backgroundColor: theme.colors.emotional.elevated,
-  },
-  timelineSegment2: {
-    flex: 1,
-    backgroundColor: theme.colors.emotional.neutral,
-  },
-  timelineSegment3: {
-    flex: 1,
-    backgroundColor: theme.colors.emotional.elevated,
-  },
-  timelineSegment4: {
-    flex: 9,
-    backgroundColor: theme.colors.emotional.calm,
+  timelineSegment: {
+    // Dynamic flex and backgroundColor set inline based on data
   },
 });

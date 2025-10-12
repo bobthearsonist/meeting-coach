@@ -9,6 +9,10 @@ const initialState = {
   isConnected: false,
   isSessionActive: false,
   isRecording: false,
+  timeline: {
+    summary: null,
+    recentEntries: [],
+  },
 };
 
 // Create the MeetingContext
@@ -29,6 +33,14 @@ const meetingReducer = (state, action) => {
       return { ...state, isRecording: action.payload };
     case actionTypes.ADD_ALERT:
       return { ...state, alerts: [...state.alerts, action.payload] };
+    case actionTypes.UPDATE_TIMELINE:
+      return { 
+        ...state, 
+        timeline: {
+          summary: action.payload.summary,
+          recentEntries: action.payload.recent_entries || [],
+        }
+      };
     default:
       return state;
   }
