@@ -1,12 +1,13 @@
 # Teams Meeting Coach - Monorepo Makefile
 # Orchestrates both backend (Python) and frontend (React Native)
 
-.PHONY: help install test clean dev
+.PHONY: help install test clean run backend frontend metro macos
 
 # Colors for output
 BLUE := \033[0;34m
 GREEN := \033[0;32m
 YELLOW := \033[0;33m
+RED := \033[0;31m
 NC := \033[0m # No Color
 
 help:
@@ -20,10 +21,10 @@ help:
 	@echo "  make frontend-install    - Install frontend dependencies only"
 	@echo ""
 	@echo "$(GREEN)Development:$(NC)"
-	@echo "  make dev                 - Start both backend and frontend in dev mode"
-	@echo "  make backend-dev         - Run backend console application"
-	@echo "  make frontend-dev        - Start frontend Metro bundler"
-	@echo "  make frontend-macos      - Run React Native macOS app"
+	@echo "  make run                 - 🚀 Start full dev environment (default)"
+	@echo "  make run backend         - Run backend WebSocket server only"
+	@echo "  make run metro           - Run Metro bundler (JS bundler) only"
+	@echo "  make run macos           - Launch macOS app (requires Metro running)"
 	@echo ""
 	@echo "$(GREEN)Testing:$(NC)"
 	@echo "  make test                - Run all tests (backend + frontend)"
@@ -45,6 +46,7 @@ help:
 	@echo ""
 	@echo "$(GREEN)Project Info:$(NC)"
 	@echo "  make status              - Show project structure and status"
+	@echo "  make check-ports         - Check if WebSocket ports are in use"
 	@echo ""
 	@echo "$(YELLOW)Tip: You can also use Make commands directly in backend/ or frontend/$(NC)"
 
@@ -76,28 +78,55 @@ frontend-install:
 # Development
 # ═══════════════════════════════════════════════════════════
 
-dev:
-	@echo "$(YELLOW)Starting development environment...$(NC)"
-	@echo "$(YELLOW)Note: This will start both backend and frontend.$(NC)"
-	@echo "$(YELLOW)Press Ctrl+C to stop.$(NC)"
-	@echo ""
-	@make -j2 backend-dev frontend-dev
+# New unified 'run' command with subcommands
+run:
+	@if [ "$(filter-out $@,$(MAKECMDGOALS))" = "" ]; then \
+		$(MAKE) run-start; \
+	elif [ "$(filter-out $@,$(MAKECMDGOALS))" = "backend" ]; then \
+		$(MAKE) run-backend; \
+	elif [ "$(filter-out $@,$(MAKECMDGOALS))" = "metro" ]; then \
+		$(MAKE) run-metro; \
+	elif [ "$(filter-out $@,$(MAKECMDGOALS))" = "frontend" ]; then \
+		echo "$(YELLOW)💡 Hint: 'make run metro' is clearer (frontend → metro bundler)$(NC)"; \
+		$(MAKE) run-metro; \
+	elif [ "$(filter-out $@,$(MAKECMDGOALS))" = "macos" ]; then \
+		$(MAKE) run-macos; \
+	else \
+		echo "$(RED)Usage: make run [backend|metro|macos]$(NC)"; \
+		echo "$(YELLOW)  (no args) - Start full dev environment$(NC)"; \
+		echo "$(YELLOW)  backend   - WebSocket server only$(NC)"; \
+		echo "$(YELLOW)  metro     - JavaScript bundler only$(NC)"; \
+		echo "$(YELLOW)  macos     - Launch macOS app$(NC)"; \
+		exit 1; \
+	fi
 
-backend-dev:
-	@echo "$(BLUE)Starting backend console application...$(NC)"
+# Catch the subcommand arguments
+backend frontend metro macos:
+	@:
+
+run-start:
+	@echo "$(BLUE)🚀 Starting Teams Meeting Coach Development Environment$(NC)"
+	@echo "$(YELLOW)This will start backend WebSocket server + frontend in correct order$(NC)"
+	@echo "$(YELLOW)Press Ctrl+C to stop all services$(NC)"
+	@echo ""
+	@chmod +x ./start-dev.sh
+	./start-dev.sh
+
+run-backend:
+	@echo "$(BLUE)Starting backend WebSocket server...$(NC)"
 	cd backend && python main.py
 
-frontend-dev:
-	@echo "$(BLUE)Starting frontend Metro bundler...$(NC)"
+run-metro:
+	@echo "$(BLUE)Starting Metro bundler (JavaScript bundler)...$(NC)"
 	@if command -v nvm >/dev/null 2>&1; then \
 		cd frontend && nvm use && npm start; \
 	else \
 		cd frontend && npm start; \
 	fi
 
-frontend-macos:
-	@echo "$(BLUE)Running React Native macOS app...$(NC)"
-	@echo "$(YELLOW)Make sure Metro bundler is running (make frontend-dev)$(NC)"
+run-macos:
+	@echo "$(BLUE)Launching React Native macOS app...$(NC)"
+	@echo "$(YELLOW)💡 Metro bundler must be running first (make run metro)$(NC)"
 	@if command -v nvm >/dev/null 2>&1; then \
 		cd frontend && nvm use && npx react-native run-macos --no-packager; \
 	else \
@@ -225,3 +254,27 @@ status:
 	fi
 	@echo ""
 	@echo "$(YELLOW)Run 'make help' for available commands$(NC)"
+
+check-ports:
+	@echo "$(BLUE)═══════════════════════════════════════════════════════════$(NC)"
+	@echo "$(BLUE)   Checking WebSocket Ports$(NC)"
+	@echo "$(BLUE)═══════════════════════════════════════════════════════════$(NC)"
+	@echo ""
+	@echo "$(GREEN)Port 3001 (Backend WebSocket Server):$(NC)"
+	@if lsof -i :3001 >/dev/null 2>&1; then \
+		echo "  ✓ $(GREEN)In use$(NC)"; \
+		lsof -i :3001; \
+	else \
+		echo "  ✗ $(YELLOW)Available$(NC) (backend not running)"; \
+	fi
+	@echo ""
+	@echo "$(GREEN)Python processes:$(NC)"
+	@if ps aux | grep "python.*main.py" | grep -v grep >/dev/null 2>&1; then \
+		echo "  ✓ $(GREEN)Backend running$(NC)"; \
+		ps aux | grep "python.*main.py" | grep -v grep; \
+	else \
+		echo "  ✗ $(YELLOW)Backend not running$(NC)"; \
+	fi
+	@echo ""
+	@echo "$(YELLOW)To start backend: make backend-dev$(NC)"
+	@echo "$(YELLOW)To start full environment: make start$(NC)"
