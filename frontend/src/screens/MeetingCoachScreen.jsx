@@ -46,14 +46,29 @@ export default function MeetingCoachScreen() {
 
   // Handle WebSocket connection and subscriptions (replaces componentDidMount/Unmount)
   useEffect(() => {
-    // Connect to WebSocket server
-    websocketService.connect('ws://localhost:8000').catch((err) => {
-      console.error('Failed to connect to WebSocket:', err);
+    // Connect to WebSocket server with better error handling
+    websocketService.connect().catch((err) => {
+      console.warn(
+        '⚠️ WebSocket connection failed - will auto-retry:',
+        err.message
+      );
+      console.warn(
+        '💡 Make sure backend is running: cd backend && python main.py'
+      );
     });
 
     // Subscribe to connection status changes
     const unsubscribeStatus = websocketService.onStatusChange(({ status }) => {
       setConnectionStatus(status === ConnectionStatus.OPEN);
+
+      // Log connection status for debugging
+      if (status === ConnectionStatus.OPEN) {
+        console.log('✅ WebSocket connected successfully');
+      } else if (status === ConnectionStatus.RECONNECTING) {
+        console.log('🔄 WebSocket reconnecting...');
+      } else if (status === ConnectionStatus.CLOSED) {
+        console.warn('❌ WebSocket disconnected');
+      }
     });
 
     // Subscribe to meeting updates from backend

@@ -62,35 +62,47 @@ The backend installation will:
 ### Usage
 
 ```bash
-# Run the backend console application
-make backend-dev
-
-# Start frontend development server (when ready)
-make frontend-dev
-
-# Or run both simultaneously
-make dev
+# Start the full development environment (backend + frontend)
+make run
 ```
 
-## 🎮 Backend Console Application
+**Manual control:**
+```bash
+make run backend    # Backend WebSocket server only
+make run metro      # Metro bundler only
+make run macos      # Launch macOS app (requires Metro)
+```
 
-The Python backend provides a terminal-based interface with real-time feedback:
+See `make help` for all available commands.
+
+## 🎮 Backend
+
+The Python backend runs a WebSocket server on port 3001, broadcasting real-time meeting analysis to connected clients:
 
 ```bash
-cd backend
-./run_with_venv.sh
-
-# Or use Make
-make backend-dev
+make run backend
 ```
 
-See [backend/README.md](backend/README.md) for detailed backend documentation.
+**Key features:**
+- WebSocket API on `ws://localhost:3001`
+- Real-time audio capture and transcription
+- AI-powered tone analysis via Ollama
+- Emotional timeline tracking
 
-## 📱 Frontend UI (In Development)
+See [backend/README.md](backend/README.md) for architecture details, configuration, and API documentation.
 
-The React Native frontend is currently a UI mockup showing the planned interface design. Integration with the Python backend is in progress.
+## 📱 Frontend
 
-See [frontend/README.md](frontend/README.md) for frontend documentation.
+React Native macOS app that connects to the backend WebSocket server:
+
+```bash
+make run metro    # Start Metro bundler
+make run macos    # Launch macOS app
+```
+
+**Current status:** UI mockup with WebSocket integration in progress.
+
+See [frontend/README.md](frontend/README.md) for setup, component structure, and development workflow.
 
 ## 🎵 Audio Configuration
 
@@ -129,61 +141,25 @@ Real-time tracking of: "um", "uh", "like", "you know", "basically", "actually", 
 
 ## 🛠️ Development
 
-### Available Commands
-
 ```bash
-# See all available commands
-make help
-
-# Installation
-make install              # Install both backend and frontend
-make backend-install      # Backend only
-make frontend-install     # Frontend only
-
-# Development
-make dev                  # Start both backend and frontend
-make backend-dev          # Run backend console app
-make frontend-dev         # Start frontend Metro bundler
-
-# Testing
-make test                 # Run all tests
-make backend-test         # Backend tests only
-make frontend-test        # Frontend tests only
-make test-fast            # Fast tests (no slow external deps)
-make test-coverage        # Backend tests with coverage
-
-# Code Quality
-make lint                 # Lint all code
-make format               # Format all code
-make backend-lint         # Backend linting
-make frontend-lint        # Frontend linting
-
-# Cleanup
-make clean                # Clean all temporary files
-make backend-clean        # Clean backend files
-make frontend-clean       # Clean frontend files
-
-# Project Info
-make status               # Show project structure and status
+make help    # See all available commands
 ```
 
-### Working with Individual Components
+**Common tasks:**
+- `make run` - Start full environment
+- `make test` - Run all tests
+- `make lint` - Lint all code
+- `make check-ports` - Debug WebSocket connection issues
 
-You can also work directly in each component:
+**Component-specific:**
+- `make backend-test` - Backend tests only
+- `make frontend-test` - Frontend tests only
+- `make backend-install` - Reinstall backend dependencies
+- `make frontend-install` - Reinstall frontend dependencies
 
-```bash
-# Backend (uses Make)
-cd backend
-make test
-make lint
-make format
-
-# Frontend (uses npm)
-cd frontend
-npm start
-npm test
-npm run lint
-```
+For detailed development workflows, see:
+- Backend: [backend/README.md](backend/README.md)
+- Frontend: [frontend/README.md](frontend/README.md)
 
 ## 🧪 Testing
 
@@ -196,32 +172,28 @@ make test
 # Backend tests
 make backend-test
 
-# Fast tests only (useful during development)
-make test-fast
-
 # Tests with coverage report
 make test-coverage
 ```
 
 ## ⚙️ Configuration
 
-Backend configuration is in `backend/config.py`:
+**Backend:** `backend/src/config.py`
 
-```python
-# Audio settings
-CHUNK_DURATION = 15          # Seconds per analysis chunk
-WHISPER_MODEL = "base"       # Model size: tiny, base, small, medium, large
+Key settings:
+- `WHISPER_MODEL` - Transcription model size (tiny/base/small/medium/large)
+- `OLLAMA_MODEL` - LLM for tone analysis (default: llama3)
+- `PACE_THRESHOLDS` - WPM thresholds for pace alerts
+- `MIN_WORDS_FOR_ANALYSIS` - Minimum words before analysis
 
-# Pace thresholds
-PACE_TOO_FAST = 180         # Words per minute
-PACE_TOO_SLOW = 100
-PACE_IDEAL_MIN = 120
-PACE_IDEAL_MAX = 160
+**Frontend:** `frontend/src/utils/constants.js`
 
-# Analysis settings
-MIN_WORDS_FOR_ANALYSIS = 10  # Minimum words before tone analysis
-OLLAMA_MODEL = "llama3"      # LLM model for tone analysis
-```
+Key settings:
+- `WEBSOCKET.URL` - Backend WebSocket URL (default: ws://localhost:3001)
+- `WEBSOCKET.AUTO_RECONNECT` - Auto-reconnect on disconnect
+- `WEBSOCKET.MAX_RECONNECT_ATTEMPTS` - Maximum reconnection attempts
+
+See [backend/README.md](backend/README.md#configuration) for complete configuration options.
 
 ## 🏗️ Architecture
 
@@ -242,35 +214,6 @@ Pace Analysis  Filler Words  Tone Analysis
                   ↓
             Feedback Display
          (Console / React Native UI)
-```
-
-## 🔧 Troubleshooting
-
-### No Audio Captured
-- **Check BlackHole**: Run `cd backend && ./run_with_venv.sh --test-audio`
-- **Verify Teams Setup**: Ensure Teams speaker is set to Multi-Output Device
-- **Check Permissions**: macOS may require microphone permissions
-
-### Slow Transcription
-- **Use Smaller Model**: Set `WHISPER_MODEL = "tiny"` in backend/config.py
-- **Increase Chunk Duration**: Set `CHUNK_DURATION = 20`
-- **Use GPU**: Set `DEVICE = "cuda"` if available
-
-### High CPU Usage
-- **Optimize Whisper**: Set `COMPUTE_TYPE = "int8"` in backend/config.py
-- **Reduce Analysis Frequency**: Increase `MIN_WORDS_FOR_ANALYSIS`
-- **Use Smaller LLM**: Try a smaller Ollama model
-
-### Ollama Issues
-```bash
-# Restart Ollama service
-brew services restart ollama
-
-# Check available models
-ollama list
-
-# Re-download model if needed
-ollama pull llama3
 ```
 
 ## 🔒 Privacy & Security
