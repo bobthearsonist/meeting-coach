@@ -21,3 +21,41 @@ logs/
 
 # Learning docs
 docs
+
+# Test and coverage artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+coverage/
+*.cover
+.hypothesis/
+.tox/
+*.pyc
+__pycache__/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Node modules and build
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Frontend specific
+.metro/
+.expo/
+
+# Test reports
+junit.xml
+coverage.xml
+*.test-report.json
+
+# Security and quality reports
+*-report.json
+bandit-report.json
+npm-audit.json
+eslint-report.json
+pylint-report.json
