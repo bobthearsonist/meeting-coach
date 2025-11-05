@@ -1,6 +1,6 @@
 # Makefile for Meeting Coach project
 
-.PHONY: help venv install test test-unit test-integration test-fast test-coverage clean lint format docs run-demos run-server run-console run run-with-logs stop logs
+.PHONY: help venv install test test-unit test-integration test-fast test-coverage clean lint format docs run-demos run-server run-console run-api run run-with-logs stop logs
 
 # Default target
 help:
@@ -10,6 +10,7 @@ help:
 	@echo "  run                  - Start with dashboard (logs to file)"
 	@echo "  run-server           - Start Meeting Coach engine only"
 	@echo "  run-console          - Start console dashboard only (server must be running)"
+	@echo "  run-api              - Run REST API server only (for config inspection)"
 	@echo "  run-with-logs        - Start with separate terminal windows"
 	@echo "  stop                 - Stop background Meeting Coach process"
 	@echo "  logs                 - View Meeting Coach logs in real-time"
@@ -61,6 +62,18 @@ run-console:
 	@echo "💡 Make sure the server is already running (make run-server)"
 	@echo "Press Ctrl+C to stop"
 	python -m src.server.console_client
+
+run-api:  ## Run REST API server only
+	@echo "🚀 Starting REST API server on http://localhost:3003"
+	@echo "📖 API docs: http://localhost:3003/docs"
+	@echo "Press Ctrl+C to stop"
+	python main.py --api-only
+
+run-api:  ## Run REST API server only
+	@echo "🚀 Starting REST API server on http://localhost:3003"
+	@echo "📖 API docs: http://localhost:3003/docs"
+	@echo "Press Ctrl+C to stop"
+	python main.py --api-only
 
 run:
 	@echo "🚀 Starting Teams Meeting Coach"
