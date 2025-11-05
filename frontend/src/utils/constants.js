@@ -5,6 +5,25 @@
  * They make values self-documenting and easy to update in one place.
  */
 
+/**
+ * Environment variables loaded from .env via react-native-dotenv
+ * @type {string} WEBSOCKET_HOST - WebSocket server hostname
+ * @type {string} WEBSOCKET_PORT - WebSocket server port number
+ */
+import {WEBSOCKET_HOST, WEBSOCKET_PORT} from '@env';
+
+// Validate required environment variables
+if (!WEBSOCKET_HOST) {
+  throw new Error(
+    'WEBSOCKET_HOST is not defined in .env file. Copy .env.example to .env and configure it.',
+  );
+}
+if (!WEBSOCKET_PORT) {
+  throw new Error(
+    'WEBSOCKET_PORT is not defined in .env file. Copy .env.example to .env and configure it.',
+  );
+}
+
 // API Configuration
 export const API_CONFIG = {
   BASE_URL: 'http://localhost:8000', // Python backend URL
@@ -14,7 +33,7 @@ export const API_CONFIG = {
 
 // WebSocket configuration
 export const WEBSOCKET = {
-  URL: 'ws://localhost:3001',
+  URL: `ws://${WEBSOCKET_HOST}:${WEBSOCKET_PORT}`,
   AUTO_RECONNECT: true,
   MAX_RECONNECT_ATTEMPTS: 10,
   BASE_RECONNECT_DELAY_MS: 1000,

@@ -37,6 +37,18 @@ teams-meeting-coach/
 
 ## 🚀 Quick Start
 
+### Prerequisites
+
+- **macOS** (required for React Native macOS app)
+- **Homebrew** (for installing dependencies)
+- **Node.js 20+** (for frontend)
+- **Python 3.12+** (for backend)
+- **Overmind** (process manager for development)
+
+```bash
+brew install overmind
+```
+
 ### Installation
 
 ```bash
@@ -59,32 +71,57 @@ The backend installation will:
 - Install all dependencies
 - Run setup verification
 
-### Usage
+### Configuration
+
+Create a `.env` file in the project root (copy from `.env.example`):
 
 ```bash
-# Start the full development environment (backend + frontend)
+cp .env.example .env
+```
+
+**.env file (all values required):**
+```bash
+# Backend WebSocket Server
+WEBSOCKET_HOST=localhost
+WEBSOCKET_PORT=3002
+
+# Frontend Metro Bundler
+METRO_PORT=8082
+```
+
+**⚠️ Important:** All environment variables are required. The application will fail to start if any are missing.
+
+### Usage
+
+**Start everything:**
+
+```bash
 make run
 ```
 
-**Manual control:**
+This starts the backend server, Metro bundler, and macOS app.
+
+**Control processes:**
+
 ```bash
-make run backend    # Backend WebSocket server only
-make run metro      # Metro bundler only
-make run macos      # Launch macOS app (requires Metro)
+overmind connect macos    # View app logs
+overmind restart macos    # Restart the app
+Ctrl+C                    # Stop all processes
 ```
 
-See `make help` for all available commands.
+Run `make help` for more commands. See `overmind help` for process management options.
 
 ## 🎮 Backend
 
-The Python backend runs a WebSocket server on port 3001, broadcasting real-time meeting analysis to connected clients:
+The Python backend runs a WebSocket server on port 3002 (configurable), broadcasting real-time meeting analysis to connected clients:
 
 ```bash
 make run backend
 ```
 
 **Key features:**
-- WebSocket API on `ws://localhost:3001`
+
+- WebSocket API on `ws://localhost:3002` (or configured port)
 - Real-time audio capture and transcription
 - AI-powered tone analysis via Ollama
 - Emotional timeline tracking
@@ -178,18 +215,21 @@ make test-coverage
 
 ## ⚙️ Configuration
 
+Application configuration is managed through code constants in each component:
+
 **Backend:** `backend/src/config.py`
 
 Key settings:
 - `WHISPER_MODEL` - Transcription model size (tiny/base/small/medium/large)
-- `OLLAMA_MODEL` - LLM for tone analysis (default: llama3)
+- `OLLAMA_MODEL` - LLM for tone analysis (default: gemma2:2b)
 - `PACE_THRESHOLDS` - WPM thresholds for pace alerts
 - `MIN_WORDS_FOR_ANALYSIS` - Minimum words before analysis
+- `WEBSOCKET_HOST` / `WEBSOCKET_PORT` - Server configuration (from .env)
 
 **Frontend:** `frontend/src/utils/constants.js`
 
 Key settings:
-- `WEBSOCKET.URL` - Backend WebSocket URL (default: ws://localhost:3001)
+- `WEBSOCKET.URL` - Backend WebSocket URL (built from .env)
 - `WEBSOCKET.AUTO_RECONNECT` - Auto-reconnect on disconnect
 - `WEBSOCKET.MAX_RECONNECT_ATTEMPTS` - Maximum reconnection attempts
 

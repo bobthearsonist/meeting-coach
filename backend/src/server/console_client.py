@@ -9,19 +9,20 @@ from datetime import datetime
 from src.ui.colors import Colors, colorize_emotional_state, colorize_social_cue, colorize_alert
 from src.ui.timeline import EmotionalTimeline
 from src.ui.dashboard import LiveDashboard
+from src import config
 
 
 class ConsoleWebSocketClient:
     """WebSocket client that displays meeting updates in console"""
 
-    def __init__(self, server_url: str = "ws://localhost:3001"):
+    def __init__(self, server_url: str = None):
         """
         Initialize WebSocket client.
 
         Args:
-            server_url: WebSocket server URL
+            server_url: WebSocket server URL (defaults to config values)
         """
-        self.server_url = server_url
+        self.server_url = server_url or f"ws://{config.WEBSOCKET_HOST}:{config.WEBSOCKET_PORT}"
         self.websocket = None
         self.is_running = False
         self.dashboard = LiveDashboard()
@@ -234,7 +235,7 @@ async def main():
     print("🧠 Teams Meeting Coach - Console WebSocket Client")
     print("=" * 60)
 
-    client = ConsoleWebSocketClient("ws://localhost:3001")
+    client = ConsoleWebSocketClient()
 
     try:
         await client.run()

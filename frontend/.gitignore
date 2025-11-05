@@ -4,6 +4,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Development logs
+metro.log
+
 # Production builds
 build/
 dist/
@@ -59,6 +62,14 @@ web-build/
 
 # macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
 
 # Xcode
 *.pbxuser

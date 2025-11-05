@@ -1,6 +1,48 @@
 """
 Configuration settings for Teams Meeting Coach
 """
+import os
+import sys
+from pathlib import Path
+
+# Load environment variables from .env file
+def load_env():
+    """Load environment variables from .env file if it exists"""
+    env_path = Path(__file__).parent.parent.parent / '.env'
+    if env_path.exists():
+        with open(env_path) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    os.environ.setdefault(key.strip(), value.strip())
+    else:
+        print("ERROR: .env file not found!", file=sys.stderr)
+        print("Please copy .env.example to .env and configure it:", file=sys.stderr)
+        print("  cp .env.example .env", file=sys.stderr)
+        sys.exit(1)
+
+load_env()
+
+# WebSocket Server Settings (required)
+WEBSOCKET_HOST = os.getenv('WEBSOCKET_HOST')
+WEBSOCKET_PORT_STR = os.getenv('WEBSOCKET_PORT')
+
+if not WEBSOCKET_HOST:
+    print("ERROR: WEBSOCKET_HOST not defined in .env file", file=sys.stderr)
+    print("Please add: WEBSOCKET_HOST=localhost", file=sys.stderr)
+    sys.exit(1)
+
+if not WEBSOCKET_PORT_STR:
+    print("ERROR: WEBSOCKET_PORT not defined in .env file", file=sys.stderr)
+    print("Please add: WEBSOCKET_PORT=3002", file=sys.stderr)
+    sys.exit(1)
+
+try:
+    WEBSOCKET_PORT = int(WEBSOCKET_PORT_STR)
+except ValueError:
+    print(f"ERROR: WEBSOCKET_PORT must be a number, got: {WEBSOCKET_PORT_STR}", file=sys.stderr)
+    sys.exit(1)
 
 # Audio Capture Settings
 SAMPLE_RATE = 16000  # Whisper works best with 16kHz

@@ -18,6 +18,11 @@ import os
 # Suppress ctranslate2 float16 warnings
 os.environ['CT2_VERBOSE'] = '0'
 logging.getLogger('ctranslate2').setLevel(logging.ERROR)
+
+# Suppress RealtimeSTT EOFError warnings during shutdown
+# These occur when multiprocessing connections are closed during cleanup
+logging.getLogger('root').setLevel(logging.CRITICAL)
+
 warnings.filterwarnings('ignore', message='.*float16.*')
 warnings.filterwarnings('ignore', message='.*compute type.*')
 
@@ -388,14 +393,14 @@ def main():
     parser.add_argument(
         "--host",
         type=str,
-        default="localhost",
-        help="WebSocket server host (default: localhost)"
+        default=None,
+        help=f"WebSocket server host (default: {config.WEBSOCKET_HOST})"
     )
     parser.add_argument(
         "--port",
         type=int,
-        default=3001,
-        help="WebSocket server port (default: 3001)"
+        default=None,
+        help=f"WebSocket server port (default: {config.WEBSOCKET_PORT})"
     )
     parser.add_argument(
         "--device",
@@ -405,14 +410,14 @@ def main():
 
     args = parser.parse_args()
 
+    # Create WebSocket server (will use config defaults if args are None)
+    ws_server = MeetingCoachWebSocketServer(host=args.host, port=args.port)
+
     print("🧠 Teams Meeting Coach - WebSocket Server")
     print("=" * 70)
-    print(f"📡 Starting WebSocket server on ws://{args.host}:{args.port}")
-    print(f"💡 Connect clients with: python -m src.server.console_client --url ws://{args.host}:{args.port}")
+    print(f"📡 Starting WebSocket server on ws://{ws_server.host}:{ws_server.port}")
+    print(f"💡 Connect clients with: python -m src.server.console_client --url ws://{ws_server.host}:{ws_server.port}")
     print("=" * 70)
-
-    # Create WebSocket server
-    ws_server = MeetingCoachWebSocketServer(host=args.host, port=args.port)
 
     # Create Meeting Coach engine
     coach = MeetingCoach(

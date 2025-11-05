@@ -1,7 +1,7 @@
 # Teams Meeting Coach - Monorepo Makefile
 # Orchestrates both backend (Python) and frontend (React Native)
 
-.PHONY: help install test clean run backend frontend metro macos
+.PHONY: help install test clean run backend frontend metro macos stop
 
 # Colors for output
 BLUE := \033[0;34m
@@ -21,10 +21,19 @@ help:
 	@echo "  make frontend-install    - Install frontend dependencies only"
 	@echo ""
 	@echo "$(GREEN)Development:$(NC)"
-	@echo "  make run                 - 🚀 Start full dev environment (default)"
+	@echo "  make run                 - 🚀 Start full dev environment with overmind"
 	@echo "  make run backend         - Run backend WebSocket server only"
 	@echo "  make run metro           - Run Metro bundler (JS bundler) only"
 	@echo "  make run macos           - Launch macOS app (requires Metro running)"
+	@echo ""
+	@echo "$(GREEN)Overmind Process Control:$(NC)"
+	@echo "  overmind connect backend - Attach to backend process logs"
+	@echo "  overmind connect metro   - Attach to Metro bundler logs"
+	@echo "  overmind connect macos   - Attach to macOS app logs"
+	@echo "  overmind restart macos   - Restart just the app"
+	@echo "  overmind restart backend - Restart backend without stopping others"
+	@echo "  overmind restart metro   - Restart Metro without stopping others"
+	@echo "  Ctrl+C (in overmind)     - Stop all processes"
 	@echo ""
 	@echo "$(GREEN)Testing:$(NC)"
 	@echo "  make test                - Run all tests (backend + frontend)"
@@ -43,6 +52,7 @@ help:
 	@echo "  make clean               - Clean all temporary files"
 	@echo "  make backend-clean       - Clean backend files"
 	@echo "  make frontend-clean      - Clean frontend files"
+	@echo "  make stop                - Stop all running services"
 	@echo ""
 	@echo "$(GREEN)Project Info:$(NC)"
 	@echo "  make status              - Show project structure and status"
@@ -106,11 +116,28 @@ backend frontend metro macos:
 
 run-start:
 	@echo "$(BLUE)🚀 Starting Teams Meeting Coach Development Environment$(NC)"
-	@echo "$(YELLOW)This will start backend WebSocket server + frontend in correct order$(NC)"
-	@echo "$(YELLOW)Press Ctrl+C to stop all services$(NC)"
+	@echo "$(GREEN)   Using overmind process manager$(NC)"
 	@echo ""
-	@chmod +x ./start-dev.sh
-	./start-dev.sh
+	@if ! command -v overmind &> /dev/null; then \
+		echo "$(RED)❌ overmind not found$(NC)"; \
+		echo "$(YELLOW)Install with: brew install overmind$(NC)"; \
+		echo ""; \
+		echo "$(YELLOW)After installation, run 'make run' again$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(YELLOW)Starting all services:$(NC)"
+	@echo "  • Backend WebSocket server (port from .env)"
+	@echo "  • Metro bundler (port from .env)"
+	@echo "  • macOS app (auto-connects to Metro when ready)"
+	@echo ""
+	@echo "$(YELLOW)💡 Useful overmind commands:$(NC)"
+	@echo "$(YELLOW)   overmind connect backend  - Attach to backend logs$(NC)"
+	@echo "$(YELLOW)   overmind connect metro    - Attach to Metro logs$(NC)"
+	@echo "$(YELLOW)   overmind connect macos    - Attach to app logs$(NC)"
+	@echo "$(YELLOW)   overmind restart macos    - Restart just the app$(NC)"
+	@echo "$(YELLOW)   Ctrl+C                    - Stop all services$(NC)"
+	@echo ""
+	overmind start
 
 run-backend:
 	@echo "$(BLUE)Starting backend WebSocket server...$(NC)"
@@ -278,3 +305,32 @@ check-ports:
 	@echo ""
 	@echo "$(YELLOW)To start backend: make backend-dev$(NC)"
 	@echo "$(YELLOW)To start full environment: make start$(NC)"
+
+# Stop all running services
+stop:
+	@echo "$(YELLOW)🛑 Stopping all services...$(NC)"
+	@# Load .env to get ports
+	@if [ -f .env ]; then \
+		export $$(cat .env | grep -v '^#' | xargs) && \
+		WEBSOCKET_PORT=$${WEBSOCKET_PORT:-3002} && \
+		METRO_PORT=$${METRO_PORT:-8082} && \
+		echo "$(YELLOW)Checking for processes on port $$WEBSOCKET_PORT...$(NC)" && \
+		if lsof -ti:$$WEBSOCKET_PORT >/dev/null 2>&1; then \
+			lsof -ti:$$WEBSOCKET_PORT | xargs kill 2>/dev/null && \
+			echo "$(GREEN)✅ Stopped backend on port $$WEBSOCKET_PORT$(NC)"; \
+		else \
+			echo "$(YELLOW)No process on port $$WEBSOCKET_PORT$(NC)"; \
+		fi && \
+		echo "$(YELLOW)Checking for processes on port $$METRO_PORT...$(NC)" && \
+		if lsof -ti:$$METRO_PORT >/dev/null 2>&1; then \
+			lsof -ti:$$METRO_PORT | xargs kill 2>/dev/null && \
+			echo "$(GREEN)✅ Stopped Metro on port $$METRO_PORT$(NC)"; \
+		else \
+			echo "$(YELLOW)No process on port $$METRO_PORT$(NC)"; \
+		fi; \
+	else \
+		echo "$(RED)No .env file found, using default ports$(NC)" && \
+		lsof -ti:3002 | xargs kill 2>/dev/null || true && \
+		lsof -ti:8082 | xargs kill 2>/dev/null || true; \
+	fi
+	@echo "$(GREEN)✅ Done$(NC)"
