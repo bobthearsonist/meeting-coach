@@ -2,12 +2,12 @@ name: Frontend Tests
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend-tests.yml'
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend-tests.yml'
@@ -76,27 +76,9 @@ jobs:
         run: |
           cd frontend
           npm test -- \
-            --coverage \
             --watchAll=false \
             --testPathIgnorePatterns="integration|e2e" \
             --passWithNoTests
-      
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        if: matrix.node-version == '20' && always()
-        with:
-          files: ./frontend/coverage/lcov.info
-          flags: frontend-unit
-          name: frontend-unit-node-${{ matrix.node-version }}
-        continue-on-error: true
-      
-      - name: Upload coverage reports
-        uses: actions/upload-artifact@v4
-        if: matrix.node-version == '20' && always()
-        with:
-          name: frontend-unit-coverage
-          path: frontend/coverage/
-          retention-days: 7
 
   component-tests:
     name: Component Tests
