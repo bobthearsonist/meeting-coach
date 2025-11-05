@@ -4,8 +4,6 @@ Factory for creating model provider instances based on configuration.
 from typing import Dict, Any
 from src.config import ModelConfig
 from .model_provider import BaseModelProvider
-from .ollama_provider import SelfHostedOllamaProvider
-from .local_provider import LocalModelProvider
 
 
 class ModelProviderFactory:
@@ -32,7 +30,9 @@ class ModelProviderFactory:
         analysis_config = config.get_analysis_config()
         
         if mode == 'self_hosted':
-            # Create Ollama provider
+            # Create Ollama provider (lazy import to avoid dependency issues)
+            from .ollama_provider import SelfHostedOllamaProvider
+            
             self_hosted_config = config.get_self_hosted_config()
             
             provider = SelfHostedOllamaProvider(
@@ -47,7 +47,9 @@ class ModelProviderFactory:
             return provider
         
         elif mode == 'local':
-            # Create local model provider (stub for Phase 2)
+            # Create local model provider (stub for Phase 2, lazy import)
+            from .local_provider import LocalModelProvider
+            
             local_config = config.get_local_config()
             
             provider = LocalModelProvider(
