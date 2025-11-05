@@ -2,6 +2,11 @@
 
 🎯 **Real-time AI coaching for Microsoft Teams meetings**
 
+[![CI](https://github.com/bobthearsonist/meeting-coach/actions/workflows/ci.yml/badge.svg)](https://github.com/bobthearsonist/meeting-coach/actions/workflows/ci.yml)
+[![Backend Tests](https://github.com/bobthearsonist/meeting-coach/actions/workflows/backend-tests.yml/badge.svg)](https://github.com/bobthearsonist/meeting-coach/actions/workflows/backend-tests.yml)
+[![Frontend Tests](https://github.com/bobthearsonist/meeting-coach/actions/workflows/frontend-tests.yml/badge.svg)](https://github.com/bobthearsonist/meeting-coach/actions/workflows/frontend-tests.yml)
+[![Code Quality](https://github.com/bobthearsonist/meeting-coach/actions/workflows/code-quality.yml/badge.svg)](https://github.com/bobthearsonist/meeting-coach/actions/workflows/code-quality.yml)
+
 A powerful real-time meeting feedback system that captures Teams audio, transcribes speech, and provides live coaching on speaking pace, tone, and communication effectiveness.
 
 ## 🏗️ Project Structure (Monorepo)
@@ -200,17 +205,72 @@ For detailed development workflows, see:
 
 ## 🧪 Testing
 
-Run comprehensive tests:
+This project uses a comprehensive testing strategy with separate workflows for different test levels.
+
+### Testing Levels
+
+**Backend (Python):**
+- **Unit Tests**: Test individual modules (analyzer, transcriber, timeline)
+- **Integration Tests**: Test component interactions (pipeline, WebSocket communication)
+- **System Tests**: End-to-end workflows (mocked external dependencies)
+
+**Frontend (React Native):**
+- **Unit Tests**: Test individual utilities and services
+- **Component Tests**: Test React components in isolation
+- **Integration Tests**: Test WebSocket service and state management integration
+
+### Running Tests Locally
 
 ```bash
 # Run all tests (backend + frontend)
 make test
 
-# Backend tests
-make backend-test
+# Backend tests only
+make backend-test            # All backend tests
+make test-unit               # Unit tests only
+make test-integration        # Integration tests only
+make test-fast               # Fast tests (no slow/external deps)
+
+# Frontend tests only
+make frontend-test           # All frontend tests
 
 # Tests with coverage report
-make test-coverage
+make test-coverage           # Backend coverage
+```
+
+### CI/CD Workflows
+
+The project includes automated testing workflows that run on every push and pull request:
+
+- **CI Workflow** (`ci.yml`): Main integration workflow that runs all tests
+- **Backend Tests** (`backend-tests.yml`): Comprehensive backend testing (unit, integration, system)
+- **Frontend Tests** (`frontend-tests.yml`): Comprehensive frontend testing (unit, component, integration)
+- **PR Checks** (`pr-checks.yml`): Quick validation for pull requests
+- **Code Quality** (`code-quality.yml`): Security scans and code quality metrics
+- **Test Coverage** (`coverage.yml`): Coverage reporting with Codecov integration
+
+All workflows are designed to run in parallel where possible and provide clear feedback on test failures.
+
+### Test Organization
+
+```
+backend/tests/
+├── unit/                    # Unit tests
+│   ├── test_analyzer.py
+│   ├── test_transcriber.py
+│   └── test_dashboard.py
+├── integration/             # Integration tests
+│   ├── test_pipeline.py
+│   └── test_full_pipeline.py
+└── conftest.py             # Shared fixtures
+
+frontend/src/
+├── components/
+│   └── *.test.js           # Component unit tests
+├── services/
+│   └── *.test.js           # Service integration tests
+└── context/
+    └── *.test.js           # State management tests
 ```
 
 ## ⚙️ Configuration
