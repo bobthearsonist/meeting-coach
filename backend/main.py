@@ -46,6 +46,11 @@ class MeetingCoach:
             ws_server: WebSocket server instance for broadcasting updates
             device_index: Specific device index to use (for RealtimeSTT)
         """
+        # Import here to avoid loading dependencies for API-only mode
+        from RealtimeSTT import AudioToTextRecorder
+        from src.core.analyzer import CommunicationAnalyzer
+        from src.ui.timeline import EmotionalTimeline
+        
         print("Initializing Teams Meeting Coach WebSocket Engine...")
 
         # WebSocket server reference
@@ -454,6 +459,9 @@ def main():
         import uvicorn
         uvicorn.run(app, host="127.0.0.1", port=args.api_port)
     else:
+        # Import WebSocket dependencies only when needed
+        from src.server.ws_server import MeetingCoachWebSocketServer
+        
         # Run WebSocket server (existing behavior)
         # Create WebSocket server (will use config defaults if args are None)
         ws_server = MeetingCoachWebSocketServer(host=args.host, port=args.port)
