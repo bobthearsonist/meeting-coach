@@ -124,3 +124,47 @@ Assessment guidelines:
 - Focus on patterns, not single words or phrases
 
 Be conservative in flagging issues - most conversation should be assessed as appropriate."""
+
+
+# Model Configuration
+import yaml
+from pathlib import Path
+from typing import Dict, Any
+
+class ModelConfig:
+    """Load and manage model configuration from YAML file."""
+    
+    def __init__(self, config_path: str = None):
+        if config_path is None:
+            config_path = Path(__file__).parent.parent / 'config' / 'model_config.yaml'
+        
+        self.config_path = Path(config_path)
+        self._config = self._load_config()
+    
+    def _load_config(self) -> Dict[str, Any]:
+        """Load configuration from YAML file."""
+        if not self.config_path.exists():
+            raise FileNotFoundError(f"Config file not found: {self.config_path}")
+        
+        with open(self.config_path, 'r') as f:
+            return yaml.safe_load(f)
+    
+    def get_mode(self) -> str:
+        """Get the configured model mode."""
+        return self._config.get('model_mode', 'self_hosted')
+    
+    def get_self_hosted_config(self) -> Dict[str, Any]:
+        """Get self-hosted configuration."""
+        return self._config.get('self_hosted', {})
+    
+    def get_local_config(self) -> Dict[str, Any]:
+        """Get local model configuration."""
+        return self._config.get('local', {})
+    
+    def get_analysis_config(self) -> Dict[str, Any]:
+        """Get analysis settings."""
+        return self._config.get('analysis', {
+            'min_words': 15,
+            'temperature': 0.3,
+            'debug': False
+        })

@@ -1,0 +1,20 @@
+# Model mode: 'self_hosted' or 'local'
+model_mode: self_hosted
+
+# Self-hosted Ollama configuration
+self_hosted:
+  endpoint: http://localhost:11434
+  model: gemma2:2b
+  timeout: 30
+
+# Local embedded model (future - placeholder)
+local:
+  model_path: models/tinyllama-1.1b-chat-q4.gguf
+  threads: 4
+  context_size: 2048
+
+# Analysis settings
+analysis:
+  min_words: 15
+  temperature: 0.3
+  debug: false
