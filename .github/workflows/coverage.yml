@@ -1,10 +1,12 @@
 name: Test Coverage
 
 on:
-  push:
-    branches: [ main, develop ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/coverage.yml'
   workflow_dispatch:
 
 permissions:

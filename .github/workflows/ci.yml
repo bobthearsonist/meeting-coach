@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
   workflow_dispatch:
 
 concurrency:
@@ -71,14 +71,6 @@ jobs:
         run: |
           cd backend
           pytest tests/unit/ -v -m "unit" --tb=short --disable-warnings
-      
-      - name: Upload coverage
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-unit-coverage
-          path: backend/htmlcov/
-          retention-days: 7
 
   backend-integration-tests:
     name: Backend Integration Tests
@@ -148,15 +140,7 @@ jobs:
       - name: Run unit tests
         run: |
           cd frontend
-          npm test -- --coverage --watchAll=false --testPathIgnorePatterns=integration
-      
-      - name: Upload coverage
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-unit-coverage
-          path: frontend/coverage/
-          retention-days: 7
+          npm test -- --watchAll=false --testPathIgnorePatterns=integration
 
   frontend-integration-tests:
     name: Frontend Integration Tests
