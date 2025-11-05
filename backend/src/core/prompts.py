@@ -2,48 +2,57 @@
 Centralized prompt engineering for Meeting Coach.
 All prompts defined here for easy inspection and updates.
 """
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import json
 
 VERSION = "1.0.0"
 
 def get_emotion_analysis_prompt(text: str, context: Dict[str, Any] = None) -> str:
     """
-    Build prompt for emotional state and communication analysis.
+    Generate prompt for emotion and communication analysis.
     
     Args:
-        text: The transcript text to analyze
-        context: Optional context (previous emotions, session data)
+        text: Text to analyze
+        context: Optional previous context/history
     
     Returns:
         Formatted prompt string
     """
-    context_str = json.dumps(context) if context else "None"
+    base_prompt = """Analyze this meeting transcript for social cues and emotional regulation patterns.
+Focus on objective assessment to help someone with autism and ADHD understand their communication.
+
+Text: "{text}"
+
+Provide a VALID JSON response with properly formatted arrays (use commas between array elements):
+1. emotional_state: "calm", "engaged", "elevated", "intense", "rapid", "distracted", "overwhelmed", or "overly_critical"
+2. social_cue: "appropriate", "interrupting", "dominating", "monotone", "too_quiet", "off_topic", or "repetitive"
+3. speech_pace: "normal", "rushed", "rambling", "clear", "hesitant", "loud", or "quiet"
+4. confidence: 0.0-1.0 (how certain you are of the assessment)
+5. word_count: integer (number of words in the text)
+6. filler_words: array of filler words found (use commas between items: ["um", "uh", "like"])
+7. overly_critical: true or false (whether language is harsh or judgmental)
+8. coaching: practical, supportive suggestion if needed (one sentence, or "Continue as you are" if appropriate)
+
+Assessment guidelines:
+- Default to "calm" and "appropriate" for normal conversational speech
+- Only flag "intense" or "elevated" if there are clear indicators like excitement, urgency, or emotional language
+- Flag "overly_critical" for harsh, judgmental, or excessively negative language toward others or ideas
+- Consider context - sharing accomplishments or explaining technical topics is often normal enthusiasm
+- "engaged" is positive - someone actively participating in discussion
+- Focus on patterns, not single words or phrases
+
+Be conservative in flagging issues - most conversation should be assessed as appropriate."""
     
-    return f"""You are analyzing communication patterns for neurodivergent individuals to provide supportive coaching.
-
-Text to analyze: "{text}"
-
-Previous context: {context_str}
-
-Analyze the emotional tone and communication style. Respond in JSON format:
-{{
-  "emotional_state": "calm|engaged|elevated|intense|overwhelmed",
-  "confidence": 0.0-1.0,
-  "social_cue": "appropriate|watch carefully|concerning",
-  "speech_pace": "slow|normal|fast|very_fast",
-  "word_count": <number>,
-  "filler_words": ["um", "uh", "like"],
-  "overly_critical": true|false,
-  "coaching": "Brief, supportive feedback (1 sentence)"
-}}
-
-Important:
-- Be supportive and non-judgmental
-- Focus on actionable insights
-- Respect neurodivergent communication styles
-- Provide gentle guidance, not criticism
-- Flag "overly_critical" as true if the person is being harsh or judgmental toward others"""
+    # Format with text
+    prompt = base_prompt.format(text=text)
+    
+    # Add context if provided
+    if context:
+        prev_state = context.get('emotional_state', 'unknown')
+        prev_cue = context.get('social_cue', 'unknown')
+        prompt += f"\n\nPrevious context: emotional_state={prev_state}, social_cue={prev_cue}"
+    
+    return prompt
 
 
 def get_system_prompt() -> str:
@@ -73,10 +82,10 @@ def get_all_prompts() -> Dict[str, Any]:
                 "template": get_emotion_analysis_prompt("{{text}}", None),
                 "variables": ["text", "context"],
                 "output_schema": {
-                    "emotional_state": "string (enum: calm|engaged|elevated|intense|overwhelmed)",
+                    "emotional_state": "string (enum: calm|engaged|elevated|intense|rapid|distracted|overwhelmed|overly_critical)",
                     "confidence": "float (0.0-1.0)",
-                    "social_cue": "string (enum: appropriate|watch carefully|concerning)",
-                    "speech_pace": "string (enum: slow|normal|fast|very_fast)",
+                    "social_cue": "string (enum: appropriate|interrupting|dominating|monotone|too_quiet|off_topic|repetitive)",
+                    "speech_pace": "string (enum: normal|rushed|rambling|clear|hesitant|loud|quiet)",
                     "word_count": "integer",
                     "filler_words": "array of strings",
                     "overly_critical": "boolean",

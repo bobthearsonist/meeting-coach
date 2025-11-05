@@ -5,6 +5,8 @@ Configuration settings for Teams Meeting Coach
 import os
 import sys
 from pathlib import Path
+from typing import Dict, Any
+import yaml
 
 
 # Load environment variables from .env file
@@ -127,44 +129,68 @@ Be conservative in flagging issues - most conversation should be assessed as app
 
 
 # Model Configuration
-import yaml
-from pathlib import Path
-from typing import Dict, Any
+
 
 class ModelConfig:
-    """Load and manage model configuration from YAML file."""
+    """Load and manage model configuration from YAML file with environment variable fallback."""
     
-    def __init__(self, config_path: str = None):
+    def __init__(self, config_path: str = None, mode: str = None):
+        """
+        Initialize model configuration.
+        
+        Args:
+            config_path: Path to YAML config file. If None, uses default location.
+            mode: Model mode ('self_hosted' or 'local'). If None, reads from YAML or env var.
+        """
         if config_path is None:
             config_path = Path(__file__).parent.parent / 'config' / 'model_config.yaml'
         
         self.config_path = Path(config_path)
-        self._config = self._load_config()
+        self._config = self._load_config() if self.config_path.exists() else {}
+        
+        # Override mode if provided
+        if mode:
+            self._config['model_mode'] = mode
+        
+        # Fallback to environment variables if YAML doesn't exist or lacks values
+        self._mode = self._config.get('model_mode') or os.getenv('MODEL_MODE', 'self_hosted')
     
     def _load_config(self) -> Dict[str, Any]:
         """Load configuration from YAML file."""
-        if not self.config_path.exists():
-            raise FileNotFoundError(f"Config file not found: {self.config_path}")
-        
-        with open(self.config_path, 'r') as f:
-            return yaml.safe_load(f)
+        try:
+            with open(self.config_path, 'r') as f:
+                return yaml.safe_load(f) or {}
+        except Exception as e:
+            print(f"Warning: Could not load config file {self.config_path}: {e}")
+            return {}
     
     def get_mode(self) -> str:
         """Get the configured model mode."""
-        return self._config.get('model_mode', 'self_hosted')
+        return self._mode
     
     def get_self_hosted_config(self) -> Dict[str, Any]:
-        """Get self-hosted configuration."""
-        return self._config.get('self_hosted', {})
+        """Get self-hosted configuration with environment variable fallback."""
+        yaml_config = self._config.get('self_hosted', {})
+        return {
+            'endpoint': yaml_config.get('endpoint') or os.getenv('OLLAMA_ENDPOINT', 'http://localhost:11434'),
+            'model': yaml_config.get('model') or os.getenv('OLLAMA_MODEL', OLLAMA_MODEL),
+            'timeout': yaml_config.get('timeout') or int(os.getenv('OLLAMA_TIMEOUT', '30'))
+        }
     
     def get_local_config(self) -> Dict[str, Any]:
-        """Get local model configuration."""
-        return self._config.get('local', {})
+        """Get local model configuration with environment variable fallback."""
+        yaml_config = self._config.get('local', {})
+        return {
+            'model_path': yaml_config.get('model_path') or os.getenv('LOCAL_MODEL_PATH', 'models/tinyllama.gguf'),
+            'threads': yaml_config.get('threads') or int(os.getenv('LOCAL_THREADS', '4')),
+            'context_size': yaml_config.get('context_size') or int(os.getenv('LOCAL_CONTEXT_SIZE', '2048'))
+        }
     
     def get_analysis_config(self) -> Dict[str, Any]:
-        """Get analysis settings."""
-        return self._config.get('analysis', {
-            'min_words': 15,
-            'temperature': 0.3,
-            'debug': False
-        })
+        """Get analysis settings with environment variable fallback."""
+        yaml_config = self._config.get('analysis', {})
+        return {
+            'min_words': yaml_config.get('min_words', MIN_WORDS_FOR_ANALYSIS),
+            'temperature': yaml_config.get('temperature') or float(os.getenv('MODEL_TEMPERATURE', '0.3')),
+            'debug': yaml_config.get('debug', DEBUG_ANALYSIS)
+        }
