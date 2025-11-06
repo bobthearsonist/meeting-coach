@@ -1,7 +1,7 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, {useMemo} from 'react';
+import {View, Text, StyleSheet} from 'react-native';
 import useMeetingData from '../hooks/useMeetingData';
-import theme, { commonStyles } from '../utils/theme';
+import theme, {commonStyles} from '../utils/theme';
 
 /**
  * StatusPanel - Displays current meeting status metrics
@@ -15,7 +15,7 @@ import theme, { commonStyles } from '../utils/theme';
  * Accesses global state via useMeetingData hook.
  */
 export default function StatusPanel() {
-  const { emotionalState, wpm, timeline } = useMeetingData();
+  const {emotionalState, wpm, timeline} = useMeetingData();
 
   // Get the most recent social cue from timeline entries
   const mostRecentSocialCue = useMemo(() => {
@@ -43,7 +43,7 @@ export default function StatusPanel() {
   }, [timeline?.summary]);
 
   // Determine social cue color based on value
-  const getSocialCueColor = (cue) => {
+  const getSocialCueColor = cue => {
     const concerning = [
       'interrupting',
       'dominating',
@@ -72,8 +72,7 @@ export default function StatusPanel() {
                   theme.colors.emotional[emotionalState] ||
                   theme.colors.text.primary,
               },
-            ]}
-          >
+            ]}>
             {emotionalState}
           </Text>
         </View>
@@ -83,18 +82,15 @@ export default function StatusPanel() {
           <Text
             style={[
               styles.statusValue,
-              { color: getSocialCueColor(mostRecentSocialCue) },
-            ]}
-          >
+              {color: getSocialCueColor(mostRecentSocialCue)},
+            ]}>
             {mostRecentSocialCue}
           </Text>
         </View>
 
         <View style={[styles.statusBox, styles.confidence]}>
           <Text style={styles.statusLabel}>Confidence</Text>
-          <Text
-            style={[styles.statusValue, { color: theme.colors.confidence }]}
-          >
+          <Text style={[styles.statusValue, {color: theme.colors.confidence}]}>
             {averageConfidence.toFixed(2)}
           </Text>
         </View>
@@ -102,8 +98,7 @@ export default function StatusPanel() {
         <View style={[styles.statusBox, styles.speechPace]}>
           <Text style={styles.statusLabel}>Speech Pace</Text>
           <Text
-            style={[styles.statusValue, { color: theme.colors.status.success }]}
-          >
+            style={[styles.statusValue, {color: theme.colors.status.success}]}>
             {Math.round(wpm)}
             <Text style={styles.unit}> WPM</Text>
           </Text>

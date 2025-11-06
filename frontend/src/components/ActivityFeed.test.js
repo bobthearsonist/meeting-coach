@@ -65,7 +65,7 @@ describe('ActivityFeed', () => {
     return render(
       <MeetingContext.Provider value={{state, dispatch: mockDispatch}}>
         {component}
-      </MeetingContext.Provider>
+      </MeetingContext.Provider>,
     );
   };
 
@@ -76,17 +76,15 @@ describe('ActivityFeed', () => {
 
   it('displays activity entries from timeline data', () => {
     const {getByText} = renderWithProvider(<ActivityFeed />);
-    
+
     // Check for transcript text from mock data
-    expect(
-      getByText(/All right, so I think it is only fair/)
-    ).toBeTruthy();
+    expect(getByText(/All right, so I think it is only fair/)).toBeTruthy();
     expect(getByText(/I am not really sure about this decision/)).toBeTruthy();
   });
 
   it('formats timestamps correctly', () => {
     const {getAllByText} = renderWithProvider(<ActivityFeed />);
-    
+
     // Should have timestamps formatted as HH:MM:SS
     const timestamps = getAllByText(/\d{2}:\d{2}:\d{2}/);
     expect(timestamps.length).toBeGreaterThan(0);
@@ -94,7 +92,7 @@ describe('ActivityFeed', () => {
 
   it('displays empty state when no entries', () => {
     const {getByText} = renderWithProvider(<ActivityFeed />, mockStateEmpty);
-    
+
     expect(getByText('💬 Recent Activity')).toBeTruthy();
     expect(getByText('No recent activity')).toBeTruthy();
     expect(getByText(/Start speaking to see transcriptions/)).toBeTruthy();
@@ -102,7 +100,7 @@ describe('ActivityFeed', () => {
 
   it('limits display to most recent entries', () => {
     const {getByText} = renderWithProvider(<ActivityFeed />);
-    
+
     // Should render the component successfully
     expect(getByText('💬 Recent Activity')).toBeTruthy();
   });

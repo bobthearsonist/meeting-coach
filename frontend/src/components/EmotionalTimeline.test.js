@@ -65,7 +65,7 @@ describe('EmotionalTimeline', () => {
     return render(
       <MeetingContext.Provider value={{state, dispatch: mockDispatch}}>
         {component}
-      </MeetingContext.Provider>
+      </MeetingContext.Provider>,
     );
   };
 
@@ -94,7 +94,10 @@ describe('EmotionalTimeline', () => {
   });
 
   it('handles empty timeline data gracefully', () => {
-    const {getByText} = renderWithProvider(<EmotionalTimeline />, mockStateEmpty);
+    const {getByText} = renderWithProvider(
+      <EmotionalTimeline />,
+      mockStateEmpty,
+    );
     expect(getByText('📈 Emotional Timeline')).toBeTruthy();
     expect(getByText(/UNKNOWN/)).toBeTruthy();
     expect(getByText(/Range:.*No data/)).toBeTruthy();

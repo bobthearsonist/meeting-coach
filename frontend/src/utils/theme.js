@@ -117,21 +117,21 @@ export const theme = {
   shadow: {
     sm: {
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
+      shadowOffset: {width: 0, height: 1},
       shadowOpacity: 0.05,
       shadowRadius: 2,
       elevation: 1,
     },
     md: {
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
+      shadowOffset: {width: 0, height: 2},
       shadowOpacity: 0.1,
       shadowRadius: 4,
       elevation: 2,
     },
     lg: {
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
+      shadowOffset: {width: 0, height: 4},
       shadowOpacity: 0.15,
       shadowRadius: 8,
       elevation: 4,
@@ -144,7 +144,7 @@ export const theme = {
  * @param {string} state - Emotional state name
  * @returns {string} Hex color code
  */
-export const getEmotionalColor = (state) => {
+export const getEmotionalColor = state => {
   const normalizedState = state?.toLowerCase() || 'unknown';
   return (
     theme.colors.emotional[normalizedState] || theme.colors.emotional.unknown
@@ -156,7 +156,7 @@ export const getEmotionalColor = (state) => {
  * @param {string} cue - Social cue name
  * @returns {string} Hex color code
  */
-export const getSocialColor = (cue) => {
+export const getSocialColor = cue => {
   const normalizedCue = cue?.toLowerCase() || 'unknown';
   return theme.colors.social[normalizedCue] || theme.colors.social.unknown;
 };

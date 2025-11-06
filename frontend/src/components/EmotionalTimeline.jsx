@@ -1,7 +1,7 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, {useMemo} from 'react';
+import {View, Text, StyleSheet} from 'react-native';
 import useMeetingData from '../hooks/useMeetingData';
-import theme, { commonStyles } from '../utils/theme';
+import theme, {commonStyles} from '../utils/theme';
 
 /**
  * EmotionalTimeline - Displays emotional state timeline visualization
@@ -22,7 +22,7 @@ import theme, { commonStyles } from '../utils/theme';
  * Accesses global state via useMeetingData hook.
  */
 export default function EmotionalTimeline() {
-  const { timeline } = useMeetingData();
+  const {timeline} = useMeetingData();
 
   // Emoji mapping for emotional states
   const emojiMap = {
@@ -48,7 +48,7 @@ export default function EmotionalTimeline() {
     const fiveMinutesAgo = latestTimestamp - 5 * 60; // 5 minutes in seconds
 
     // Filter to only entries within the last 5 minutes
-    return entries.filter((entry) => entry.timestamp >= fiveMinutesAgo);
+    return entries.filter(entry => entry.timestamp >= fiveMinutesAgo);
   }, [timeline?.recentEntries]);
 
   // Calculate time range from windowed entries
@@ -61,7 +61,7 @@ export default function EmotionalTimeline() {
     const newestTimestamp =
       windowedEntries[windowedEntries.length - 1].timestamp;
 
-    const formatTime = (timestamp) => {
+    const formatTime = timestamp => {
       const date = new Date(timestamp * 1000); // Convert from Unix timestamp
       return date.toLocaleTimeString('en-US', {
         hour: '2-digit',
@@ -74,44 +74,43 @@ export default function EmotionalTimeline() {
   }, [windowedEntries]);
 
   // Calculate dominant state and average confidence from windowed entries
-  const { dominantState, averageConfidence, stateDistribution } =
-    useMemo(() => {
-      if (windowedEntries.length === 0) {
-        return {
-          dominantState: 'unknown',
-          averageConfidence: 0.0,
-          stateDistribution: {},
-        };
-      }
-
-      // Build state distribution from windowed entries
-      const distribution = {};
-      let totalConfidence = 0;
-
-      windowedEntries.forEach((entry) => {
-        const state = entry.emotional_state || 'neutral';
-        distribution[state] = (distribution[state] || 0) + 1;
-        totalConfidence += entry.confidence || 0;
-      });
-
-      // Find dominant state
-      const dominant = Object.entries(distribution).reduce(
-        (max, [state, count]) => (count > max.count ? { state, count } : max),
-        { state: 'unknown', count: 0 }
-      );
-
+  const {dominantState, averageConfidence, stateDistribution} = useMemo(() => {
+    if (windowedEntries.length === 0) {
       return {
-        dominantState: dominant.state,
-        averageConfidence: totalConfidence / windowedEntries.length,
-        stateDistribution: distribution,
+        dominantState: 'unknown',
+        averageConfidence: 0.0,
+        stateDistribution: {},
       };
-    }, [windowedEntries]);
+    }
+
+    // Build state distribution from windowed entries
+    const distribution = {};
+    let totalConfidence = 0;
+
+    windowedEntries.forEach(entry => {
+      const state = entry.emotional_state || 'neutral';
+      distribution[state] = (distribution[state] || 0) + 1;
+      totalConfidence += entry.confidence || 0;
+    });
+
+    // Find dominant state
+    const dominant = Object.entries(distribution).reduce(
+      (max, [state, count]) => (count > max.count ? {state, count} : max),
+      {state: 'unknown', count: 0},
+    );
+
+    return {
+      dominantState: dominant.state,
+      averageConfidence: totalConfidence / windowedEntries.length,
+      stateDistribution: distribution,
+    };
+  }, [windowedEntries]);
 
   // Calculate timeline segments based on state distribution from windowed entries
   const timelineSegments = useMemo(() => {
     if (!stateDistribution || Object.keys(stateDistribution).length === 0) {
       return [
-        { state: 'unknown', flex: 1, color: theme.colors.emotional.neutral },
+        {state: 'unknown', flex: 1, color: theme.colors.emotional.neutral},
       ];
     }
 
@@ -147,7 +146,7 @@ export default function EmotionalTimeline() {
               key={`${segment.state}-${index}`}
               style={[
                 styles.timelineSegment,
-                { flex: segment.flex, backgroundColor: segment.color },
+                {flex: segment.flex, backgroundColor: segment.color},
               ]}
             />
           ))}

@@ -1,5 +1,13 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing, PanResponder } from 'react-native';
+import React, {useState, useRef, useEffect} from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Animated,
+  Easing,
+  PanResponder,
+} from 'react-native';
 import useMeetingData from '../hooks/useMeetingData';
 import theme from '../utils/theme';
 
@@ -8,8 +16,8 @@ import theme from '../utils/theme';
  * Minimal collapsible top drawer showing only two navigation rows when expanded.
  * Collapsed: just a small drag handle bar.
  */
-export default function TopSessionDrawer({ onHistoryPress, onSettingsPress }) {
-  const { isRecording, isConnected } = useMeetingData();
+export default function TopSessionDrawer({onHistoryPress, onSettingsPress}) {
+  const {isRecording, isConnected} = useMeetingData();
   const [expanded, setExpanded] = useState(false); // start collapsed
   const animated = useRef(new Animated.Value(0)).current; // 0 collapsed, 1 expanded
 
@@ -46,33 +54,81 @@ export default function TopSessionDrawer({ onHistoryPress, onSettingsPress }) {
           setExpanded(prev => !prev);
         }
       },
-    })
+    }),
   ).current;
 
   return (
-    <Animated.View style={[styles.wrapper, { height: containerHeight }]} {...panResponder.panHandlers}>
+    <Animated.View
+      style={[styles.wrapper, {height: containerHeight}]}
+      {...panResponder.panHandlers}>
       <TouchableOpacity
         activeOpacity={0.85}
         style={styles.handleContainer}
         onPress={() => setExpanded(!expanded)}
         accessibilityRole="button"
-        accessibilityLabel={expanded ? 'Collapse drawer' : 'Expand drawer'}
-      >
+        accessibilityLabel={expanded ? 'Collapse drawer' : 'Expand drawer'}>
         <View style={styles.handle} />
         {!expanded && (
-          <View style={[styles.statusPill, isRecording ? styles.statusRecording : (isConnected ? styles.statusConnected : styles.statusOffline)]}>
-            <View style={[styles.statusDot, isRecording ? styles.dotRecording : (isConnected ? styles.dotConnected : styles.dotOffline)]} />
-            <Text style={styles.statusText}>{isRecording ? 'Recording' : (isConnected ? 'Connected' : 'Offline')}</Text>
+          <View
+            style={[
+              styles.statusPill,
+              isRecording
+                ? styles.statusRecording
+                : isConnected
+                ? styles.statusConnected
+                : styles.statusOffline,
+            ]}>
+            <View
+              style={[
+                styles.statusDot,
+                isRecording
+                  ? styles.dotRecording
+                  : isConnected
+                  ? styles.dotConnected
+                  : styles.dotOffline,
+              ]}
+            />
+            <Text style={styles.statusText}>
+              {isRecording
+                ? 'Recording'
+                : isConnected
+                ? 'Connected'
+                : 'Offline'}
+            </Text>
           </View>
         )}
       </TouchableOpacity>
 
-      <Animated.View style={[styles.detailsContainer, { opacity: detailOpacity }]}>        
+      <Animated.View
+        style={[styles.detailsContainer, {opacity: detailOpacity}]}>
         {expanded && (
           <View style={styles.expandedStatusRow}>
-            <View style={[styles.statusPill, isRecording ? styles.statusRecording : (isConnected ? styles.statusConnected : styles.statusOffline)]}>
-              <View style={[styles.statusDot, isRecording ? styles.dotRecording : (isConnected ? styles.dotConnected : styles.dotOffline)]} />
-              <Text style={styles.statusText}>{isRecording ? 'Recording' : (isConnected ? 'Connected' : 'Offline')}</Text>
+            <View
+              style={[
+                styles.statusPill,
+                isRecording
+                  ? styles.statusRecording
+                  : isConnected
+                  ? styles.statusConnected
+                  : styles.statusOffline,
+              ]}>
+              <View
+                style={[
+                  styles.statusDot,
+                  isRecording
+                    ? styles.dotRecording
+                    : isConnected
+                    ? styles.dotConnected
+                    : styles.dotOffline,
+                ]}
+              />
+              <Text style={styles.statusText}>
+                {isRecording
+                  ? 'Recording'
+                  : isConnected
+                  ? 'Connected'
+                  : 'Offline'}
+              </Text>
             </View>
           </View>
         )}
@@ -81,18 +137,16 @@ export default function TopSessionDrawer({ onHistoryPress, onSettingsPress }) {
             style={styles.listItem}
             onPress={onHistoryPress}
             accessibilityRole="button"
-            accessibilityLabel="View history"
-          >
-            <Text style={styles.listItemText}>📜  History</Text>
+            accessibilityLabel="View history">
+            <Text style={styles.listItemText}>📜 History</Text>
             <Text style={styles.listItemChevron}>›</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.listItem}
             onPress={onSettingsPress}
             accessibilityRole="button"
-            accessibilityLabel="Open settings"
-          >
-            <Text style={styles.listItemText}>⚙️  Settings</Text>
+            accessibilityLabel="Open settings">
+            <Text style={styles.listItemText}>⚙️ Settings</Text>
             <Text style={styles.listItemChevron}>›</Text>
           </TouchableOpacity>
         </View>
@@ -146,12 +200,12 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
   },
-  dotRecording: { backgroundColor: theme.colors.status.error },
-  dotConnected: { backgroundColor: theme.colors.status.success },
-  dotOffline: { backgroundColor: theme.colors.text.secondary, opacity: 0.6 },
-  statusRecording: { backgroundColor: theme.colors.background.tertiary },
-  statusConnected: { backgroundColor: theme.colors.background.tertiary },
-  statusOffline: { backgroundColor: theme.colors.background.tertiary },
+  dotRecording: {backgroundColor: theme.colors.status.error},
+  dotConnected: {backgroundColor: theme.colors.status.success},
+  dotOffline: {backgroundColor: theme.colors.text.secondary, opacity: 0.6},
+  statusRecording: {backgroundColor: theme.colors.background.tertiary},
+  statusConnected: {backgroundColor: theme.colors.background.tertiary},
+  statusOffline: {backgroundColor: theme.colors.background.tertiary},
   statusText: {
     fontSize: theme.fontSize.xs,
     fontWeight: theme.fontWeight.medium,
@@ -162,7 +216,7 @@ const styles = StyleSheet.create({
   detailsContainer: {
     marginTop: theme.spacing.sm,
   },
-  actionsRow: { },
+  actionsRow: {},
   list: {
     marginTop: theme.spacing.xs,
     borderTopWidth: 1,
@@ -193,5 +247,5 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background.tertiary,
     borderRadius: theme.borderRadius.md,
   },
-  iconText: { fontSize: theme.fontSize.lg },
+  iconText: {fontSize: theme.fontSize.lg},
 });

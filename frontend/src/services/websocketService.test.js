@@ -32,7 +32,7 @@ describe('websocketService', () => {
     jest.useFakeTimers();
     ReconnectingWebSocket.__clearInstances();
     global.WebSocket = function MockNativeWebSocket(url, protocols, options) {
-      return { url, protocols, options };
+      return {url, protocols, options};
     };
     global.WebSocket.OPEN = 1;
     global.WebSocket.CLOSED = 3;
@@ -56,33 +56,33 @@ describe('websocketService', () => {
 
     await expect(connectPromise).resolves.toBe(socket);
 
-    send({ type: 'ping' });
-    expect(socket.send).toHaveBeenCalledWith(JSON.stringify({ type: 'ping' }));
+    send({type: 'ping'});
+    expect(socket.send).toHaveBeenCalledWith(JSON.stringify({type: 'ping'}));
   });
 
   it('dispatches parsed payloads to subscribers', async () => {
     const handler = jest.fn();
     const unsubscribe = subscribe('meeting_update', handler);
 
-    const connectPromise = connect({ AUTO_RECONNECT: false });
+    const connectPromise = connect({AUTO_RECONNECT: false});
     const socket = getMockSocket();
     socket.readyState = 1;
     socket.dispatch('open');
     await connectPromise;
 
-    const payload = { type: 'meeting_update', text: 'hello world' };
-    socket.dispatch('message', { data: JSON.stringify(payload) });
+    const payload = {type: 'meeting_update', text: 'hello world'};
+    socket.dispatch('message', {data: JSON.stringify(payload)});
 
     expect(handler).toHaveBeenCalledWith(payload);
 
     unsubscribe();
-    socket.dispatch('message', { data: JSON.stringify(payload) });
+    socket.dispatch('message', {data: JSON.stringify(payload)});
     expect(handler).toHaveBeenCalledTimes(1);
   });
 
   it('notifies status listeners during connect and reconnect cycles', async () => {
     const statuses = [];
-    const unsubscribeStatus = onStatusChange((snapshot) => {
+    const unsubscribeStatus = onStatusChange(snapshot => {
       statuses.push(snapshot.status);
     });
 
@@ -93,7 +93,7 @@ describe('websocketService', () => {
     socket.dispatch('open');
     await connectPromise;
 
-    socket.dispatch('connecting', { reconnectAttempts: 1 });
+    socket.dispatch('connecting', {reconnectAttempts: 1});
 
     expect(statuses).toEqual([
       ConnectionStatus.IDLE,

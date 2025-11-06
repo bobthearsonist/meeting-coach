@@ -1,57 +1,57 @@
-import { useContext, useCallback } from 'react';
+import {useContext, useCallback} from 'react';
 import * as actionTypes from '../context/actionTypes';
 import MeetingContext from '../context/MeetingContext';
 
 export const useMeetingData = () => {
-  const { state, dispatch } = useContext(MeetingContext);
+  const {state, dispatch} = useContext(MeetingContext);
 
   const updateEmotionalState = useCallback(
-    (newState) => {
-      dispatch({ type: actionTypes.UPDATE_EMOTION, payload: newState });
+    newState => {
+      dispatch({type: actionTypes.UPDATE_EMOTION, payload: newState});
     },
-    [dispatch]
+    [dispatch],
   );
 
   const updateWpm = useCallback(
-    (newWpm) => {
-      dispatch({ type: actionTypes.UPDATE_WPM, payload: newWpm });
+    newWpm => {
+      dispatch({type: actionTypes.UPDATE_WPM, payload: newWpm});
     },
-    [dispatch]
+    [dispatch],
   );
 
   const setConnectionStatus = useCallback(
-    (status) => {
-      dispatch({ type: actionTypes.SET_CONNECTION_STATUS, payload: status });
+    status => {
+      dispatch({type: actionTypes.SET_CONNECTION_STATUS, payload: status});
     },
-    [dispatch]
+    [dispatch],
   );
 
   const setSessionStatus = useCallback(
-    (status) => {
-      dispatch({ type: actionTypes.SET_SESSION_STATUS, payload: status });
+    status => {
+      dispatch({type: actionTypes.SET_SESSION_STATUS, payload: status});
     },
-    [dispatch]
+    [dispatch],
   );
 
   const setRecordingStatus = useCallback(
-    (status) => {
-      dispatch({ type: actionTypes.SET_RECORDING_STATUS, payload: status });
+    status => {
+      dispatch({type: actionTypes.SET_RECORDING_STATUS, payload: status});
     },
-    [dispatch]
+    [dispatch],
   );
 
   const addAlert = useCallback(
-    (alert) => {
-      dispatch({ type: actionTypes.ADD_ALERT, payload: alert });
+    alert => {
+      dispatch({type: actionTypes.ADD_ALERT, payload: alert});
     },
-    [dispatch]
+    [dispatch],
   );
 
   const updateTimeline = useCallback(
-    (timelineData) => {
-      dispatch({ type: actionTypes.UPDATE_TIMELINE, payload: timelineData });
+    timelineData => {
+      dispatch({type: actionTypes.UPDATE_TIMELINE, payload: timelineData});
     },
-    [dispatch]
+    [dispatch],
   );
 
   return {

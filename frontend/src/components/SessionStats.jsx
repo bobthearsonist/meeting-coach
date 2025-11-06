@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, {useMemo} from 'react';
+import {View, Text, StyleSheet} from 'react-native';
 import theme from '../utils/theme';
 import useMeetingData from '../hooks/useMeetingData';
 
@@ -15,7 +15,7 @@ import useMeetingData from '../hooks/useMeetingData';
  * Wired to timeline data from global state via useMeetingData hook.
  */
 const SessionStats = () => {
-  const { timeline } = useMeetingData();
+  const {timeline} = useMeetingData();
 
   // Calculate session duration from first to last entry
   const duration = useMemo(() => {
@@ -43,7 +43,7 @@ const SessionStats = () => {
     const stateDistribution = timeline?.summary?.state_distribution || {};
     const totalCount = Object.values(stateDistribution).reduce(
       (sum, count) => sum + count,
-      0
+      0,
     );
 
     if (totalCount === 0) {
@@ -77,7 +77,7 @@ const SessionStats = () => {
         {emotionDistribution.length > 0 ? (
           emotionDistribution.map((emotion, index) => (
             <Text key={emotion.state} style={styles.emotion}>
-              <Text style={{ color: emotion.color }}>●</Text> {emotion.state}:{' '}
+              <Text style={{color: emotion.color}}>●</Text> {emotion.state}:{' '}
               {emotion.percentage}%
             </Text>
           ))
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: theme.borderRadius.md,
     padding: theme.spacing.lg,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
+    shadowOffset: {width: 0, height: -2},
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 5, // Android shadow
