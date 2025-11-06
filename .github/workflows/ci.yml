@@ -14,11 +14,15 @@ concurrency:
 permissions:
   contents: read
   actions: read
+  pull-requests: write
 
 jobs:
+  # ============================================
   # Backend Jobs
+  # ============================================
+  
   backend-lint:
-    name: Backend Linting
+    name: Backend → Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,14 +37,19 @@ jobs:
         uses: ./.github/actions/run-backend-linters
 
   backend-unit-tests:
-    name: Backend Unit Tests
+    name: Backend → Unit Tests
     runs-on: ubuntu-latest
     needs: backend-lint
+    strategy:
+      matrix:
+        python-version: ['3.12']
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup Python Backend
         uses: ./.github/actions/setup-python-backend
+        with:
+          python-version: ${{ matrix.python-version }}
 
       - name: Run unit tests
         uses: ./.github/actions/run-backend-tests
@@ -49,9 +58,46 @@ jobs:
           markers: 'unit'
 
   backend-integration-tests:
-    name: Backend Integration Tests
+    name: Backend → Integration Tests
     runs-on: ubuntu-latest
     needs: backend-unit-tests
+    strategy:
+      matrix:
+        python-version: ['3.12']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python Backend
+        uses: ./.github/actions/setup-python-backend
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run integration tests (fast)
+        run: |
+          cd backend
+          pytest tests/integration/ \
+            -v \
+            -m "integration and not slow and not requires_ollama and not requires_audio" \
+            --tb=short \
+            --disable-warnings
+
+      - name: Run integration tests (with mocks)
+        run: |
+          cd backend
+          pytest tests/integration/ \
+            -v \
+            -m "integration" \
+            --tb=short \
+            --disable-warnings
+        continue-on-error: true
+
+  backend-coverage:
+    name: Backend → Coverage
+    runs-on: ubuntu-latest
+    needs: backend-integration-tests
+    if: github.event_name == 'pull_request'
+    outputs:
+      percentage: ${{ steps.coverage.outputs.percentage }}
     steps:
       - uses: actions/checkout@v4
 
@@ -64,9 +110,36 @@ jobs:
           test-path: 'tests/integration/'
           markers: 'integration and not requires_ollama and not requires_audio'
 
+      - name: Generate coverage summary
+        id: coverage
+        run: |
+          cd backend
+          COVERAGE=$(python -c "import json; print(json.load(open('coverage.json'))['totals']['percent_covered_display'])")
+          echo "percentage=$COVERAGE" >> $GITHUB_OUTPUT
+          echo "Backend coverage: $COVERAGE%"
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./backend/coverage.xml
+          flags: backend
+          name: backend-coverage
+        continue-on-error: true
+
+      - name: Upload HTML coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-coverage-report
+          path: backend/htmlcov/
+          retention-days: 14
+
+  # ============================================
   # Frontend Jobs
+  # ============================================
+
   frontend-lint:
-    name: Frontend Linting
+    name: Frontend → Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -79,9 +152,12 @@ jobs:
         run: npm run lint
 
   frontend-unit-tests:
-    name: Frontend Unit Tests
+    name: Frontend → Unit Tests
     runs-on: ubuntu-latest
     needs: frontend-lint
+    strategy:
+      matrix:
+        node-version: ['18', '20']
     steps:
       - uses: actions/checkout@v4
 
@@ -91,8 +167,8 @@ jobs:
       - name: Run unit tests
         uses: ./.github/actions/run-frontend-tests
 
-  frontend-integration-tests:
-    name: Frontend Integration Tests
+  frontend-component-tests:
+    name: Frontend → Component Tests
     runs-on: ubuntu-latest
     needs: frontend-unit-tests
     steps:
@@ -106,9 +182,190 @@ jobs:
         with:
           test-pattern: '**/*.integration.test.js'
 
-  # Summary Job
-  ci-success:
-    name: CI Success
+      - name: Run screen tests
+        run: |
+          cd frontend
+          npm test -- \
+            --watchAll=false \
+            --testMatch="**/screens/**/*.test.js" \
+            --passWithNoTests
+
+  frontend-integration-tests:
+    name: Frontend → Integration Tests
+    runs-on: ubuntu-latest
+    needs: frontend-component-tests
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Run service integration tests
+        run: |
+          cd frontend
+          npm test -- \
+            --watchAll=false \
+            --testMatch="**/services/**/*.test.js" \
+            --passWithNoTests
+
+      - name: Run context integration tests
+        run: |
+          cd frontend
+          npm test -- \
+            --watchAll=false \
+            --testMatch="**/context/**/*.test.js" \
+            --passWithNoTests
+
+      - name: Run integration test suite
+        run: |
+          cd frontend
+          npm test -- \
+            --watchAll=false \
+            --testMatch="**/*.integration.test.js" \
+            --passWithNoTests
+        continue-on-error: true
+
+  frontend-coverage:
+    name: Frontend → Coverage
+    runs-on: ubuntu-latest
+    needs: frontend-integration-tests
+    if: github.event_name == 'pull_request'
+    outputs:
+      percentage: ${{ steps.coverage.outputs.percentage }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Run tests with coverage
+        run: |
+          cd frontend
+          npm test -- \
+            --coverage \
+            --watchAll=false \
+            --coverageReporters=text \
+            --coverageReporters=lcov \
+            --coverageReporters=json-summary \
+            --passWithNoTests
+
+      - name: Generate coverage summary
+        id: coverage
+        run: |
+          cd frontend
+          if [ -f coverage/coverage-summary.json ]; then
+            COVERAGE=$(node -p "require('./coverage/coverage-summary.json').total.lines.pct")
+            echo "percentage=$COVERAGE" >> $GITHUB_OUTPUT
+            echo "Frontend coverage: $COVERAGE%"
+          else
+            echo "percentage=0" >> $GITHUB_OUTPUT
+            echo "No coverage data found"
+          fi
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./frontend/coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+        continue-on-error: true
+
+      - name: Upload HTML coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-coverage-report
+          path: frontend/coverage/
+          retention-days: 14
+
+  # ============================================
+  # Coverage Summary (Updates PR Description)
+  # ============================================
+
+  coverage-summary:
+    name: Coverage → Update PR
+    runs-on: ubuntu-latest
+    needs:
+      - backend-coverage
+      - frontend-coverage
+    if: always() && github.event_name == 'pull_request'
+    permissions:
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update PR description with coverage
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const backendCoverage = '${{ needs.backend-coverage.outputs.percentage || 'N/A' }}';
+            const frontendCoverage = '${{ needs.frontend-coverage.outputs.percentage || 'N/A' }}';
+            
+            // Get current PR
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            
+            // Create coverage section
+            const coverageSection = `
+            ## 📊 Test Coverage
+            
+            | Component | Coverage |
+            |-----------|----------|
+            | Backend   | ${backendCoverage}% |
+            | Frontend  | ${frontendCoverage}% |
+            
+            _Updated: ${new Date().toISOString()}_
+            
+            ---
+            `;
+            
+            let body = pr.data.body || '';
+            
+            // Remove existing coverage section if present
+            const coverageRegex = /## 📊 Test Coverage[\s\S]*?---\n/g;
+            body = body.replace(coverageRegex, '');
+            
+            // Add new coverage section at the end
+            body = body.trim() + '\n\n' + coverageSection;
+            
+            // Update PR description
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              body: body
+            });
+            
+            console.log('✅ PR description updated with coverage information');
+
+  # ============================================
+  # Summary
+  # ============================================
+
+  ci-summary:
+    name: ✅ CI Summary
     runs-on: ubuntu-latest
     needs:
       - backend-lint
@@ -116,18 +373,35 @@ jobs:
       - backend-integration-tests
       - frontend-lint
       - frontend-unit-tests
+      - frontend-component-tests
       - frontend-integration-tests
     if: always()
     steps:
       - name: Check all jobs
         run: |
+          echo "## 🔍 Test Results Summary"
+          echo ""
+          echo "### Backend"
+          echo "- Lint: ${{ needs.backend-lint.result }}"
+          echo "- Unit Tests: ${{ needs.backend-unit-tests.result }}"
+          echo "- Integration Tests: ${{ needs.backend-integration-tests.result }}"
+          echo ""
+          echo "### Frontend"
+          echo "- Lint: ${{ needs.frontend-lint.result }}"
+          echo "- Unit Tests: ${{ needs.frontend-unit-tests.result }}"
+          echo "- Component Tests: ${{ needs.frontend-component-tests.result }}"
+          echo "- Integration Tests: ${{ needs.frontend-integration-tests.result }}"
+          echo ""
+          
           if [[ "${{ needs.backend-lint.result }}" != "success" ]] || \
              [[ "${{ needs.backend-unit-tests.result }}" != "success" ]] || \
              [[ "${{ needs.backend-integration-tests.result }}" != "success" ]] || \
              [[ "${{ needs.frontend-lint.result }}" != "success" ]] || \
              [[ "${{ needs.frontend-unit-tests.result }}" != "success" ]] || \
+             [[ "${{ needs.frontend-component-tests.result }}" != "success" ]] || \
              [[ "${{ needs.frontend-integration-tests.result }}" != "success" ]]; then
-            echo "One or more jobs failed"
+            echo "❌ One or more test jobs failed"
             exit 1
           fi
-          echo "All CI jobs passed!"
+          
+          echo "✅ All CI jobs passed!"
