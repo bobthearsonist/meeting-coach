@@ -1,9 +1,9 @@
-import React, {createContext, useReducer} from 'react';
-import * as actionTypes from './actionTypes';
+import React, { createContext, useReducer } from "react";
+import * as actionTypes from "./actionTypes";
 
 // Initial state for the meeting context
 const initialState = {
-  emotionalState: 'neutral',
+  emotionalState: "neutral",
   wpm: 0,
   alerts: [],
   isConnected: false,
@@ -22,17 +22,17 @@ const MeetingContext = createContext();
 const meetingReducer = (state, action) => {
   switch (action.type) {
     case actionTypes.UPDATE_EMOTION:
-      return {...state, emotionalState: action.payload};
+      return { ...state, emotionalState: action.payload };
     case actionTypes.UPDATE_WPM:
-      return {...state, wpm: action.payload};
+      return { ...state, wpm: action.payload };
     case actionTypes.SET_CONNECTION_STATUS:
-      return {...state, isConnected: action.payload};
+      return { ...state, isConnected: action.payload };
     case actionTypes.SET_SESSION_STATUS:
-      return {...state, isSessionActive: action.payload};
+      return { ...state, isSessionActive: action.payload };
     case actionTypes.SET_RECORDING_STATUS:
-      return {...state, isRecording: action.payload};
+      return { ...state, isRecording: action.payload };
     case actionTypes.ADD_ALERT:
-      return {...state, alerts: [...state.alerts, action.payload]};
+      return { ...state, alerts: [...state.alerts, action.payload] };
     case actionTypes.UPDATE_TIMELINE:
       return {
         ...state,
@@ -47,13 +47,16 @@ const meetingReducer = (state, action) => {
 };
 
 // Provider component to wrap the app and provide state
-export const MeetingProvider = ({children}) => {
+export const MeetingProvider = ({ children }) => {
   const [state, dispatch] = useReducer(meetingReducer, initialState);
   return (
-    <MeetingContext.Provider value={{state, dispatch}}>
+    <MeetingContext.Provider value={{ state, dispatch }}>
       {children}
     </MeetingContext.Provider>
   );
 };
+
+// Export MeetingContext for testing purposes
+export { MeetingContext };
 
 export default MeetingContext;
