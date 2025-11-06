@@ -37,16 +37,24 @@ jobs:
           pip install black isort pylint flake8
       
       - name: Run black
-        run: cd backend && black --check *.py src/ tests/ || true
+        run: |
+          cd backend
+          black --check *.py src/ tests/ || (echo "❌ Code formatting check failed. Run 'make format' to fix." && exit 1)
       
       - name: Run isort
-        run: cd backend && isort --check-only *.py src/ tests/ --profile=black || true
+        run: |
+          cd backend
+          isort --check-only *.py src/ tests/ --profile=black || (echo "❌ Import sorting check failed. Run 'make format' to fix." && exit 1)
       
       - name: Run pylint
-        run: cd backend && pylint *.py src/ --disable=C0103,C0114,C0115,C0116,R0903,R0912,R0915 || true
+        run: |
+          cd backend
+          pylint *.py src/ --disable=C0103,C0114,C0115,C0116,R0903,R0912,R0915 --fail-under=8.0
       
       - name: Run flake8
-        run: cd backend && flake8 *.py src/ --max-line-length=100 --ignore=E501,W503 || true
+        run: |
+          cd backend
+          flake8 *.py src/ --max-line-length=100 --ignore=E501,W503
 
   backend-unit-tests:
     name: Backend Unit Tests
@@ -164,7 +172,7 @@ jobs:
       - name: Run integration tests (if any exist)
         run: |
           cd frontend
-          npm test -- --watchAll=false --testMatch="**/*.integration.test.js" || echo "No integration tests found"
+          npm test -- --watchAll=false --testMatch="**/*.integration.test.js" --passWithNoTests
 
   # Summary Job
   ci-success:
