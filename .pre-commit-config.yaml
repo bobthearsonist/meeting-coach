@@ -1,0 +1,48 @@
+# Pre-commit hooks for Teams Meeting Coach
+# See https://pre-commit.com for more information
+# Run `pre-commit install` to set up the git hook scripts
+
+repos:
+  # Backend (Python) hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: debug-statements
+
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+        files: ^backend/
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: [--profile=black]
+        files: ^backend/
+
+  # Frontend (JavaScript/React Native) hooks
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        files: ^frontend/.*\.(js|jsx|ts|tsx|json)$
+        exclude: ^frontend/(node_modules|macos/Pods|macos/build)/
+
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v9.17.0
+    hooks:
+      - id: eslint
+        files: ^frontend/.*\.(js|jsx|ts|tsx)$
+        exclude: ^frontend/(node_modules|macos/Pods|macos/build)/
+        args: [--fix, --max-warnings=0]
+        additional_dependencies:
+          - eslint@8.19.0
+          - '@react-native/eslint-config@0.73.2'
+          - '@babel/eslint-parser@^7.20.0'

@@ -1,0 +1,42 @@
+[MASTER]
+# Use multiple processes to speed up Pylint
+jobs=1
+
+[MESSAGES CONTROL]
+# Disable specific warnings that are either:
+# - Stylistic (handled by Black/flake8)
+# - Too strict for this codebase
+# - Personal preference
+disable=
+    C0103,  # Invalid name (snake_case, etc.) - too strict
+    C0114,  # Missing module docstring
+    C0115,  # Missing class docstring
+    C0116,  # Missing function/method docstring
+    R0903,  # Too few public methods - fine for simple classes
+    R0912,  # Too many branches - sometimes necessary
+    R0915,  # Too many statements - sometimes necessary
+
+[FORMAT]
+# Black handles formatting, so disable pylint's format checks
+max-line-length=88
+
+[BASIC]
+# Good variable names which should always be accepted
+good-names=i,j,k,ex,_,id,db,app,e
+
+[DESIGN]
+# Complexity thresholds
+max-args=7
+max-attributes=10
+
+[SIMILARITIES]
+# Minimum lines number of a similarity
+min-similarity-lines=4
+
+[TYPECHECK]
+# List of members which are set dynamically and missed by pylint
+generated-members=
+
+[REPORTS]
+# Set score threshold
+fail-under=8.0
