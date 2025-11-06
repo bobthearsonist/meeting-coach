@@ -1,15 +1,19 @@
 """
 Audio capture from BlackHole virtual audio device
 """
-import pyaudio
-import numpy as np
+
 import wave
 from typing import Generator, Optional
+
+import numpy as np
+import pyaudio
 from src import config
 
 
 class AudioCapture:
-    def __init__(self, device_index: Optional[int] = None, use_microphone: bool = False):
+    def __init__(
+        self, device_index: Optional[int] = None, use_microphone: bool = False
+    ):
         """
         Initialize audio capture from BlackHole device or microphone.
 
@@ -27,7 +31,9 @@ class AudioCapture:
         else:
             self.device_index = device_index or self._find_blackhole_device()
             if self.device_index is None:
-                raise RuntimeError("BlackHole device not found. Please install BlackHole and configure audio routing.")
+                raise RuntimeError(
+                    "BlackHole device not found. Please install BlackHole and configure audio routing."
+                )
 
         self.stream = None
         self.sample_rate = config.SAMPLE_RATE
@@ -38,21 +44,26 @@ class AudioCapture:
         """Auto-detect BlackHole device index."""
         for i in range(self.audio.get_device_count()):
             device_info = self.audio.get_device_info_by_index(i)
-            name = device_info['name'].lower()
-            if 'blackhole' in name and device_info['maxInputChannels'] > 0:
+            name = device_info["name"].lower()
+            if "blackhole" in name and device_info["maxInputChannels"] > 0:
                 return i
         return None
 
     def _find_microphone_device(self) -> Optional[int]:
         """Auto-detect a suitable microphone device."""
         # Priority order for microphone detection
-        preferred_mics = ['macbook pro microphone', 'built-in microphone', 'blue snowball', 'yeti']
+        preferred_mics = [
+            "macbook pro microphone",
+            "built-in microphone",
+            "blue snowball",
+            "yeti",
+        ]
 
         # First, try to find preferred microphones
         for i in range(self.audio.get_device_count()):
             device_info = self.audio.get_device_info_by_index(i)
-            name = device_info['name'].lower()
-            if device_info['maxInputChannels'] > 0:
+            name = device_info["name"].lower()
+            if device_info["maxInputChannels"] > 0:
                 for preferred in preferred_mics:
                     if preferred in name:
                         return i
@@ -60,14 +71,17 @@ class AudioCapture:
         # Fallback: find any device with input channels
         for i in range(self.audio.get_device_count()):
             device_info = self.audio.get_device_info_by_index(i)
-            if device_info['maxInputChannels'] > 0 and 'blackhole' not in device_info['name'].lower():
+            if (
+                device_info["maxInputChannels"] > 0
+                and "blackhole" not in device_info["name"].lower()
+            ):
                 return i
 
         return None
 
     def get_device_name(self, index: int) -> str:
         """Get device name by index."""
-        return self.audio.get_device_info_by_index(index)['name']
+        return self.audio.get_device_info_by_index(index)["name"]
 
     def list_devices(self):
         """Print all available audio devices."""
@@ -96,13 +110,13 @@ class AudioCapture:
             rate=config.SAMPLE_RATE,
             input=True,
             input_device_index=self.device_index,
-            frames_per_buffer=1024
+            frames_per_buffer=1024,
         )
         print("Audio capture started")
 
     def stop_capture(self) -> None:
         """Stop the audio capture stream."""
-        if hasattr(self, 'stream') and self.stream:
+        if hasattr(self, "stream") and self.stream:
             self.stream.stop_stream()
             self.stream.close()
             self.stream = None
@@ -129,7 +143,7 @@ class AudioCapture:
             audio_data.append(data)
 
         # Convert to numpy array
-        audio_bytes = b''.join(audio_data)
+        audio_bytes = b"".join(audio_data)
         audio_array = np.frombuffer(audio_bytes, dtype=np.int16)
 
         # Convert to float32 and normalize for Whisper
@@ -141,7 +155,9 @@ class AudioCapture:
 
         return audio_float
 
-    def capture_stream(self, chunk_duration: float) -> Generator[np.ndarray, None, None]:
+    def capture_stream(
+        self, chunk_duration: float
+    ) -> Generator[np.ndarray, None, None]:
         """
         Generator that yields audio chunks continuously.
 
@@ -165,7 +181,7 @@ class AudioCapture:
         # Convert back to int16
         audio_int16 = (audio_data * 32768).astype(np.int16)
 
-        with wave.open(filename, 'wb') as wf:
+        with wave.open(filename, "wb") as wf:
             wf.setnchannels(1)  # Mono after conversion
             wf.setsampwidth(2)  # 16-bit
             wf.setframerate(config.SAMPLE_RATE)
@@ -177,7 +193,7 @@ class AudioCapture:
         """Cleanup."""
         try:
             self.stop_capture()
-            if hasattr(self, 'audio'):
+            if hasattr(self, "audio"):
                 self.audio.terminate()
         except (AttributeError, Exception):
             # Ignore cleanup errors during destruction

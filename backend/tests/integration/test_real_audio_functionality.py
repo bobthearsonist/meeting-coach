@@ -16,18 +16,21 @@ Tests that require real audio files and test        # Verify transcription struc
             assert isinstance(wmp, (int, float))
             assert wmp >= 0cation functionality
 """
-import pytest
-import numpy as np
-import wave
+
 import os
 import sys
+import wave
+
+import numpy as np
+import pytest
 
 # Add the project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-from src.core.transcriber import Transcriber
-from src.core.analyzer import CommunicationAnalyzer
 from src import config
+from src.core.analyzer import CommunicationAnalyzer
+from src.core.transcriber import Transcriber
+
 
 class TestWithRealAudio:
     """Tests using the actual test_capture.wav file"""
@@ -36,19 +39,22 @@ class TestWithRealAudio:
     def test_audio_path(self):
         """Path to test audio file."""
         return os.path.join(
-            os.path.dirname(__file__),
-            '..', 'fixtures', 'test_capture.wav'
+            os.path.dirname(__file__), "..", "fixtures", "test_capture.wav"
         )
 
     @pytest.fixture
     def audio_data(self, test_audio_path):
         """Load audio data from test file."""
         if not os.path.exists(test_audio_path):
-            pytest.skip("test_capture.wav not found - run 'python main.py --test-audio' to create it")
+            pytest.skip(
+                "test_capture.wav not found - run 'python main.py --test-audio' to create it"
+            )
 
-        with wave.open(test_audio_path, 'rb') as wf:
+        with wave.open(test_audio_path, "rb") as wf:
             audio_bytes = wf.readframes(wf.getnframes())
-            audio_array = np.frombuffer(audio_bytes, dtype=np.int16).astype(np.float32) / 32768.0
+            audio_array = (
+                np.frombuffer(audio_bytes, dtype=np.int16).astype(np.float32) / 32768.0
+            )
 
         return audio_array
 
@@ -63,30 +69,32 @@ class TestWithRealAudio:
 
         # Verify transcription structure
         assert isinstance(result, dict)
-        assert 'text' in result
-        assert 'word_count' in result
-        assert 'duration' in result
+        assert "text" in result
+        assert "word_count" in result
+        assert "duration" in result
 
         # Calculate WPM manually since transcribe doesn't return it
-        if result['duration'] > 0 and result['word_count'] > 0:
-            wpm = transcriber.calculate_wpm(result['word_count'], result['duration'])
+        if result["duration"] > 0 and result["word_count"] > 0:
+            wpm = transcriber.calculate_wpm(result["word_count"], result["duration"])
             assert isinstance(wpm, (int, float))
             assert wpm >= 0
 
         # Verify reasonable values
-        assert result['duration'] > 0
-        assert result['word_count'] >= 0
+        assert result["duration"] > 0
+        assert result["word_count"] >= 0
 
         # If there was actual speech, we should get some words
-        if result['word_count'] > 0:
-            assert len(result['text'].strip()) > 0
+        if result["word_count"] > 0:
+            assert len(result["text"].strip()) > 0
 
             # Calculate WPM for sanity check
-            wpm = transcriber.calculate_wpm(result['word_count'], result['duration'])
+            wpm = transcriber.calculate_wpm(result["word_count"], result["duration"])
             assert wpm < 1000  # Sanity check - shouldn't be impossibly fast
 
         print(f"Real audio transcription: '{result['text']}'")
-        print(f"Duration: {result['duration']:.2f}s, Words: {result['word_count']}, WPM: {result['wpm']:.1f}")
+        print(
+            f"Duration: {result['duration']:.2f}s, Words: {result['word_count']}, WPM: {result['wpm']:.1f}"
+        )
 
     @pytest.mark.integration
     @pytest.mark.slow
@@ -97,8 +105,8 @@ class TestWithRealAudio:
 
         result = transcriber.transcribe(audio_data)
 
-        if result['word_count'] > 0:
-            filler_counts = transcriber.count_filler_words(result['text'])
+        if result["word_count"] > 0:
+            filler_counts = transcriber.count_filler_words(result["text"])
 
             # Should return a dictionary
             assert isinstance(filler_counts, dict)
@@ -123,41 +131,51 @@ class TestWithRealAudio:
         # Transcribe real audio
         transcription_result = transcriber.transcribe(audio_data)
 
-        if transcription_result['word_count'] >= config.MIN_WORDS_FOR_ANALYSIS:
+        if transcription_result["word_count"] >= config.MIN_WORDS_FOR_ANALYSIS:
             # Analyze the real transcribed text
-            analysis_result = analyzer.analyze(transcription_result['text'])
+            analysis_result = analyzer.analyze(transcription_result["text"])
 
             # Verify analysis structure
-            assert 'emotional_state' in analysis_result
-            assert 'confidence' in analysis_result
-            assert 'reasoning' in analysis_result
+            assert "emotional_state" in analysis_result
+            assert "confidence" in analysis_result
+            assert "reasoning" in analysis_result
 
             # Verify reasonable values
-            assert 0 <= analysis_result['confidence'] <= 1
-            assert analysis_result['tone'] in [
-                'supportive', 'dismissive', 'neutral', 'aggressive', 'passive', 'unknown'
+            assert 0 <= analysis_result["confidence"] <= 1
+            assert analysis_result["tone"] in [
+                "supportive",
+                "dismissive",
+                "neutral",
+                "aggressive",
+                "passive",
+                "unknown",
             ]
 
             # Test alert logic
             should_alert = analyzer.should_alert(
-                analysis_result['tone'],
-                analysis_result['confidence']
+                analysis_result["tone"], analysis_result["confidence"]
             )
             assert isinstance(should_alert, bool)
 
             # Test emoji generation
-            emoji = analyzer.get_emotional_state_emoji(analysis_result['emotional_state'])
+            emoji = analyzer.get_emotional_state_emoji(
+                analysis_result["emotional_state"]
+            )
             assert emoji is not None
             assert len(emoji) > 0
 
             print(f"Real audio analysis:")
             print(f"  Text: '{transcription_result['text']}'")
-            print(f"  Emotional State: {analysis_result['emotional_state']} ({analysis_result['confidence']:.2f})")
+            print(
+                f"  Emotional State: {analysis_result['emotional_state']} ({analysis_result['confidence']:.2f})"
+            )
             print(f"  Alert: {should_alert}")
             print(f"  Emoji: {emoji}")
             print(f"  Reasoning: {analysis_result['reasoning']}")
         else:
-            print(f"Audio too short for analysis ({transcription_result['word_count']} words)")
+            print(
+                f"Audio too short for analysis ({transcription_result['word_count']} words)"
+            )
 
     @pytest.mark.integration
     @pytest.mark.requires_audio
@@ -167,24 +185,27 @@ class TestWithRealAudio:
 
         result = transcriber.transcribe(audio_data)
 
-        if result['word_count'] > 0:
+        if result["word_count"] > 0:
             # Test pace feedback
-            pace_feedback = transcriber.get_speaking_pace_feedback(result['wpm'])
+            pace_feedback = transcriber.get_speaking_pace_feedback(result["wpm"])
 
             assert isinstance(pace_feedback, dict)
-            assert 'message' in pace_feedback
-            assert 'level' in pace_feedback
+            assert "message" in pace_feedback
+            assert "level" in pace_feedback
 
             # Level should be one of the expected values
-            assert pace_feedback['level'] in ['too_fast', 'too_slow', 'ideal', 'normal']
+            assert pace_feedback["level"] in ["too_fast", "too_slow", "ideal", "normal"]
 
             # Message should be a non-empty string
-            assert isinstance(pace_feedback['message'], str)
-            assert len(pace_feedback['message']) > 0
+            assert isinstance(pace_feedback["message"], str)
+            assert len(pace_feedback["message"]) > 0
 
-            print(f"Speaking pace: {result['wpm']:.1f} WPM - {pace_feedback['message']}")
+            print(
+                f"Speaking pace: {result['wpm']:.1f} WPM - {pace_feedback['message']}"
+            )
         else:
             print("No speech detected in audio for pace analysis")
+
 
 class TestAudioFileFormats:
     """Test handling of different audio file characteristics"""
@@ -194,14 +215,13 @@ class TestAudioFileFormats:
     def test_audio_file_properties(self):
         """Test that the audio file has expected properties."""
         test_audio_path = os.path.join(
-            os.path.dirname(__file__),
-            '..', 'fixtures', 'test_capture.wav'
+            os.path.dirname(__file__), "..", "fixtures", "test_capture.wav"
         )
 
         if not os.path.exists(test_audio_path):
             pytest.skip("test_capture.wav not found")
 
-        with wave.open(test_audio_path, 'rb') as wf:
+        with wave.open(test_audio_path, "rb") as wf:
             # Check basic properties
             sample_rate = wf.getframerate()
             channels = wf.getnchannels()
@@ -209,7 +229,11 @@ class TestAudioFileFormats:
             duration = wf.getnframes() / sample_rate
 
             # Should match expected format
-            assert sample_rate == config.SAMPLE_RATE or sample_rate in [16000, 44100, 48000]
+            assert sample_rate == config.SAMPLE_RATE or sample_rate in [
+                16000,
+                44100,
+                48000,
+            ]
             assert channels in [1, 2]  # Mono or stereo
             assert sample_width in [2, 4]  # 16-bit or 32-bit
             assert duration > 0
@@ -229,8 +253,8 @@ class TestAudioFileFormats:
         # Test with different numpy array formats
         test_cases = [
             np.array([0.1, -0.1, 0.05, -0.05], dtype=np.float32),  # Float32
-            np.array([1000, -1000, 500, -500], dtype=np.int16),    # Int16
-            np.array([0.1, -0.1, 0.05], dtype=np.float64),        # Float64 (should convert)
+            np.array([1000, -1000, 500, -500], dtype=np.int16),  # Int16
+            np.array([0.1, -0.1, 0.05], dtype=np.float64),  # Float64 (should convert)
         ]
 
         for i, audio_data in enumerate(test_cases):
@@ -239,14 +263,15 @@ class TestAudioFileFormats:
 
                 # Should not crash and should return proper structure
                 assert isinstance(result, dict)
-                assert 'text' in result
-                assert 'word_count' in result
-                assert 'duration' in result
+                assert "text" in result
+                assert "word_count" in result
+                assert "duration" in result
 
                 print(f"Test case {i+1} ({audio_data.dtype}): Success")
 
             except Exception as e:
                 pytest.fail(f"Failed to handle audio format {audio_data.dtype}: {e}")
+
 
 class TestApplicationStartup:
     """Test application startup and configuration with real conditions"""
@@ -254,11 +279,11 @@ class TestApplicationStartup:
     @pytest.mark.integration
     def test_main_components_initialize_with_real_conditions(self):
         """Test that main components can initialize under real conditions."""
+        from src.core.analyzer import CommunicationAnalyzer
         from src.core.audio_capture import AudioCapture
         from src.core.transcriber import Transcriber
-        from src.core.analyzer import CommunicationAnalyzer
-        from src.ui.feedback_display import SimpleFeedbackDisplay
         from src.ui.dashboard import LiveDashboard
+        from src.ui.feedback_display import SimpleFeedbackDisplay
         from src.ui.timeline import EmotionalTimeline
 
         # These should all initialize without errors
@@ -268,16 +293,16 @@ class TestApplicationStartup:
             assert transcriber.model is not None
 
             analyzer = CommunicationAnalyzer()
-            assert hasattr(analyzer, 'get_emotional_state_emoji')
+            assert hasattr(analyzer, "get_emotional_state_emoji")
 
             display = SimpleFeedbackDisplay()
-            assert hasattr(display, 'update_tone')
+            assert hasattr(display, "update_tone")
 
             dashboard = LiveDashboard()
-            assert hasattr(dashboard, 'update_current_status')
+            assert hasattr(dashboard, "update_current_status")
 
             timeline = EmotionalTimeline()
-            assert hasattr(timeline, 'add_entry')
+            assert hasattr(timeline, "add_entry")
 
             print("✅ All components initialized successfully")
 
@@ -311,7 +336,9 @@ class TestApplicationStartup:
             capture_blackhole = AudioCapture(use_microphone=False)
             assert capture_blackhole.device_index is not None
 
-            device_name = capture_blackhole.get_device_name(capture_blackhole.device_index)
+            device_name = capture_blackhole.get_device_name(
+                capture_blackhole.device_index
+            )
             print(f"✅ BlackHole device: {device_name}")
 
         except RuntimeError as e:

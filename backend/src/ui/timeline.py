@@ -1,17 +1,27 @@
 """
 Timeline tracking for emotional states and social cues over time
 """
+
 import time
 from collections import deque
-from typing import Any, Dict, List, Optional, Tuple
 from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Tuple
+
 from src.ui.colors import Colors, colorize_emotional_state, get_emotional_state_color
 
 
 class TimelineEntry:
     """Single entry in the timeline"""
-    def __init__(self, timestamp: float, emotional_state: str, social_cue: str,
-                 confidence: float, text: str = "", alert: bool = False):
+
+    def __init__(
+        self,
+        timestamp: float,
+        emotional_state: str,
+        social_cue: str,
+        confidence: float,
+        text: str = "",
+        alert: bool = False,
+    ):
         self.timestamp = timestamp
         self.emotional_state = emotional_state
         self.social_cue = social_cue
@@ -45,8 +55,15 @@ class EmotionalTimeline:
         self.entries = deque(maxlen=max_entries)
         self.start_time = time.time()
 
-    def add_entry(self, emotional_state: str, social_cue: str, confidence: float,
-                  text: str = "", alert: bool = False, timestamp: Optional[float] = None) -> None:
+    def add_entry(
+        self,
+        emotional_state: str,
+        social_cue: str,
+        confidence: float,
+        text: str = "",
+        alert: bool = False,
+        timestamp: Optional[float] = None,
+    ) -> None:
         """Add a new timeline entry"""
         entry_timestamp = timestamp if timestamp is not None else time.time()
         entry = TimelineEntry(
@@ -55,7 +72,7 @@ class EmotionalTimeline:
             social_cue=social_cue,
             confidence=confidence,
             text=text,
-            alert=alert
+            alert=alert,
         )
         self.entries.append(entry)
 
@@ -66,16 +83,16 @@ class EmotionalTimeline:
         if not serialized_entries:
             return
 
-        for entry_data in serialized_entries[-self.max_entries:]:
-            entry_timestamp = entry_data.get('timestamp', time.time())
+        for entry_data in serialized_entries[-self.max_entries :]:
+            entry_timestamp = entry_data.get("timestamp", time.time())
             self.entries.append(
                 TimelineEntry(
                     timestamp=entry_timestamp,
-                    emotional_state=entry_data.get('emotional_state', 'unknown'),
-                    social_cue=entry_data.get('social_cue', 'unknown'),
-                    confidence=entry_data.get('confidence', 0.0),
-                    text=entry_data.get('text', ''),
-                    alert=entry_data.get('alert', False)
+                    emotional_state=entry_data.get("emotional_state", "unknown"),
+                    social_cue=entry_data.get("social_cue", "unknown"),
+                    confidence=entry_data.get("confidence", 0.0),
+                    text=entry_data.get("text", ""),
+                    alert=entry_data.get("alert", False),
                 )
             )
 
@@ -111,7 +128,9 @@ class EmotionalTimeline:
 
         # Find dominant state
         dominant_state = max(state_weights.keys(), key=lambda k: state_weights[k])
-        avg_confidence = state_weights[dominant_state] / len([e for e in recent_entries if e.emotional_state == dominant_state])
+        avg_confidence = state_weights[dominant_state] / len(
+            [e for e in recent_entries if e.emotional_state == dominant_state]
+        )
 
         return dominant_state, min(avg_confidence, 1.0)
 
@@ -128,9 +147,13 @@ class EmotionalTimeline:
             print("📊 No recent activity to display")
             return
 
-        print("\n" + "="*width)
-        print("📊 EMOTIONAL TIMELINE (Last {} minutes)".format(minutes or self.window_minutes))
-        print("="*width)
+        print("\n" + "=" * width)
+        print(
+            "📊 EMOTIONAL TIMELINE (Last {} minutes)".format(
+                minutes or self.window_minutes
+            )
+        )
+        print("=" * width)
 
         # Display current state with enhanced formatting
         dominant_state, confidence = self.get_dominant_state(minutes)
@@ -138,16 +161,24 @@ class EmotionalTimeline:
 
         # Get emoji for the dominant state (use simple mapping to avoid analyzer overhead)
         emoji_map = {
-            'calm': '🧘', 'neutral': '😐', 'engaged': '✨',
-            'elevated': '⬆️', 'intense': '🔥', 'rapid': '⚡',
-            'overwhelmed': '😵‍💫', 'distracted': '🤔', 'unknown': '❓'
+            "calm": "🧘",
+            "neutral": "😐",
+            "engaged": "✨",
+            "elevated": "⬆️",
+            "intense": "🔥",
+            "rapid": "⚡",
+            "overwhelmed": "😵‍💫",
+            "distracted": "🤔",
+            "unknown": "❓",
         }
-        state_emoji = emoji_map.get(dominant_state, '💬')
+        state_emoji = emoji_map.get(dominant_state, "💬")
 
         state_color = get_emotional_state_color(dominant_state)
         dominant_colored = Colors.colorize(dominant_state.upper(), state_color)
 
-        print(f"Current Dominant State: {state_emoji} {dominant_colored} (confidence: {confidence:.1f})")
+        print(
+            f"Current Dominant State: {state_emoji} {dominant_colored} (confidence: {confidence:.1f})"
+        )
 
         if alert_count > 0:
             alert_text = Colors.colorize(f"🚨 {alert_count} alerts", Colors.BRIGHT_RED)
@@ -158,11 +189,11 @@ class EmotionalTimeline:
         print()
 
         # Display timeline bars
-        self._display_timeline_bars(recent_entries, width-10)
+        self._display_timeline_bars(recent_entries, width - 10)
 
         # Display recent entries
         print("\nRecent Entries:")
-        print("-" * (width-20))
+        print("-" * (width - 20))
 
         for entry in recent_entries[-5:]:  # Last 5 entries
             state_colored = colorize_emotional_state(entry.emotional_state)
@@ -176,7 +207,9 @@ class EmotionalTimeline:
 
             # Note: state_colored already includes color formatting, so we need to account for that
             # when calculating spacing. We'll just use a fixed width.
-            print(f"{alert_indicator} {time_str} | {state_colored} | {confidence_bar} | {entry.text[:25]}")
+            print(
+                f"{alert_indicator} {time_str} | {state_colored} | {confidence_bar} | {entry.text[:25]}"
+            )
 
     def _display_timeline_bars(self, entries: List[TimelineEntry], width: int) -> None:
         """Display visual timeline bars with color coding"""
@@ -188,9 +221,15 @@ class EmotionalTimeline:
 
         # Create visual representation with color-coded bars
         bar_chars = {
-            'calm': '▁', 'neutral': '▂', 'engaged': '▃',
-            'elevated': '▅', 'intense': '▆', 'overwhelmed': '▇',
-            'rapid': '▆', 'distracted': '▂', 'unknown': '▄'
+            "calm": "▁",
+            "neutral": "▂",
+            "engaged": "▃",
+            "elevated": "▅",
+            "intense": "▆",
+            "overwhelmed": "▇",
+            "rapid": "▆",
+            "distracted": "▂",
+            "unknown": "▄",
         }
 
         print("Timeline (newest on right):")
@@ -198,7 +237,7 @@ class EmotionalTimeline:
         # Create the color-coded timeline bar
         timeline_str = ""
         for bucket_state in buckets:
-            char = bar_chars.get(bucket_state, '▄')
+            char = bar_chars.get(bucket_state, "▄")
             color = get_emotional_state_color(bucket_state)
             colored_char = Colors.colorize(char, color)
             timeline_str += colored_char
@@ -207,10 +246,10 @@ class EmotionalTimeline:
 
         # Add color legend if colors are supported
         if Colors.is_supported():
-            legend_states = ['calm', 'engaged', 'elevated', 'intense', 'overwhelmed']
+            legend_states = ["calm", "engaged", "elevated", "intense", "overwhelmed"]
             legend_str = "Legend: "
             for state in legend_states:
-                char = bar_chars.get(state, '▄')
+                char = bar_chars.get(state, "▄")
                 color = get_emotional_state_color(state)
                 colored_char = Colors.colorize(char, color)
                 legend_str += f"{colored_char}={state} "
@@ -224,9 +263,13 @@ class EmotionalTimeline:
         if duration > 0:
             start_dt = datetime.fromtimestamp(start_time)
             end_dt = datetime.fromtimestamp(end_time)
-            print(f"{start_dt.strftime('%H:%M')}{' ' * (width-10)}{end_dt.strftime('%H:%M')}")
+            print(
+                f"{start_dt.strftime('%H:%M')}{' ' * (width-10)}{end_dt.strftime('%H:%M')}"
+            )
 
-    def _create_time_buckets(self, entries: List[TimelineEntry], bucket_count: int) -> List[str]:
+    def _create_time_buckets(
+        self, entries: List[TimelineEntry], bucket_count: int
+    ) -> List[str]:
         """Create time buckets for timeline visualization"""
         if not entries:
             return []
@@ -247,7 +290,8 @@ class EmotionalTimeline:
 
             # Find entries in this bucket
             bucket_entries = [
-                entry for entry in entries
+                entry
+                for entry in entries
                 if bucket_start <= entry.timestamp < bucket_end
             ]
 
@@ -257,7 +301,7 @@ class EmotionalTimeline:
                 buckets.append(best_entry.emotional_state)
             else:
                 # Use previous bucket's state or neutral
-                buckets.append(buckets[-1] if buckets else 'neutral')
+                buckets.append(buckets[-1] if buckets else "neutral")
 
         return buckets
 
@@ -295,7 +339,11 @@ class EmotionalTimeline:
                 alert_count += 1
             total_confidence += entry.confidence
 
-        dominant_state = max(state_counts.keys(), key=lambda k: state_counts[k]) if state_counts else "unknown"
+        dominant_state = (
+            max(state_counts.keys(), key=lambda k: state_counts[k])
+            if state_counts
+            else "unknown"
+        )
         avg_confidence = total_confidence / len(self.entries) if self.entries else 0.0
 
         return {
@@ -304,7 +352,7 @@ class EmotionalTimeline:
             "dominant_state": dominant_state,
             "state_distribution": state_counts,
             "alert_count": alert_count,
-            "average_confidence": avg_confidence
+            "average_confidence": avg_confidence,
         }
 
 
@@ -314,15 +362,16 @@ if __name__ == "__main__":
 
     # Add some test entries
     import random
-    states = ['calm', 'engaged', 'elevated', 'intense', 'overwhelmed']
-    social_cues = ['appropriate', 'interrupting', 'dominating']
+
+    states = ["calm", "engaged", "elevated", "intense", "overwhelmed"]
+    social_cues = ["appropriate", "interrupting", "dominating"]
 
     print("Adding test timeline entries...")
     for i in range(20):
         state = random.choice(states)
         cue = random.choice(social_cues)
         conf = random.uniform(0.3, 0.9)
-        alert = conf > 0.7 and state in ['intense', 'overwhelmed']
+        alert = conf > 0.7 and state in ["intense", "overwhelmed"]
 
         timeline.add_entry(state, cue, conf, f"Test entry {i}", alert)
         time.sleep(0.1)  # Small delay

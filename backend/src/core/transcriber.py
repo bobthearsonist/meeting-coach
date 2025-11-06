@@ -1,11 +1,13 @@
 """
 Speech-to-text transcription using Faster-Whisper
 """
-from faster_whisper import WhisperModel
-import numpy as np
-from typing import Dict, List
-from src import config
+
 import re
+from typing import Dict, List
+
+import numpy as np
+from faster_whisper import WhisperModel
+from src import config
 
 
 class Transcriber:
@@ -13,9 +15,7 @@ class Transcriber:
         """Initialize Whisper model for transcription."""
         print(f"Loading Whisper model: {config.WHISPER_MODEL}")
         self.model = WhisperModel(
-            config.WHISPER_MODEL,
-            device=config.DEVICE,
-            compute_type=config.COMPUTE_TYPE
+            config.WHISPER_MODEL, device=config.DEVICE, compute_type=config.COMPUTE_TYPE
         )
         print("Whisper model loaded successfully")
 
@@ -45,7 +45,7 @@ class Transcriber:
             audio,
             beam_size=5,
             vad_filter=True,  # Voice activity detection
-            vad_parameters=dict(min_silence_duration_ms=500)
+            vad_parameters=dict(min_silence_duration_ms=500),
         )
 
         # Collect all segments
@@ -53,11 +53,13 @@ class Transcriber:
         full_text = []
 
         for segment in segments:
-            segment_list.append({
-                'start': segment.start,
-                'end': segment.end,
-                'text': segment.text.strip()
-            })
+            segment_list.append(
+                {
+                    "start": segment.start,
+                    "end": segment.end,
+                    "text": segment.text.strip(),
+                }
+            )
             full_text.append(segment.text.strip())
 
         # Combine text
@@ -68,12 +70,12 @@ class Transcriber:
         wpm = self.calculate_wpm(word_count, duration)
 
         return {
-            'text': combined_text,
-            'segments': segment_list,
-            'duration': duration,
-            'word_count': word_count,
-            'wpm': wpm,
-            'language': info.language if hasattr(info, 'language') else 'en'
+            "text": combined_text,
+            "segments": segment_list,
+            "duration": duration,
+            "word_count": word_count,
+            "wpm": wpm,
+            "language": info.language if hasattr(info, "language") else "en",
         }
 
     def calculate_wpm(self, word_count: int, duration: float) -> float:
@@ -103,31 +105,31 @@ class Transcriber:
         """
         if wpm > config.PACE_TOO_FAST:
             return {
-                'level': 'too_fast',
-                'category': 'fast',
-                'message': f'Speaking too fast ({wpm:.0f} WPM). Try to slow down.',
-                'icon': '🐇'
+                "level": "too_fast",
+                "category": "fast",
+                "message": f"Speaking too fast ({wpm:.0f} WPM). Try to slow down.",
+                "icon": "🐇",
             }
         elif wpm < config.PACE_TOO_SLOW:
             return {
-                'level': 'too_slow',
-                'category': 'slow',
-                'message': f'Speaking slowly ({wpm:.0f} WPM). Consider picking up the pace.',
-                'icon': '🐢'
+                "level": "too_slow",
+                "category": "slow",
+                "message": f"Speaking slowly ({wpm:.0f} WPM). Consider picking up the pace.",
+                "icon": "🐢",
             }
         elif config.PACE_IDEAL_MIN <= wpm <= config.PACE_IDEAL_MAX:
             return {
-                'level': 'ideal',
-                'category': 'good',
-                'message': f'Great pace! ({wpm:.0f} WPM)',
-                'icon': '✅'
+                "level": "ideal",
+                "category": "good",
+                "message": f"Great pace! ({wpm:.0f} WPM)",
+                "icon": "✅",
             }
         else:
             return {
-                'level': 'normal',
-                'category': 'good',
-                'message': f'Pace: {wpm:.0f} WPM',
-                'icon': '🎯'
+                "level": "normal",
+                "category": "good",
+                "message": f"Pace: {wpm:.0f} WPM",
+                "icon": "🎯",
             }
 
     def count_filler_words(self, text: str) -> Dict[str, int]:
@@ -144,12 +146,12 @@ class Transcriber:
         counts = {}
 
         for filler in config.FILLER_WORDS:
-            if ' ' in filler:
+            if " " in filler:
                 # Multi-word filler (e.g., "you know")
                 count = text_lower.count(filler)
             else:
                 # Single word filler - count as whole words only
-                pattern = r'\b' + re.escape(filler) + r'\b'
+                pattern = r"\b" + re.escape(filler) + r"\b"
                 count = len(re.findall(pattern, text_lower))
 
             if count > 0:
@@ -195,9 +197,11 @@ if __name__ == "__main__":
 
     # Try to load test audio if it exists
     try:
-        with wave.open("test_capture.wav", 'rb') as wf:
+        with wave.open("test_capture.wav", "rb") as wf:
             audio_bytes = wf.readframes(wf.getnframes())
-            audio_array = np.frombuffer(audio_bytes, dtype=np.int16).astype(np.float32) / 32768.0
+            audio_array = (
+                np.frombuffer(audio_bytes, dtype=np.int16).astype(np.float32) / 32768.0
+            )
 
             print("\nTranscribing...")
             result = transcriber.transcribe(audio_array)
@@ -206,13 +210,15 @@ if __name__ == "__main__":
             print(f"Word count: {result['word_count']}")
             print(f"Duration: {result['duration']:.2f}s")
 
-            wpm = transcriber.calculate_wpm(result['word_count'], result['duration'])
+            wpm = transcriber.calculate_wpm(result["word_count"], result["duration"])
             pace_feedback = transcriber.get_speaking_pace_feedback(wpm)
             print(f"\nPace: {pace_feedback['message']}")
 
-            fillers = transcriber.count_filler_words(result['text'])
+            fillers = transcriber.count_filler_words(result["text"])
             if fillers:
                 print(f"Filler words: {fillers}")
 
     except FileNotFoundError:
-        print("No test audio file found. Run audio_capture.py first to create test_capture.wav")
+        print(
+            "No test audio file found. Run audio_capture.py first to create test_capture.wav"
+        )
