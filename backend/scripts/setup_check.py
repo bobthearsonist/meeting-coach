@@ -26,8 +26,7 @@ def check_python_packages():
         'faster_whisper',
         'pyaudio',
         'numpy',
-        'ollama',
-        'rumps'
+        'ollama'
     ]
 
     all_good = True
