@@ -3,8 +3,6 @@
 🎯 **Real-time AI coaching for Microsoft Teams meetings**
 
 [![CI](https://github.com/bobthearsonist/meeting-coach/actions/workflows/ci.yml/badge.svg)](https://github.com/bobthearsonist/meeting-coach/actions/workflows/ci.yml)
-[![Backend Tests](https://github.com/bobthearsonist/meeting-coach/actions/workflows/backend-tests.yml/badge.svg)](https://github.com/bobthearsonist/meeting-coach/actions/workflows/backend-tests.yml)
-[![Frontend Tests](https://github.com/bobthearsonist/meeting-coach/actions/workflows/frontend-tests.yml/badge.svg)](https://github.com/bobthearsonist/meeting-coach/actions/workflows/frontend-tests.yml)
 [![Code Quality](https://github.com/bobthearsonist/meeting-coach/actions/workflows/code-quality.yml/badge.svg)](https://github.com/bobthearsonist/meeting-coach/actions/workflows/code-quality.yml)
 
 A powerful real-time meeting feedback system that captures Teams audio, transcribes speech, and provides live coaching on speaking pace, tone, and communication effectiveness.
@@ -240,16 +238,17 @@ make test-coverage           # Backend coverage
 
 ### CI/CD Workflows
 
-The project includes automated testing workflows that run on every push and pull request:
+The project uses a consolidated CI workflow that provides a unified view of all tests:
 
-- **CI Workflow** (`ci.yml`): Main integration workflow that runs all tests
-- **Backend Tests** (`backend-tests.yml`): Comprehensive backend testing (unit, integration, system)
-- **Frontend Tests** (`frontend-tests.yml`): Comprehensive frontend testing (unit, component, integration)
-- **PR Checks** (`pr-checks.yml`): Quick validation for pull requests
+- **CI Workflow** (`ci.yml`): Consolidated workflow that runs all backend and frontend tests in a single view
+  - Backend: Linting, unit tests, integration tests, and coverage
+  - Frontend: Linting, unit tests, component tests, integration tests, and coverage
+  - Coverage reporting updates PR descriptions (not comments)
+  - Clear job grouping with visual separators (Backend →, Frontend →, Coverage →)
 - **Code Quality** (`code-quality.yml`): Security scans and code quality metrics
-- **Test Coverage** (`coverage.yml`): Coverage reporting with Codecov integration
+- **PR Validation** (`pr-validation.yml`): PR title validation
 
-All workflows are designed to run in parallel where possible and provide clear feedback on test failures.
+The CI workflow is designed to provide easy navigation with all frontend and backend jobs visible in one workflow view, making it simple to see the status of all tests at a glance.
 
 ### Test Organization
 
