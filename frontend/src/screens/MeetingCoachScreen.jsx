@@ -1,13 +1,7 @@
 import React, {useEffect} from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-} from 'react-native';
-import theme, {commonStyles} from '../utils/theme';
-import useMeetingData from '../hooks/useMeetingData';
+import {View, StyleSheet, ScrollView} from 'react-native';
+import {theme} from '../utils/theme';
+import {useMeetingData} from '../hooks/useMeetingData';
 import websocketService, {ConnectionStatus} from '../services/websocketService';
 import StatusPanel from '../components/StatusPanel';
 import EmotionalTimeline from '../components/EmotionalTimeline';
@@ -31,11 +25,6 @@ import TopSessionDrawer from '../components/TopSessionDrawer';
 export default function MeetingCoachScreen() {
   // Access state and actions from our custom hook
   const {
-    emotionalState,
-    wpm,
-    isConnected,
-    isSessionActive,
-    isRecording,
     updateEmotionalState,
     updateWpm,
     setConnectionStatus,
@@ -47,18 +36,18 @@ export default function MeetingCoachScreen() {
   // Handle WebSocket connection and subscriptions (replaces componentDidMount/Unmount)
   useEffect(() => {
     // Connect to WebSocket server with better error handling
-    websocketService.connect().catch((err) => {
+    websocketService.connect().catch(err => {
       console.warn(
         '⚠️ WebSocket connection failed - will auto-retry:',
-        err.message
+        err.message,
       );
       console.warn(
-        '💡 Make sure backend is running: cd backend && python main.py'
+        '💡 Make sure backend is running: cd backend && python main.py',
       );
     });
 
     // Subscribe to connection status changes
-    const unsubscribeStatus = websocketService.onStatusChange(({ status }) => {
+    const unsubscribeStatus = websocketService.onStatusChange(({status}) => {
       setConnectionStatus(status === ConnectionStatus.OPEN);
 
       // Log connection status for debugging
@@ -74,38 +63,38 @@ export default function MeetingCoachScreen() {
     // Subscribe to meeting updates from backend
     const unsubscribeMeeting = websocketService.subscribe(
       'meeting_update',
-      (payload) => {
+      payload => {
         if (payload.emotional_state) {
           updateEmotionalState(payload.emotional_state);
         }
         if (payload.wpm !== undefined) {
           updateWpm(payload.wpm);
         }
-      }
+      },
     );
 
     // Subscribe to session status (session started/stopped)
     const unsubscribeSession = websocketService.subscribe(
       'session_status',
-      (payload) => {
+      payload => {
         setSessionStatus(payload.status === 'started');
-      }
+      },
     );
 
     // Subscribe to recording status (microphone listening state)
     const unsubscribeRecording = websocketService.subscribe(
       'recording_status',
-      (payload) => {
+      payload => {
         setRecordingStatus(payload.is_listening === true);
-      }
+      },
     );
 
     // Subscribe to timeline updates from backend
     const unsubscribeTimeline = websocketService.subscribe(
       'timeline_update',
-      (payload) => {
+      payload => {
         updateTimeline(payload);
-      }
+      },
     );
 
     // Cleanup on unmount (replaces componentWillUnmount)
@@ -117,7 +106,14 @@ export default function MeetingCoachScreen() {
       unsubscribeTimeline();
       websocketService.disconnect();
     };
-  }, []); // Empty dependency array = run once on mount
+  }, [
+    setConnectionStatus,
+    setRecordingStatus,
+    setSessionStatus,
+    updateEmotionalState,
+    updateTimeline,
+    updateWpm,
+  ]); // Dependencies for useEffect
 
   const handleSettingsPress = () => {
     // TODO: Open settings modal/sheet
@@ -133,8 +129,7 @@ export default function MeetingCoachScreen() {
     <View style={styles.container}>
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-      >
+        contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
           <TopSessionDrawer
             onHistoryPress={handleHistoryPress}

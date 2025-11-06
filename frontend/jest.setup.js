@@ -5,7 +5,7 @@ jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper');
 
 // Mock WebSocket for React Native environment
 // This prevents "WebSocket is not defined" errors in tests
-global.WebSocket = jest.fn().mockImplementation((url) => {
+global.WebSocket = jest.fn().mockImplementation(url => {
   return {
     url,
     readyState: 1, // OPEN
@@ -40,7 +40,7 @@ jest.mock('reconnecting-websocket', () => {
       }),
       dispatch(event, payload) {
         const handlers = listeners.get(event);
-        handlers?.forEach((handler) => handler(payload));
+        handlers?.forEach(handler => handler(payload));
       },
     };
 

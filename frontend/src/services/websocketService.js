@@ -7,7 +7,7 @@
  */
 
 import ReconnectingWebSocket from 'reconnecting-websocket';
-import { WEBSOCKET } from '../utils/constants';
+import {WEBSOCKET} from '../utils/constants';
 
 export const ConnectionStatus = {
   IDLE: 'idle',
@@ -31,7 +31,7 @@ let socket = null;
 let connectPromise = null;
 let resolveConnect = null;
 let rejectConnect = null;
-let currentConfig = { ...WEBSOCKET };
+let currentConfig = {...WEBSOCKET};
 
 const listeners = new Map();
 const statusListeners = new Set();
@@ -46,7 +46,7 @@ const connectionState = {
 const emit = (event, payload) => {
   const eventListeners = listeners.get(event);
   if (eventListeners) {
-    eventListeners.forEach((listener) => {
+    eventListeners.forEach(listener => {
       try {
         listener(payload);
       } catch (error) {
@@ -58,7 +58,7 @@ const emit = (event, payload) => {
   }
 
   if (event !== ANY_EVENT) {
-    emit(ANY_EVENT, { event, payload });
+    emit(ANY_EVENT, {event, payload});
   }
 };
 
@@ -67,7 +67,7 @@ const notifyStatus = (status, extras = {}) => {
   Object.assign(connectionState, extras);
 
   const snapshot = getConnectionState();
-  statusListeners.forEach((listener) => {
+  statusListeners.forEach(listener => {
     try {
       listener(snapshot);
     } catch (error) {
@@ -78,13 +78,13 @@ const notifyStatus = (status, extras = {}) => {
   });
 };
 
-const buildSocketOptions = (config) => ({
+const buildSocketOptions = config => ({
   constructor:
     typeof globalThis !== 'undefined' ? globalThis.WebSocket : undefined,
   minReconnectionDelay: Math.max(0, config.BASE_RECONNECT_DELAY_MS ?? 500),
   maxReconnectionDelay: Math.max(
     config.BASE_RECONNECT_DELAY_MS ?? 500,
-    config.MAX_RECONNECT_DELAY_MS ?? 5000
+    config.MAX_RECONNECT_DELAY_MS ?? 5000,
   ),
   reconnectionDelayGrowFactor: config.RECONNECT_DELAY_GROWTH_FACTOR ?? 2,
   connectionTimeout: config.CONNECTION_TIMEOUT_MS ?? 4000,
@@ -96,17 +96,17 @@ const buildSocketOptions = (config) => ({
     typeof globalThis !== 'undefined' ? globalThis.WebSocket : undefined,
 });
 
-const withSocket = (fn) => {
+const withSocket = fn => {
   if (!socket) {
     throw new Error(
-      'WebSocket has not been initialised. Call connect() first.'
+      'WebSocket has not been initialised. Call connect() first.',
     );
   }
 
   return fn(socket);
 };
 
-const handleConnecting = (event) => {
+const handleConnecting = event => {
   const attempts =
     typeof event?.reconnectAttempts === 'number'
       ? event.reconnectAttempts
@@ -115,12 +115,12 @@ const handleConnecting = (event) => {
     attempts > 0 ? ConnectionStatus.RECONNECTING : ConnectionStatus.CONNECTING,
     {
       attempts,
-    }
+    },
   );
 };
 
 const handleOpen = () => {
-  notifyStatus(ConnectionStatus.OPEN, { attempts: 0, lastError: null });
+  notifyStatus(ConnectionStatus.OPEN, {attempts: 0, lastError: null});
 
   if (resolveConnect) {
     resolveConnect(socket);
@@ -131,11 +131,11 @@ const handleOpen = () => {
   rejectConnect = null;
 };
 
-const handleMessage = (event) => {
-  const { data } = event;
+const handleMessage = event => {
+  const {data} = event;
 
   if (typeof data !== 'string') {
-    emit('error', { error: new Error('Unsupported message type'), raw: data });
+    emit('error', {error: new Error('Unsupported message type'), raw: data});
     return;
   }
 
@@ -144,17 +144,17 @@ const handleMessage = (event) => {
     emit(parsed?.type ?? 'message', parsed);
   } catch (error) {
     connectionState.lastError = error;
-    emit('error', { error, raw: data });
+    emit('error', {error, raw: data});
   }
 };
 
-const handleError = (event) => {
+const handleError = event => {
   const error = event?.message
     ? new Error(event.message)
     : event?.error ?? new Error('WebSocket error');
   connectionState.lastError = error;
-  notifyStatus(ConnectionStatus.ERROR, { lastError: error });
-  emit('error', { error, event });
+  notifyStatus(ConnectionStatus.ERROR, {lastError: error});
+  emit('error', {error, event});
 
   if (rejectConnect) {
     rejectConnect(error);
@@ -164,11 +164,11 @@ const handleError = (event) => {
   }
 };
 
-const handleClose = (event) => {
+const handleClose = event => {
   connectionState.lastCloseEvent = event;
 
   if (connectionState.status !== ConnectionStatus.CLOSED) {
-    notifyStatus(ConnectionStatus.CLOSED, { lastCloseEvent: event });
+    notifyStatus(ConnectionStatus.CLOSED, {lastCloseEvent: event});
   }
 
   if (rejectConnect) {
@@ -222,13 +222,13 @@ export const connect = async (overrides = {}) => {
     return connectPromise;
   }
 
-  currentConfig = { ...WEBSOCKET, ...overrides };
+  currentConfig = {...WEBSOCKET, ...overrides};
 
   const options = buildSocketOptions(currentConfig);
   socket = new ReconnectingWebSocket(
     currentConfig.URL,
     currentConfig.PROTOCOLS,
-    options
+    options,
   );
   attachHandlers();
   notifyStatus(ConnectionStatus.CONNECTING);
@@ -251,15 +251,15 @@ export const disconnect = () => {
   connectPromise = null;
   resolveConnect = null;
   rejectConnect = null;
-  currentConfig = { ...WEBSOCKET };
+  currentConfig = {...WEBSOCKET};
   notifyStatus(ConnectionStatus.CLOSED);
 
   closingSocket.close();
   socket = null;
 };
 
-export const send = (message) =>
-  withSocket((activeSocket) => {
+export const send = message =>
+  withSocket(activeSocket => {
     const payload =
       typeof message === 'string' ? message : JSON.stringify(message);
     activeSocket.send(payload);
@@ -282,7 +282,7 @@ export const subscribe = (eventType, handler) => {
   };
 };
 
-export const onStatusChange = (handler) => {
+export const onStatusChange = handler => {
   if (typeof handler !== 'function') {
     throw new Error('onStatusChange requires a handler function');
   }
@@ -316,7 +316,7 @@ export const __reset = () => {
   connectPromise = null;
   resolveConnect = null;
   rejectConnect = null;
-  currentConfig = { ...WEBSOCKET };
+  currentConfig = {...WEBSOCKET};
 
   listeners.clear();
   statusListeners.clear();

@@ -1,16 +1,13 @@
 import React from 'react';
-import { renderHook, act } from '@testing-library/react-native';
-import { MeetingProvider } from './MeetingContext';
-import useMeetingData from '../hooks/useMeetingData';
-import * as actionTypes from './actionTypes';
+import {renderHook, act} from '@testing-library/react-native';
+import {MeetingProvider} from './MeetingContext';
+import {useMeetingData} from '../hooks/useMeetingData';
 
 describe('MeetingContext', () => {
-  const wrapper = ({ children }) => (
-    <MeetingProvider>{children}</MeetingProvider>
-  );
+  const wrapper = ({children}) => <MeetingProvider>{children}</MeetingProvider>;
 
   it('provides initial state', () => {
-    const { result } = renderHook(() => useMeetingData(), { wrapper });
+    const {result} = renderHook(() => useMeetingData(), {wrapper});
 
     expect(result.current.emotionalState).toBe('neutral');
     expect(result.current.wpm).toBe(0);
@@ -19,7 +16,7 @@ describe('MeetingContext', () => {
   });
 
   it('updates emotional state', () => {
-    const { result } = renderHook(() => useMeetingData(), { wrapper });
+    const {result} = renderHook(() => useMeetingData(), {wrapper});
 
     act(() => {
       result.current.updateEmotionalState('calm');
@@ -29,7 +26,7 @@ describe('MeetingContext', () => {
   });
 
   it('updates WPM', () => {
-    const { result } = renderHook(() => useMeetingData(), { wrapper });
+    const {result} = renderHook(() => useMeetingData(), {wrapper});
 
     act(() => {
       result.current.updateWpm(150);
@@ -39,7 +36,7 @@ describe('MeetingContext', () => {
   });
 
   it('updates connection status', () => {
-    const { result } = renderHook(() => useMeetingData(), { wrapper });
+    const {result} = renderHook(() => useMeetingData(), {wrapper});
 
     act(() => {
       result.current.setConnectionStatus(true);
@@ -49,7 +46,7 @@ describe('MeetingContext', () => {
   });
 
   it('adds alerts', () => {
-    const { result } = renderHook(() => useMeetingData(), { wrapper });
+    const {result} = renderHook(() => useMeetingData(), {wrapper});
 
     act(() => {
       result.current.addAlert('Test alert');
