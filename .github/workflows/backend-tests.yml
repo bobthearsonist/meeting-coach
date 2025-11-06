@@ -54,12 +54,12 @@ jobs:
       - name: Lint with pylint
         run: |
           cd backend
-          pylint *.py src/ --disable=C0103,C0114,C0115,C0116,R0903,R0912,R0915 --exit-zero
+          pylint *.py src/ --disable=C0103,C0114,C0115,C0116,R0903,R0912,R0915 --fail-under=8.0
       
       - name: Lint with flake8
         run: |
           cd backend
-          flake8 *.py src/ --max-line-length=100 --ignore=E501,W503 --exit-zero
+          flake8 *.py src/ --max-line-length=100 --ignore=E501,W503
 
   unit-tests:
     name: Unit Tests
@@ -161,7 +161,7 @@ jobs:
           pytest tests/integration/test_full_pipeline.py \
             -v \
             --tb=short \
-            --disable-warnings || echo "System tests not yet implemented"
+            --disable-warnings
         continue-on-error: true
 
   test-summary:
