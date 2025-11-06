@@ -1,0 +1,29 @@
+name: 'Run Backend Linters'
+description: 'Run all backend linting checks (black, isort, pylint, flake8)'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run black
+      shell: bash
+      run: |
+        cd backend
+        black --check *.py src/ tests/ || (echo "❌ Code formatting check failed. Run 'make format' to fix." && exit 1)
+
+    - name: Run isort
+      shell: bash
+      run: |
+        cd backend
+        isort --check-only *.py src/ tests/ --profile=black || (echo "❌ Import sorting check failed. Run 'make format' to fix." && exit 1)
+
+    - name: Run pylint
+      shell: bash
+      run: |
+        cd backend
+        pylint *.py src/ --disable=C0103,C0114,C0115,C0116,R0903,R0912,R0915 --fail-under=8.0
+
+    - name: Run flake8
+      shell: bash
+      run: |
+        cd backend
+        flake8 *.py src/ --max-line-length=100 --ignore=E501,W503
