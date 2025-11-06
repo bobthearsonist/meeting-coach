@@ -137,7 +137,8 @@ export default function TopSessionDrawer({onHistoryPress, onSettingsPress}) {
             style={styles.listItem}
             onPress={onHistoryPress}
             accessibilityRole="button"
-            accessibilityLabel="View history">
+            accessibilityLabel="View history"
+            testID="history-button">
             <Text style={styles.listItemText}>📜 History</Text>
             <Text style={styles.listItemChevron}>›</Text>
           </TouchableOpacity>
@@ -145,7 +146,8 @@ export default function TopSessionDrawer({onHistoryPress, onSettingsPress}) {
             style={styles.listItem}
             onPress={onSettingsPress}
             accessibilityRole="button"
-            accessibilityLabel="Open settings">
+            accessibilityLabel="Open settings"
+            testID="settings-button">
             <Text style={styles.listItemText}>⚙️ Settings</Text>
             <Text style={styles.listItemChevron}>›</Text>
           </TouchableOpacity>

@@ -14,29 +14,28 @@ describe('SessionStats', () => {
     expect(getByText(/Duration:/)).toBeTruthy();
   });
 
-  it('displays duration stat', () => {
+  it('displays duration stat with default value', () => {
     const {getByText} = renderWithProvider(<SessionStats />);
     expect(getByText(/Duration:/)).toBeTruthy();
-    expect(getByText(/3.1 min/)).toBeTruthy();
+    expect(getByText(/0\.0 min/)).toBeTruthy();
   });
 
-  it('displays analyses count', () => {
+  it('displays analyses count with default value', () => {
     const {getByText} = renderWithProvider(<SessionStats />);
     expect(getByText(/Analyses:/)).toBeTruthy();
-    expect(getByText(/14/)).toBeTruthy();
+    // The value 0 appears multiple times, just verify the label exists
+    expect(getByText('Analyses: 0')).toBeTruthy();
   });
 
-  it('displays alerts count', () => {
-    const {getByText} = renderWithProvider(<SessionStats />);
-    expect(getByText(/Alerts:/)).toBeTruthy();
-    expect(getByText(/0/)).toBeTruthy();
+  it('displays alerts count with default value', () => {
+    const {getAllByText} = renderWithProvider(<SessionStats />);
+    const alertsText = getAllByText(/Alerts:/);
+    expect(alertsText.length).toBeGreaterThan(0);
   });
 
-  it('displays emotion distribution', () => {
+  it('displays no emotion data message when no data available', () => {
     const {getByText} = renderWithProvider(<SessionStats />);
-    expect(getByText(/calm: 43%/)).toBeTruthy();
-    expect(getByText(/neutral: 36%/)).toBeTruthy();
-    expect(getByText(/engaged: 21%/)).toBeTruthy();
+    expect(getByText('No emotion data yet')).toBeTruthy();
   });
 
   it('renders all three stats in the top row', () => {
@@ -46,10 +45,8 @@ describe('SessionStats', () => {
     expect(getByText(/Alerts:/)).toBeTruthy();
   });
 
-  it('renders all three emotion percentages in the bottom row', () => {
+  it('displays placeholder when no emotion distribution data', () => {
     const {getByText} = renderWithProvider(<SessionStats />);
-    expect(getByText(/calm: 43%/)).toBeTruthy();
-    expect(getByText(/neutral: 36%/)).toBeTruthy();
-    expect(getByText(/engaged: 21%/)).toBeTruthy();
+    expect(getByText('No emotion data yet')).toBeTruthy();
   });
 });

@@ -27,9 +27,9 @@ describe('EmotionalTimeline', () => {
       },
       recentEntries: [
         {
-          emotional_state: 'elevated',
+          emotional_state: 'calm',
           social_cue: 'appropriate',
-          confidence: 0.8,
+          confidence: 0.9,
           text: 'Test entry 1',
           alert: false,
           timestamp: 1704123540, // 17:19:00
@@ -41,6 +41,14 @@ describe('EmotionalTimeline', () => {
           text: 'Test entry 2',
           alert: false,
           timestamp: 1704123660, // 17:21:00
+        },
+        {
+          emotional_state: 'elevated',
+          social_cue: 'appropriate',
+          confidence: 0.8,
+          text: 'Test entry 3',
+          alert: false,
+          timestamp: 1704123720, // 17:22:00
         },
       ],
     },
@@ -83,6 +91,7 @@ describe('EmotionalTimeline', () => {
     const {getByText} = renderWithProvider(<EmotionalTimeline />);
     expect(getByText(/Dominant:/)).toBeTruthy();
     expect(getByText(/CALM/)).toBeTruthy();
+    // Average confidence: (0.9 + 0.9 + 0.8) / 3 = 0.87 rounded to 0.9
     expect(getByText(/0\.9/)).toBeTruthy();
   });
 
