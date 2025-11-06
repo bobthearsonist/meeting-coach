@@ -1,15 +1,21 @@
-
 """
 In-place updating dashboard for autism/ADHD coaching
 """
+
 import os
-import sys
-import time
 import shutil
+import sys
 import textwrap
-from typing import Dict, Optional, List
+import time
 from datetime import datetime
-from src.ui.colors import Colors, colorize_emotional_state, colorize_social_cue, colorize_alert
+from typing import Dict, List, Optional
+
+from src.ui.colors import (
+    Colors,
+    colorize_alert,
+    colorize_emotional_state,
+    colorize_social_cue,
+)
 from src.ui.timeline import EmotionalTimeline
 
 
@@ -18,13 +24,13 @@ class LiveDashboard:
 
     def __init__(self):
         self.current_state = {
-            'emotional_state': "neutral",
-            'social_cue': "unknown",
-            'confidence': 0.0,
-            'wpm': 0,
-            'text': "",
-            'coaching': "",
-            'alert': False
+            "emotional_state": "neutral",
+            "social_cue": "unknown",
+            "confidence": 0.0,
+            "wpm": 0,
+            "text": "",
+            "coaching": "",
+            "alert": False,
         }
         self.current_social_cue = "unknown"
         self.current_confidence = 0.0
@@ -47,7 +53,7 @@ class LiveDashboard:
 
     def _supports_ansi(self) -> bool:
         """Check if terminal supports ANSI escape codes"""
-        return hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()
+        return hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
 
     def _wrap_text(self, text: str, width: int, indent: str = "    ") -> List[str]:
         """Wrap text to fit within specified width with optional indentation"""
@@ -72,7 +78,7 @@ class LiveDashboard:
             sys.stdout.write("\033[3J\033[2J\033[H")
             sys.stdout.flush()
         else:
-            os.system('cls' if os.name == 'nt' else 'clear')
+            os.system("cls" if os.name == "nt" else "clear")
 
     def enter_alt_screen(self):
         """Switch to the terminal's alternate screen buffer (no scrollback)."""
@@ -141,7 +147,9 @@ class LiveDashboard:
         # Footer
         print("-" * width)
         session_duration = (time.time() - self.session_start) / 60
-        print(f"Session: {session_duration:.1f}min | Press Ctrl+C to stop and see summary")
+        print(
+            f"Session: {session_duration:.1f}min | Press Ctrl+C to stop and see summary"
+        )
         print("=" * width)
 
     def _render_current_status(self, width: int):
@@ -150,7 +158,7 @@ class LiveDashboard:
         print("-" * 20)
 
         # Emotional state with color
-        state_colored = colorize_emotional_state(self.current_state['emotional_state'])
+        state_colored = colorize_emotional_state(self.current_state["emotional_state"])
         cue_colored = colorize_social_cue(self.current_social_cue)
 
         # Build status line with fixed positioning
@@ -162,7 +170,9 @@ class LiveDashboard:
 
         # Add pace with fixed width to prevent bouncing
         if self.current_wpm > 0:
-            wpm_color = Colors.GREEN if 100 <= self.current_wpm <= 180 else Colors.YELLOW
+            wpm_color = (
+                Colors.GREEN if 100 <= self.current_wpm <= 180 else Colors.YELLOW
+            )
             wpm_colored = Colors.colorize(f"{self.current_wpm:3.0f} WPM", wpm_color)
             pace_section = f"Pace: {wpm_colored}"
         else:
@@ -171,7 +181,9 @@ class LiveDashboard:
         status_parts.append(pace_section)
 
         # Add listening indicator with reserved space (fixed width)
-        listening_indicator = f"{self._get_listening_indicator():15s}"  # 15 chars reserved
+        listening_indicator = (
+            f"{self._get_listening_indicator():15s}"  # 15 chars reserved
+        )
         status_parts.append(listening_indicator)
 
         print(" | ".join(status_parts))
@@ -181,7 +193,9 @@ class LiveDashboard:
             alert_text = colorize_alert("🚨 COACHING ALERT ACTIVE", True)
             print(f"\n{alert_text}")
             if self.current_coaching:
-                coaching_colored = Colors.colorize(self.current_coaching, Colors.BOLD + Colors.BRIGHT_YELLOW)
+                coaching_colored = Colors.colorize(
+                    self.current_coaching, Colors.BOLD + Colors.BRIGHT_YELLOW
+                )
                 print(f"💡 {coaching_colored}")
         else:
             calm_text = Colors.colorize("✅ All good - no alerts", Colors.GREEN)
@@ -189,16 +203,20 @@ class LiveDashboard:
 
         # Current speech
         if self.current_text:
-            prefix = "🗣️  Recent: \""
+            prefix = '🗣️  Recent: "'
             continuation_indent = " " * len("🗣️  Recent: ")
 
             # Wrap the text to fit within available width
             available_width = width - len(prefix) - 1  # -1 for closing quote
-            wrapped_lines = textwrap.wrap(self.current_text, width=max(20, available_width))
+            wrapped_lines = textwrap.wrap(
+                self.current_text, width=max(20, available_width)
+            )
 
             if wrapped_lines:
                 # Print first line with prefix and opening quote
-                print(f"\n{prefix}{wrapped_lines[0]}{'\"' if len(wrapped_lines) == 1 else ''}")
+                print(
+                    f"\n{prefix}{wrapped_lines[0]}{'\"' if len(wrapped_lines) == 1 else ''}"
+                )
                 # Print continuation lines with proper alignment
                 for i, line in enumerate(wrapped_lines[1:]):
                     is_last = i == len(wrapped_lines) - 2
@@ -206,7 +224,9 @@ class LiveDashboard:
 
         # Filler words
         if self.filler_counts:
-            filler_text = ", ".join([f"{word}:{count}" for word, count in self.filler_counts.items()])
+            filler_text = ", ".join(
+                [f"{word}:{count}" for word, count in self.filler_counts.items()]
+            )
             print(f"🔄 Filler words: {filler_text}")
 
         print()
@@ -224,10 +244,14 @@ class LiveDashboard:
 
             # Status line
             emoji_map = {
-                'calm': '🧘', 'engaged': '✨', 'elevated': '⬆️',
-                'intense': '🔥', 'overwhelmed': '😵‍💫', 'unknown': '❓'
+                "calm": "🧘",
+                "engaged": "✨",
+                "elevated": "⬆️",
+                "intense": "🔥",
+                "overwhelmed": "😵‍💫",
+                "unknown": "❓",
             }
-            state_emoji = emoji_map.get(dominant_state, '💬')
+            state_emoji = emoji_map.get(dominant_state, "💬")
             dominant_colored = colorize_emotional_state(dominant_state.upper())
 
             print(f"Dominant: {state_emoji} {dominant_colored} ({confidence:.1f})")
@@ -253,13 +277,17 @@ class LiveDashboard:
 
         # Render timeline
         bar_chars = {
-            'calm': '▁', 'engaged': '▃', 'elevated': '▅',
-            'intense': '▆', 'overwhelmed': '▇', 'unknown': '▄'
+            "calm": "▁",
+            "engaged": "▃",
+            "elevated": "▅",
+            "intense": "▆",
+            "overwhelmed": "▇",
+            "unknown": "▄",
         }
 
         timeline_str = ""
         for state in buckets:
-            char = bar_chars.get(state, '▄')
+            char = bar_chars.get(state, "▄")
             color = self._get_state_color(state)
             colored_char = Colors.colorize(char, color)
             timeline_str += colored_char
@@ -270,7 +298,9 @@ class LiveDashboard:
         if len(entries) > 1:
             start_time = datetime.fromtimestamp(entries[0].timestamp)
             end_time = datetime.fromtimestamp(entries[-1].timestamp)
-            print(f"Range: {start_time.strftime('%H:%M')} - {end_time.strftime('%H:%M')}")
+            print(
+                f"Range: {start_time.strftime('%H:%M')} - {end_time.strftime('%H:%M')}"
+            )
 
     def _render_recent_activity(self, timeline: EmotionalTimeline, width: int):
         """Render recent activity log"""
@@ -288,16 +318,24 @@ class LiveDashboard:
 
                 # Create fixed-width columns for consistent alignment
                 # Format: "🚨 HH:MM:SS | state     | text..."
-                state_width = 12  # Fixed width for emotional state column to fit "OVERWHELMED"
+                state_width = (
+                    12  # Fixed width for emotional state column to fit "OVERWHELMED"
+                )
 
                 # Build the template without colors for precise alignment calculation
                 state_plain = entry.emotional_state.upper()
-                template_prefix = f"{alert_indicator}{timestamp} | {state_plain:<{state_width}} | "
+                template_prefix = (
+                    f"{alert_indicator}{timestamp} | {state_plain:<{state_width}} | "
+                )
 
                 # Build the display version with colors, ensuring same width
                 # We need to pad the colored state to the same visual width
-                state_colored_padded = state_colored + " " * (state_width - len(state_plain))
-                display_prefix = f"{alert_indicator}{timestamp} | {state_colored_padded} | "
+                state_colored_padded = state_colored + " " * (
+                    state_width - len(state_plain)
+                )
+                display_prefix = (
+                    f"{alert_indicator}{timestamp} | {state_colored_padded} | "
+                )
 
                 if entry.text:
                     # Use the template length for continuation indent
@@ -305,7 +343,9 @@ class LiveDashboard:
 
                     # Wrap the text to fit within the available width
                     available_width = width - len(template_prefix)
-                    wrapped_lines = textwrap.wrap(entry.text, width=max(20, available_width))
+                    wrapped_lines = textwrap.wrap(
+                        entry.text, width=max(20, available_width)
+                    )
 
                     if wrapped_lines:
                         # Print first line with colored prefix
@@ -326,17 +366,19 @@ class LiveDashboard:
         print("-" * 16)
 
         summary = timeline.get_session_summary()
-        duration = summary.get('session_duration_minutes', 0)
-        total_analyses = summary.get('total_entries', 0)
-        alert_count = summary.get('alert_count', 0)
+        duration = summary.get("session_duration_minutes", 0)
+        total_analyses = summary.get("total_entries", 0)
+        alert_count = summary.get("alert_count", 0)
 
         stats_line = f"Duration: {duration:.1f}min | Analyses: {total_analyses} | Alerts: {alert_count}"
         print(stats_line)
 
         # State distribution (top 3)
-        state_dist = summary.get('state_distribution', {})
+        state_dist = summary.get("state_distribution", {})
         if state_dist:
-            top_states = sorted(state_dist.items(), key=lambda x: x[1], reverse=True)[:3]
+            top_states = sorted(state_dist.items(), key=lambda x: x[1], reverse=True)[
+                :3
+            ]
             dist_parts = []
             for state, count in top_states:
                 percentage = (count / total_analyses) * 100 if total_analyses > 0 else 0
@@ -347,12 +389,14 @@ class LiveDashboard:
     def _print_simple_update(self):
         """Simple update for terminals without ANSI support"""
         timestamp = datetime.now().strftime("%H:%M:%S")
-        state_text = self.current_state['emotional_state'].upper()
+        state_text = self.current_state["emotional_state"].upper()
 
         if self.alert_active:
             print(f"[{timestamp}] 🚨 ALERT: {state_text} | {self.current_coaching}")
         else:
-            print(f"[{timestamp}] Status: {state_text} | Confidence: {self.current_confidence:.1f}")
+            print(
+                f"[{timestamp}] Status: {state_text} | Confidence: {self.current_confidence:.1f}"
+            )
 
     def _create_mini_buckets(self, entries, bucket_count: int) -> List[str]:
         """Create time buckets for mini timeline"""
@@ -367,7 +411,7 @@ class LiveDashboard:
         buckets = []
 
         for i in range(0, len(entries), entries_per_bucket):
-            bucket_entries = entries[i:i + entries_per_bucket]
+            bucket_entries = entries[i : i + entries_per_bucket]
             if bucket_entries:
                 # Use the most confident entry in the bucket
                 best_entry = max(bucket_entries, key=lambda e: e.confidence)
@@ -375,27 +419,36 @@ class LiveDashboard:
 
         # Pad or trim to exact bucket count
         while len(buckets) < bucket_count:
-            buckets.append(buckets[-1] if buckets else 'neutral')
+            buckets.append(buckets[-1] if buckets else "neutral")
 
         return buckets[:bucket_count]
 
     def _get_state_color(self, state: str) -> str:
         """Get color for emotional state"""
         from src.ui.colors import get_emotional_state_color
+
         return get_emotional_state_color(state)
 
-    def update_current_status(self, emotional_state: str, social_cue: str, confidence: float,
-                            text: str = "", coaching: str = "", alert: bool = False,
-                            wpm: float = 0, filler_counts: Dict = None):
+    def update_current_status(
+        self,
+        emotional_state: str,
+        social_cue: str,
+        confidence: float,
+        text: str = "",
+        coaching: str = "",
+        alert: bool = False,
+        wpm: float = 0,
+        filler_counts: Dict = None,
+    ):
         """Update current status information"""
         self.current_state = {
-            'emotional_state': emotional_state,
-            'social_cue': social_cue,
-            'confidence': confidence,
-            'text': text,
-            'coaching': coaching,
-            'alert': alert,
-            'wpm': wpm
+            "emotional_state": emotional_state,
+            "social_cue": social_cue,
+            "confidence": confidence,
+            "text": text,
+            "coaching": coaching,
+            "alert": alert,
+            "wpm": wpm,
         }
         self.current_social_cue = social_cue
         self.current_confidence = confidence
@@ -437,13 +490,15 @@ class LiveDashboard:
         # Display initialization information if provided
         if initialization_info:
             print("Initializing Teams Meeting Coach...")
-            if initialization_info.get('audio_device'):
+            if initialization_info.get("audio_device"):
                 print(f"Using audio device: {initialization_info['audio_device']}")
-            if initialization_info.get('whisper_model'):
+            if initialization_info.get("whisper_model"):
                 print(f"Loading Whisper model: {initialization_info['whisper_model']}")
                 print("Whisper model loaded successfully")
-            if initialization_info.get('ollama_model'):
-                print(f"Connected to Ollama. Using model: {initialization_info['ollama_model']}")
+            if initialization_info.get("ollama_model"):
+                print(
+                    f"Connected to Ollama. Using model: {initialization_info['ollama_model']}"
+                )
             print()
 
         print("🎯 Ready to start monitoring your emotional state...")
@@ -464,7 +519,7 @@ class LiveDashboard:
             return max(60, min(cols, 140))
         except Exception:
             # Fallback to last known width or default
-            return getattr(self, 'last_terminal_width', default)
+            return getattr(self, "last_terminal_width", default)
 
 
 if __name__ == "__main__":
@@ -481,8 +536,22 @@ if __name__ == "__main__":
     test_scenarios = [
         ("calm", "appropriate", 0.8, "Starting the meeting", "", False),
         ("engaged", "appropriate", 0.8, "Good point about the project", "", False),
-        ("elevated", "interrupting", 0.8, "Oh I have an idea!", "Try pausing before speaking", True),
-        ("intense", "dominating", 0.9, "We could do this and that", "Take a breath", True),
+        (
+            "elevated",
+            "interrupting",
+            0.8,
+            "Oh I have an idea!",
+            "Try pausing before speaking",
+            True,
+        ),
+        (
+            "intense",
+            "dominating",
+            0.9,
+            "We could do this and that",
+            "Take a breath",
+            True,
+        ),
         ("calm", "appropriate", 0.7, "Let me think about that", "", False),
     ]
 
@@ -500,7 +569,7 @@ if __name__ == "__main__":
             text=text,
             coaching=coaching,
             alert=alert,
-            wpm=150 + i * 10
+            wpm=150 + i * 10,
         )
 
         dashboard.update_live_display(timeline)

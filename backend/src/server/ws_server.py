@@ -2,20 +2,22 @@
 WebSocket Server for Teams Meeting Coach
 Broadcasts real-time meeting analysis to connected clients
 """
+
 import asyncio
 import json
 import warnings
 
 # Suppress websockets deprecation warnings
-warnings.filterwarnings('ignore', message='.*websockets.server.*deprecated.*')
+warnings.filterwarnings("ignore", message=".*websockets.server.*deprecated.*")
+
+import queue
+import threading
+from datetime import datetime
+from typing import Any, Dict, Set
 
 import websockets
-from websockets.server import serve, WebSocketServerProtocol
-import threading
-import queue
-from typing import Set, Dict, Any
-from datetime import datetime
 from src import config
+from websockets.server import WebSocketServerProtocol, serve
 
 
 class MeetingCoachWebSocketServer:
@@ -39,22 +41,29 @@ class MeetingCoachWebSocketServer:
     async def register_client(self, websocket: WebSocketServerProtocol):
         """Register a new client connection"""
         self.clients.add(websocket)
-        print(f"✅ Client connected from {websocket.remote_address}. Total clients: {len(self.clients)}")
+        print(
+            f"✅ Client connected from {websocket.remote_address}. Total clients: {len(self.clients)}"
+        )
 
         # Send welcome message
-        await self.send_to_client(websocket, {
-            'type': 'connection',
-            'status': 'connected',
-            'message': 'Connected to Meeting Coach WebSocket Server',
-            'timestamp': datetime.now().isoformat()
-        })
+        await self.send_to_client(
+            websocket,
+            {
+                "type": "connection",
+                "status": "connected",
+                "message": "Connected to Meeting Coach WebSocket Server",
+                "timestamp": datetime.now().isoformat(),
+            },
+        )
 
     async def unregister_client(self, websocket: WebSocketServerProtocol):
         """Unregister a client connection"""
         self.clients.discard(websocket)
         print(f"❌ Client disconnected. Total clients: {len(self.clients)}")
 
-    async def send_to_client(self, websocket: WebSocketServerProtocol, data: Dict[str, Any]):
+    async def send_to_client(
+        self, websocket: WebSocketServerProtocol, data: Dict[str, Any]
+    ):
         """Send data to a specific client"""
         try:
             message = json.dumps(data)
@@ -73,7 +82,7 @@ class MeetingCoachWebSocketServer:
         # Use asyncio.gather to send to all clients concurrently
         await asyncio.gather(
             *[self._safe_send(client, message) for client in self.clients],
-            return_exceptions=True
+            return_exceptions=True,
         )
 
     async def _safe_send(self, websocket: WebSocketServerProtocol, message: str):
@@ -98,7 +107,9 @@ class MeetingCoachWebSocketServer:
         finally:
             await self.unregister_client(websocket)
 
-    async def handle_client_message(self, websocket: WebSocketServerProtocol, message: str):
+    async def handle_client_message(
+        self, websocket: WebSocketServerProtocol, message: str
+    ):
         """
         Handle incoming messages from clients.
 
@@ -109,44 +120,45 @@ class MeetingCoachWebSocketServer:
         """
         try:
             data = json.loads(message)
-            msg_type = data.get('type', 'unknown')
+            msg_type = data.get("type", "unknown")
 
-            if msg_type == 'ping':
-                await self.send_to_client(websocket, {
-                    'type': 'pong',
-                    'timestamp': datetime.now().isoformat()
-                })
-            elif msg_type == 'start_session':
+            if msg_type == "ping":
+                await self.send_to_client(
+                    websocket, {"type": "pong", "timestamp": datetime.now().isoformat()}
+                )
+            elif msg_type == "start_session":
                 # Handle session start (will be implemented with MeetingCoach integration)
-                await self.send_to_client(websocket, {
-                    'type': 'session_status',
-                    'status': 'started',
-                    'message': 'Session started'
-                })
-            elif msg_type == 'stop_session':
+                await self.send_to_client(
+                    websocket,
+                    {
+                        "type": "session_status",
+                        "status": "started",
+                        "message": "Session started",
+                    },
+                )
+            elif msg_type == "stop_session":
                 # Handle session stop
-                await self.send_to_client(websocket, {
-                    'type': 'session_status',
-                    'status': 'stopped',
-                    'message': 'Session stopped'
-                })
+                await self.send_to_client(
+                    websocket,
+                    {
+                        "type": "session_status",
+                        "status": "stopped",
+                        "message": "Session stopped",
+                    },
+                )
             else:
-                await self.send_to_client(websocket, {
-                    'type': 'error',
-                    'message': f'Unknown message type: {msg_type}'
-                })
+                await self.send_to_client(
+                    websocket,
+                    {"type": "error", "message": f"Unknown message type: {msg_type}"},
+                )
 
         except json.JSONDecodeError:
-            await self.send_to_client(websocket, {
-                'type': 'error',
-                'message': 'Invalid JSON'
-            })
+            await self.send_to_client(
+                websocket, {"type": "error", "message": "Invalid JSON"}
+            )
         except Exception as e:
             print(f"Error handling client message: {e}")
-            await self.send_to_client(websocket, {
-                'type': 'error',
-                'message': str(e)
-            })
+            await self.send_to_client(websocket, {"type": "error", "message": str(e)})
 
     def broadcast_sync(self, data: Dict[str, Any]):
         """
@@ -207,17 +219,18 @@ def main():
 
     # Simulate broadcasting some test data
     import time
+
     try:
         time.sleep(2)
         for i in range(5):
             test_data = {
-                'type': 'meeting_update',
-                'emotional_state': 'calm',
-                'social_cue': 'appropriate',
-                'confidence': 0.9,
-                'wpm': 150,
-                'text': f'Test message {i+1}',
-                'timestamp': datetime.now().isoformat()
+                "type": "meeting_update",
+                "emotional_state": "calm",
+                "social_cue": "appropriate",
+                "confidence": 0.9,
+                "wpm": 150,
+                "text": f"Test message {i+1}",
+                "timestamp": datetime.now().isoformat(),
             }
             server.broadcast_sync(test_data)
             print(f"📤 Broadcasted test message {i+1}")
@@ -229,5 +242,5 @@ def main():
     server_thread.join()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

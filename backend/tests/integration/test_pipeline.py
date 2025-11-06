@@ -1,20 +1,23 @@
 """
 Integration tests for the complete meeting coach pipeline
 """
-import pytest
-import numpy as np
-from unittest.mock import Mock, patch, MagicMock
-import sys
+
 import os
+import sys
+from unittest.mock import MagicMock, Mock, patch
+
+import numpy as np
+import pytest
 
 # Add the project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
+from src import config
+from src.core.analyzer import CommunicationAnalyzer
 from src.core.audio_capture import AudioCapture
 from src.core.transcriber import Transcriber
-from src.core.analyzer import CommunicationAnalyzer
 from src.ui.dashboard import LiveDashboard
-from src import config
+
 
 class TestMeetingCoachPipeline:
     """Integration tests for the complete pipeline"""
@@ -29,31 +32,31 @@ class TestMeetingCoachPipeline:
         result = transcriber.transcribe(sample_audio_data)
 
         # Verify result structure
-        assert 'text' in result
-        assert 'word_count' in result
-        assert 'duration' in result
+        assert "text" in result
+        assert "word_count" in result
+        assert "duration" in result
 
         # Calculate WPM manually since transcribe doesn't return it
-        if result['duration'] > 0:
-            wpm = transcriber.calculate_wpm(result['word_count'], result['duration'])
+        if result["duration"] > 0:
+            wpm = transcriber.calculate_wpm(result["word_count"], result["duration"])
             assert isinstance(wpm, float)
             assert wpm >= 0
 
         # Verify data types
-        assert isinstance(result['text'], str)
-        assert isinstance(result['word_count'], int)
-        assert isinstance(result['duration'], (int, float))
+        assert isinstance(result["text"], str)
+        assert isinstance(result["word_count"], int)
+        assert isinstance(result["duration"], (int, float))
 
         # Calculate WPM manually since transcribe doesn't return it
-        if result['duration'] > 0:
-            wpm = transcriber.calculate_wpm(result['word_count'], result['duration'])
-            result['wpm'] = wpm  # Add it to result for compatibility
-            assert isinstance(result['wpm'], (int, float))
-            assert result['wpm'] >= 0
+        if result["duration"] > 0:
+            wpm = transcriber.calculate_wpm(result["word_count"], result["duration"])
+            result["wpm"] = wpm  # Add it to result for compatibility
+            assert isinstance(result["wpm"], (int, float))
+            assert result["wpm"] >= 0
 
         # Verify reasonable values
-        assert result['duration'] > 0
-        assert result['word_count'] >= 0
+        assert result["duration"] > 0
+        assert result["word_count"] >= 0
 
     @pytest.mark.integration
     @pytest.mark.requires_ollama
@@ -62,22 +65,25 @@ class TestMeetingCoachPipeline:
         analyzer = CommunicationAnalyzer()
 
         for sample in sample_transcription_results:
-            result = analyzer.analyze_tone(sample['text'])
+            result = analyzer.analyze_tone(sample["text"])
 
             # Verify analysis structure
-            assert 'emotional_state' in result
-            assert 'confidence' in result
-            assert isinstance(result['emotional_state'], str)
-            assert isinstance(result['confidence'], float)
+            assert "emotional_state" in result
+            assert "confidence" in result
+            assert isinstance(result["emotional_state"], str)
+            assert isinstance(result["confidence"], float)
 
             # Check that tone matches expected pattern for the text
-            expected_tone = sample['expected_tone']
-            if expected_tone in ['supportive', 'neutral', 'calm']:
+            expected_tone = sample["expected_tone"]
+            if expected_tone in ["supportive", "neutral", "calm"]:
                 # These are positive/neutral tones
-                assert result['emotional_state'] not in ['aggressive', 'hostile']
-            elif expected_tone == 'aggressive':
+                assert result["emotional_state"] not in ["aggressive", "hostile"]
+            elif expected_tone == "aggressive":
                 # This should be detected as concerning
-                assert result['emotional_state'] in ['aggressive', 'elevated', 'intense'] or result['confidence'] < 0.5
+                assert (
+                    result["emotional_state"] in ["aggressive", "elevated", "intense"]
+                    or result["confidence"] < 0.5
+                )
 
     @pytest.mark.integration
     def test_analysis_to_dashboard_pipeline(self, dashboard_scenarios):
@@ -86,32 +92,32 @@ class TestMeetingCoachPipeline:
 
         for scenario in dashboard_scenarios:
             dashboard.update_current_status(
-                emotional_state=scenario['state'],
-                social_cue=scenario['cue'],
-                confidence=scenario['confidence'],
-                text=scenario['text'],
-                coaching=scenario['coaching'],
-                alert=scenario['alert'],
-                wpm=scenario['wpm']
+                emotional_state=scenario["state"],
+                social_cue=scenario["cue"],
+                confidence=scenario["confidence"],
+                text=scenario["text"],
+                coaching=scenario["coaching"],
+                alert=scenario["alert"],
+                wpm=scenario["wpm"],
             )
 
             # Verify dashboard state was updated
-            assert dashboard.current_state['emotional_state'] == scenario['state']
-            assert dashboard.current_social_cue == scenario['cue']
-            assert dashboard.current_confidence == scenario['confidence']
-            assert dashboard.current_text == scenario['text']
-            assert dashboard.current_coaching == scenario['coaching']
-            assert dashboard.alert_active == scenario['alert']
-            assert dashboard.current_wpm == scenario['wpm']
+            assert dashboard.current_state["emotional_state"] == scenario["state"]
+            assert dashboard.current_social_cue == scenario["cue"]
+            assert dashboard.current_confidence == scenario["confidence"]
+            assert dashboard.current_text == scenario["text"]
+            assert dashboard.current_coaching == scenario["coaching"]
+            assert dashboard.alert_active == scenario["alert"]
+            assert dashboard.current_wpm == scenario["wpm"]
 
     @pytest.mark.integration
     @pytest.mark.slow
-    @patch('src.core.analyzer.ollama.generate')
+    @patch("src.core.analyzer.ollama.generate")
     def test_complete_pipeline_mock_ollama(self, mock_generate, sample_audio_data):
         """Test the complete pipeline with mocked Ollama."""
         # Mock Ollama response
         mock_response = {
-            'response': '{"emotional_state": "supportive", "confidence": 0.8, "coaching_feedback": "Positive language"}'
+            "response": '{"emotional_state": "supportive", "confidence": 0.8, "coaching_feedback": "Positive language"}'
         }
         mock_generate.return_value = mock_response
 
@@ -130,23 +136,27 @@ class TestMeetingCoachPipeline:
 
         # 3. Update dashboard
         # Calculate WPM first
-        wpm = transcriber.calculate_wpm(transcription_result['word_count'], transcription_result['duration'])
+        wpm = transcriber.calculate_wpm(
+            transcription_result["word_count"], transcription_result["duration"]
+        )
 
         dashboard.update_current_status(
-            emotional_state='calm',  # Would come from additional analysis
-            social_cue='appropriate',
-            confidence=analysis_result['confidence'],
-            text=transcription_result['text'],
-            coaching='',
-            alert=analyzer.should_alert(analysis_result['emotional_state'], analysis_result['confidence']),
-            wpm=wpm
+            emotional_state="calm",  # Would come from additional analysis
+            social_cue="appropriate",
+            confidence=analysis_result["confidence"],
+            text=transcription_result["text"],
+            coaching="",
+            alert=analyzer.should_alert(
+                analysis_result["emotional_state"], analysis_result["confidence"]
+            ),
+            wpm=wpm,
         )
 
         # Verify end-to-end results
-        assert transcription_result['text'] is not None
-        assert analysis_result['emotional_state'] == 'supportive'
-        assert analysis_result['confidence'] == 0.8
-        assert dashboard.current_state['confidence'] == 0.8
+        assert transcription_result["text"] is not None
+        assert analysis_result["emotional_state"] == "supportive"
+        assert analysis_result["confidence"] == 0.8
+        assert dashboard.current_state["confidence"] == 0.8
         assert not dashboard.alert_active  # Supportive tone shouldn't alert
 
     @pytest.mark.integration
@@ -182,15 +192,15 @@ class TestMeetingCoachPipeline:
             result = transcriber.transcribe(empty_audio)
             # Should return some result structure even for empty audio
             assert isinstance(result, dict)
-            assert 'text' in result
-            assert 'duration' in result
+            assert "text" in result
+            assert "duration" in result
         except Exception as e:
             # It's OK if it raises an exception, just make sure it's handled gracefully
             assert isinstance(e, Exception)
 
         # 2. Invalid text for analysis
         invalid_analysis = analyzer.analyze_tone("")
-        assert 'error' in invalid_analysis  # Should indicate insufficient text
+        assert "error" in invalid_analysis  # Should indicate insufficient text
 
         # 3. Test dashboard with edge case values
         dashboard.update_current_status(
@@ -200,9 +210,9 @@ class TestMeetingCoachPipeline:
             text="",
             coaching="",
             alert=False,
-            wpm=0
+            wpm=0,
         )
-        assert dashboard.current_state['emotional_state'] == "unknown"
+        assert dashboard.current_state["emotional_state"] == "unknown"
 
     @pytest.mark.integration
     def test_performance_benchmarks(self, sample_audio_data):
@@ -223,7 +233,9 @@ class TestMeetingCoachPipeline:
 
         # Processing should ideally be faster than real-time for short clips
         if audio_duration < 10:  # For short audio clips
-            assert processing_ratio < 5.0, f"Transcription too slow: {processing_ratio:.2f}x real-time"
+            assert (
+                processing_ratio < 5.0
+            ), f"Transcription too slow: {processing_ratio:.2f}x real-time"
 
         print(f"Transcription performance: {processing_ratio:.2f}x real-time")
 
@@ -253,6 +265,8 @@ class TestMeetingCoachPipeline:
 
         # Memory increase should be reasonable (less than 100MB for this test)
         memory_increase_mb = memory_increase / (1024 * 1024)
-        assert memory_increase_mb < 100, f"Excessive memory usage: {memory_increase_mb:.1f} MB"
+        assert (
+            memory_increase_mb < 100
+        ), f"Excessive memory usage: {memory_increase_mb:.1f} MB"
 
         print(f"Memory usage increase: {memory_increase_mb:.1f} MB")

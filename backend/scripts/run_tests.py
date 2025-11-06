@@ -2,10 +2,11 @@
 """
 Test runner script for the Meeting Coach project
 """
+import argparse
+import os
 import subprocess
 import sys
-import os
-import argparse
+
 
 def run_tests(test_type="all", verbose=False, coverage=False, markers=None):
     """Run tests with specified parameters."""
@@ -50,6 +51,7 @@ def run_tests(test_type="all", verbose=False, coverage=False, markers=None):
         print(f"Error running tests: {e}")
         return 1
 
+
 def main():
     parser = argparse.ArgumentParser(description="Run Meeting Coach tests")
 
@@ -58,37 +60,28 @@ def main():
         nargs="?",
         default="all",
         choices=["all", "unit", "integration"],
-        help="Type of tests to run (default: all)"
+        help="Type of tests to run (default: all)",
+    )
+
+    parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
+
+    parser.add_argument(
+        "-c", "--coverage", action="store_true", help="Run with coverage reporting"
     )
 
     parser.add_argument(
-        "-v", "--verbose",
-        action="store_true",
-        help="Verbose output"
-    )
-
-    parser.add_argument(
-        "-c", "--coverage",
-        action="store_true",
-        help="Run with coverage reporting"
-    )
-
-    parser.add_argument(
-        "-m", "--markers",
-        help="Run only tests with specific markers (e.g., 'not slow')"
+        "-m",
+        "--markers",
+        help="Run only tests with specific markers (e.g., 'not slow')",
     )
 
     parser.add_argument(
         "--fast",
         action="store_true",
-        help="Run only fast tests (excludes slow and requires_* markers)"
+        help="Run only fast tests (excludes slow and requires_* markers)",
     )
 
-    parser.add_argument(
-        "--unit-only",
-        action="store_true",
-        help="Run only unit tests"
-    )
+    parser.add_argument("--unit-only", action="store_true", help="Run only unit tests")
 
     args = parser.parse_args()
 
@@ -103,10 +96,11 @@ def main():
         test_type=args.test_type,
         verbose=args.verbose,
         coverage=args.coverage,
-        markers=args.markers
+        markers=args.markers,
     )
 
     sys.exit(exit_code)
+
 
 if __name__ == "__main__":
     main()

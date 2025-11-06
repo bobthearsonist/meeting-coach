@@ -1,20 +1,22 @@
 """
 Configuration settings for Teams Meeting Coach
 """
+
 import os
 import sys
 from pathlib import Path
 
+
 # Load environment variables from .env file
 def load_env():
     """Load environment variables from .env file if it exists"""
-    env_path = Path(__file__).parent.parent.parent / '.env'
+    env_path = Path(__file__).parent.parent.parent / ".env"
     if env_path.exists():
         with open(env_path) as f:
             for line in f:
                 line = line.strip()
-                if line and not line.startswith('#') and '=' in line:
-                    key, value = line.split('=', 1)
+                if line and not line.startswith("#") and "=" in line:
+                    key, value = line.split("=", 1)
                     os.environ.setdefault(key.strip(), value.strip())
     else:
         print("ERROR: .env file not found!", file=sys.stderr)
@@ -22,11 +24,12 @@ def load_env():
         print("  cp .env.example .env", file=sys.stderr)
         sys.exit(1)
 
+
 load_env()
 
 # WebSocket Server Settings (required)
-WEBSOCKET_HOST = os.getenv('WEBSOCKET_HOST')
-WEBSOCKET_PORT_STR = os.getenv('WEBSOCKET_PORT')
+WEBSOCKET_HOST = os.getenv("WEBSOCKET_HOST")
+WEBSOCKET_PORT_STR = os.getenv("WEBSOCKET_PORT")
 
 if not WEBSOCKET_HOST:
     print("ERROR: WEBSOCKET_HOST not defined in .env file", file=sys.stderr)
@@ -41,13 +44,16 @@ if not WEBSOCKET_PORT_STR:
 try:
     WEBSOCKET_PORT = int(WEBSOCKET_PORT_STR)
 except ValueError:
-    print(f"ERROR: WEBSOCKET_PORT must be a number, got: {WEBSOCKET_PORT_STR}", file=sys.stderr)
+    print(
+        f"ERROR: WEBSOCKET_PORT must be a number, got: {WEBSOCKET_PORT_STR}",
+        file=sys.stderr,
+    )
     sys.exit(1)
 
 # Audio Capture Settings
 SAMPLE_RATE = 16000  # Whisper works best with 16kHz
 CHUNK_DURATION = 5  # Seconds per transcription chunk
-CHUNK_SIZE = 1024   # Audio frames per buffer
+CHUNK_SIZE = 1024  # Audio frames per buffer
 CHANNELS = 2  # Stereo for BlackHole
 
 # Whisper Model Settings
@@ -74,7 +80,9 @@ FEEDBACK_HISTORY_SIZE = 5  # Number of recent chunks to keep
 NOTIFICATION_COOLDOWN = 30  # Seconds between similar notifications
 
 # Audio Input Mode
-USE_MICROPHONE_INPUT = True  # True = analyze YOUR speech, False = analyze Teams output audio
+USE_MICROPHONE_INPUT = (
+    True  # True = analyze YOUR speech, False = analyze Teams output audio
+)
 BLACKHOLE_DEVICE_INDEX = None  # Will auto-detect if None
 MICROPHONE_DEVICE_INDEX = None  # Will prompt for selection if None
 

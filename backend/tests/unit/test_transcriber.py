@@ -1,17 +1,20 @@
 """
 Unit tests for the Transcriber class
 """
-import pytest
-import numpy as np
-from unittest.mock import Mock, patch
-import sys
+
 import os
+import sys
+from unittest.mock import Mock, patch
+
+import numpy as np
+import pytest
 
 # Add the project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-from src.core.transcriber import Transcriber
 from src import config
+from src.core.transcriber import Transcriber
+
 
 class TestTranscriber:
     """Test cases for Transcriber"""
@@ -70,45 +73,47 @@ class TestTranscriber:
 
         # Check return structure
         assert isinstance(result, dict)
-        assert 'text' in result
-        assert 'word_count' in result
-        assert 'duration' in result
-        assert 'segments' in result
+        assert "text" in result
+        assert "word_count" in result
+        assert "duration" in result
+        assert "segments" in result
 
         # Check types
-        assert isinstance(result['text'], str)
-        assert isinstance(result['word_count'], int)
-        assert isinstance(result['duration'], float)
-        assert isinstance(result['segments'], list)
+        assert isinstance(result["text"], str)
+        assert isinstance(result["word_count"], int)
+        assert isinstance(result["duration"], float)
+        assert isinstance(result["segments"], list)
 
     @pytest.mark.unit
     def test_get_speaking_pace_feedback(self, transcriber):
         """Test speaking pace feedback functionality."""
         # Test different WPM ranges
         test_cases = [
-            (50, "slow"),    # Too slow
-            (120, "good"),   # Normal range
-            (200, "fast"),   # Too fast
-            (300, "fast"),   # Very fast
+            (50, "slow"),  # Too slow
+            (120, "good"),  # Normal range
+            (200, "fast"),  # Too fast
+            (300, "fast"),  # Very fast
         ]
 
         for wpm, expected_category in test_cases:
             feedback = transcriber.get_speaking_pace_feedback(wpm)
             assert isinstance(feedback, dict)
-            assert 'category' in feedback
-            assert 'message' in feedback
+            assert "category" in feedback
+            assert "message" in feedback
             # The feedback should contain some indication of pace
-            assert any(word in feedback['message'].lower()
-                      for word in ['pace', 'speed', 'slow', 'fast', 'good'])
+            assert any(
+                word in feedback["message"].lower()
+                for word in ["pace", "speed", "slow", "fast", "good"]
+            )
 
     @pytest.mark.unit
     def test_count_filler_words(self, transcriber):
         """Test filler word counting functionality."""
         test_texts = [
-            ("um this is a test", {'um': 1}),
-            ("like, uh, you know what I mean", {'like': 1, 'uh': 1, 'you know': 1}),
+            ("um this is a test", {"um": 1}),
+            ("like, uh, you know what I mean", {"like": 1, "uh": 1, "you know": 1}),
             ("this is clean speech", {}),
-            ("uh um uh like basically", {'uh': 2, 'um': 1, 'like': 1, 'basically': 1})
+            ("uh um uh like basically", {"uh": 2, "um": 1, "like": 1, "basically": 1}),
         ]
 
         for text, expected_partial in test_texts:
@@ -156,15 +161,15 @@ class TestTranscriber:
         assert np.min(processed) >= -1.0
 
     @pytest.mark.unit
-    @patch('src.core.transcriber.WhisperModel')
-    def test_transcribe_with_mock_whisper(self, mock_whisper_model, transcriber, sample_audio_data):
+    @patch("src.core.transcriber.WhisperModel")
+    def test_transcribe_with_mock_whisper(
+        self, mock_whisper_model, transcriber, sample_audio_data
+    ):
         """Test transcription with mocked Whisper model."""
         # Mock the Whisper model
         mock_model = Mock()
-        mock_segments = [
-            Mock(start=0.0, end=2.0, text='This is a test transcription')
-        ]
-        mock_info = Mock(language='en')
+        mock_segments = [Mock(start=0.0, end=2.0, text="This is a test transcription")]
+        mock_info = Mock(language="en")
         mock_model.transcribe.return_value = (mock_segments, mock_info)
         mock_whisper_model.return_value = mock_model
 
@@ -173,10 +178,10 @@ class TestTranscriber:
 
         result = transcriber.transcribe(sample_audio_data)
 
-        assert result['text'] == 'This is a test transcription'
-        assert result['word_count'] == 5  # "This is a test transcription"
-        assert result['duration'] > 0
-        assert 'wpm' in result
+        assert result["text"] == "This is a test transcription"
+        assert result["word_count"] == 5  # "This is a test transcription"
+        assert result["duration"] > 0
+        assert "wpm" in result
 
     @pytest.mark.unit
     def test_transcribe_result_structure(self, transcriber):
@@ -185,24 +190,24 @@ class TestTranscriber:
         minimal_audio = np.array([0.1, -0.1, 0.05, -0.05], dtype=np.float32)
 
         # Mock the model's transcribe method
-        mock_segments = [Mock(start=0.0, end=1.0, text='test')]
-        mock_info = Mock(language='en')
+        mock_segments = [Mock(start=0.0, end=1.0, text="test")]
+        mock_info = Mock(language="en")
 
-        with patch.object(transcriber.model, 'transcribe') as mock_transcribe:
+        with patch.object(transcriber.model, "transcribe") as mock_transcribe:
             mock_transcribe.return_value = (mock_segments, mock_info)
 
             result = transcriber.transcribe(minimal_audio)
 
             # Check required keys
-            required_keys = ['text', 'word_count', 'duration', 'wpm']
+            required_keys = ["text", "word_count", "duration", "wpm"]
             for key in required_keys:
                 assert key in result, f"Missing required key: {key}"
 
             # Check data types
-            assert isinstance(result['text'], str)
-            assert isinstance(result['word_count'], int)
-            assert isinstance(result['duration'], (int, float))
-            assert isinstance(result['wpm'], (int, float))
+            assert isinstance(result["text"], str)
+            assert isinstance(result["word_count"], int)
+            assert isinstance(result["duration"], (int, float))
+            assert isinstance(result["wpm"], (int, float))
 
     @pytest.mark.unit
     def test_word_count_calculation(self, transcriber):
@@ -215,16 +220,18 @@ class TestTranscriber:
             ("one,two,three", 1),  # No spaces, counts as one
             ("one two three", 3),
             ("hello world!", 2),
-            ("testing, one, two, three words", 5)
+            ("testing, one, two, three words", 5),
         ]
 
         for text, expected_count in test_cases:
             # Mock transcribe to return specific text
             mock_segments = [Mock(start=0.0, end=1.0, text=text)]
-            mock_info = Mock(language='en')
+            mock_info = Mock(language="en")
 
-            with patch.object(transcriber.model, 'transcribe') as mock_transcribe:
+            with patch.object(transcriber.model, "transcribe") as mock_transcribe:
                 mock_transcribe.return_value = (mock_segments, mock_info)
 
                 result = transcriber.transcribe(np.array([0.1], dtype=np.float32))
-                assert result['word_count'] == expected_count, f"Text '{text}' should have {expected_count} words, got {result['word_count']}"
+                assert (
+                    result["word_count"] == expected_count
+                ), f"Text '{text}' should have {expected_count} words, got {result['word_count']}"

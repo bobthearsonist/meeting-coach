@@ -3,9 +3,10 @@
 Setup verification script for Teams Meeting Coach
 Checks all dependencies and configuration
 """
-import sys
-import subprocess
 import importlib
+import subprocess
+import sys
+
 
 def check_python_version():
     """Check Python version requirements."""
@@ -15,19 +16,17 @@ def check_python_version():
         print(f"   ✅ Python {version.major}.{version.minor}.{version.micro} (OK)")
         return True
     else:
-        print(f"   ❌ Python {version.major}.{version.minor}.{version.micro} (Need >= 3.8)")
+        print(
+            f"   ❌ Python {version.major}.{version.minor}.{version.micro} (Need >= 3.8)"
+        )
         return False
+
 
 def check_python_packages():
     """Check required Python packages."""
     print("\n📦 Checking Python packages...")
 
-    required_packages = [
-        'faster_whisper',
-        'pyaudio',
-        'numpy',
-        'ollama'
-    ]
+    required_packages = ["faster_whisper", "pyaudio", "numpy", "ollama"]
 
     all_good = True
     for package in required_packages:
@@ -40,14 +39,16 @@ def check_python_packages():
 
     return all_good
 
+
 def check_ollama_installation():
     """Check Ollama installation and service."""
     print("\n🦙 Checking Ollama...")
 
     # Check if ollama command exists
     try:
-        result = subprocess.run(['ollama', '--version'],
-                               capture_output=True, text=True, timeout=10)
+        result = subprocess.run(
+            ["ollama", "--version"], capture_output=True, text=True, timeout=10
+        )
         if result.returncode == 0:
             version = result.stdout.strip()
             print(f"   ✅ Ollama installed: {version}")
@@ -60,13 +61,14 @@ def check_ollama_installation():
 
     # Check if Ollama service is running
     try:
-        result = subprocess.run(['ollama', 'list'],
-                               capture_output=True, text=True, timeout=10)
+        result = subprocess.run(
+            ["ollama", "list"], capture_output=True, text=True, timeout=10
+        )
         if result.returncode == 0:
             print("   ✅ Ollama service is running")
 
             # Check for llama3 model
-            if 'llama3' in result.stdout:
+            if "llama3" in result.stdout:
                 print("   ✅ llama3 model available")
             else:
                 print("   ⚠️  llama3 model not found (run: ollama pull llama3)")
@@ -80,12 +82,14 @@ def check_ollama_installation():
 
     return True
 
+
 def check_blackhole_audio():
     """Check BlackHole audio device."""
     print("\n🎵 Checking BlackHole audio...")
 
     try:
         from audio_capture import AudioCapture
+
         capture = AudioCapture()
 
         if capture.device_index is not None:
@@ -101,13 +105,15 @@ def check_blackhole_audio():
         print(f"   ❌ Audio check failed: {e}")
         return False
 
+
 def check_disk_space():
     """Check available disk space for models."""
     print("\n💾 Checking disk space...")
 
     try:
         import shutil
-        total, used, free = shutil.disk_usage('.')
+
+        total, used, free = shutil.disk_usage(".")
         free_gb = free / (1024**3)
 
         if free_gb >= 5.0:
@@ -120,16 +126,17 @@ def check_disk_space():
         print(f"   ❌ Disk check failed: {e}")
         return False
 
+
 def run_quick_test():
     """Run a quick functionality test."""
     print("\n🧪 Running quick test...")
 
     try:
         # Test imports
-        from audio_capture import AudioCapture
-        from transcriber import Transcriber
         from analyzer import CommunicationAnalyzer
+        from audio_capture import AudioCapture
         from feedback_display import SimpleFeedbackDisplay
+        from transcriber import Transcriber
 
         # Test audio capture initialization
         capture = AudioCapture()
@@ -150,7 +157,7 @@ def run_quick_test():
         # Test basic functionality
         test_text = "This is a test of the meeting coach system"
         fillers = transcriber.count_filler_words(test_text)
-        emoji = analyzer.get_emotional_state_emoji('calm')
+        emoji = analyzer.get_emotional_state_emoji("calm")
         print("   ✅ Basic functionality working")
 
         return True
@@ -159,11 +166,12 @@ def run_quick_test():
         print(f"   ❌ Test failed: {e}")
         return False
 
+
 def main():
     """Run all setup checks."""
-    print("="*60)
+    print("=" * 60)
     print("🎯 Teams Meeting Coach - Setup Verification")
-    print("="*60)
+    print("=" * 60)
 
     checks = [
         ("Python Version", check_python_version),
@@ -184,9 +192,9 @@ def main():
             results.append((name, False))
 
     # Summary
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("📋 Setup Check Summary")
-    print("="*60)
+    print("=" * 60)
 
     all_passed = True
     for name, passed in results:
@@ -195,7 +203,7 @@ def main():
         if not passed:
             all_passed = False
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     if all_passed:
         print("🎉 All checks passed! Teams Meeting Coach is ready to use.")
         print("\nTo start the application:")
@@ -207,6 +215,7 @@ def main():
         print("\nFor help with setup, see README.md")
 
     return all_passed
+
 
 if __name__ == "__main__":
     success = main()
