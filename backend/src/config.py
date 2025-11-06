@@ -10,8 +10,23 @@ from pathlib import Path
 # Load environment variables from .env file
 def load_env():
     """Load environment variables from .env file if it exists"""
+    # Check for .env.test first (for CI/testing), then fall back to .env
+    env_test_path = Path(__file__).parent.parent.parent / ".env.test"
     env_path = Path(__file__).parent.parent.parent / ".env"
-    if env_path.exists():
+
+    # In test/CI environments, prefer .env.test if it exists
+    if env_test_path.exists() and (
+        os.getenv("CI") == "true"
+        or os.getenv("PYTEST_CURRENT_TEST")
+        or "pytest" in sys.modules
+    ):
+        with open(env_test_path) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, value = line.split("=", 1)
+                    os.environ.setdefault(key.strip(), value.strip())
+    elif env_path.exists():
         with open(env_path) as f:
             for line in f:
                 line = line.strip()

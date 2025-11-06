@@ -6,7 +6,7 @@ module.exports = {
       {
         envName: 'APP_ENV',
         moduleName: '@env',
-        path: '../.env',
+        path: process.env.NODE_ENV === 'test' ? '../.env.test' : '../.env',
         safe: false,
         allowUndefined: false,
         verbose: false,
