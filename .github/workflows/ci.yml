@@ -26,25 +26,11 @@ jobs:
       - name: Setup Python Backend
         uses: ./.github/actions/setup-python-backend
 
-      - name: Install linting tools
-        run: |
-          cd backend
-          pip install black isort pylint
+      - name: Setup Backend Linting Tools
+        uses: ./.github/actions/setup-backend-linting
 
-      - name: Run black
-        run: |
-          cd backend
-          black --check *.py src/ tests/ || (echo "❌ Code formatting check failed. Run 'make format' to fix." && exit 1)
-
-      - name: Run isort
-        run: |
-          cd backend
-          isort --check-only *.py src/ tests/ --profile=black || (echo "❌ Import sorting check failed. Run 'make format' to fix." && exit 1)
-
-      - name: Run pylint
-        run: |
-          cd backend
-          pylint *.py src/
+      - name: Run Backend Linters
+        uses: ./.github/actions/run-backend-linters
 
   backend-unit-tests:
     name: Backend Unit Tests
@@ -57,9 +43,10 @@ jobs:
         uses: ./.github/actions/setup-python-backend
 
       - name: Run unit tests
-        run: |
-          cd backend
-          pytest tests/unit/ -v -m "unit" --tb=short --disable-warnings
+        uses: ./.github/actions/run-backend-tests
+        with:
+          test-path: 'tests/unit/'
+          markers: 'unit'
 
   backend-integration-tests:
     name: Backend Integration Tests
@@ -72,9 +59,10 @@ jobs:
         uses: ./.github/actions/setup-python-backend
 
       - name: Run integration tests (without external dependencies)
-        run: |
-          cd backend
-          pytest tests/integration/ -v -m "integration and not requires_ollama and not requires_audio" --tb=short --disable-warnings
+        uses: ./.github/actions/run-backend-tests
+        with:
+          test-path: 'tests/integration/'
+          markers: 'integration and not requires_ollama and not requires_audio'
 
   # Frontend Jobs
   frontend-lint:
@@ -83,20 +71,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        run: |
-          cd frontend
-          npm ci
+      - name: Setup Frontend Node.js
+        uses: ./.github/actions/setup-frontend-node
 
       - name: Run ESLint
-        run: cd frontend && npm run lint
+        working-directory: frontend
+        run: npm run lint
 
   frontend-unit-tests:
     name: Frontend Unit Tests
@@ -105,22 +85,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        run: |
-          cd frontend
-          npm ci
+      - name: Setup Frontend Node.js
+        uses: ./.github/actions/setup-frontend-node
 
       - name: Run unit tests
-        run: |
-          cd frontend
-          npm test -- --watchAll=false --testPathIgnorePatterns=integration
+        uses: ./.github/actions/run-frontend-tests
 
   frontend-integration-tests:
     name: Frontend Integration Tests
@@ -129,22 +98,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        run: |
-          cd frontend
-          npm ci
+      - name: Setup Frontend Node.js
+        uses: ./.github/actions/setup-frontend-node
 
       - name: Run integration tests (if any exist)
-        run: |
-          cd frontend
-          npm test -- --watchAll=false --testMatch="**/*.integration.test.js" --passWithNoTests
+        uses: ./.github/actions/run-frontend-tests
+        with:
+          test-pattern: '**/*.integration.test.js'
 
   # Summary Job
   ci-success:

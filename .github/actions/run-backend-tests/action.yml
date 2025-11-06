@@ -1,0 +1,40 @@
+name: 'Run Backend Tests'
+description: 'Run backend pytest tests with configurable options'
+
+inputs:
+  test-path:
+    description: 'Path to tests (e.g., tests/unit/, tests/integration/)'
+    required: false
+    default: 'tests/'
+  markers:
+    description: 'Pytest markers to filter tests (e.g., "unit", "integration and not slow")'
+    required: false
+    default: ''
+  coverage:
+    description: 'Enable coverage reporting'
+    required: false
+    default: 'false'
+  continue-on-error:
+    description: 'Continue workflow even if tests fail'
+    required: false
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run pytest
+      shell: bash
+      working-directory: backend
+      run: |
+        PYTEST_CMD="pytest ${{ inputs.test-path }} -v --tb=short --disable-warnings"
+        
+        if [ -n "${{ inputs.markers }}" ]; then
+          PYTEST_CMD="$PYTEST_CMD -m '${{ inputs.markers }}'"
+        fi
+        
+        if [ "${{ inputs.coverage }}" = "true" ]; then
+          PYTEST_CMD="$PYTEST_CMD --cov=src --cov-report=term-missing --cov-report=xml --cov-report=html --cov-report=json --cov-branch"
+        fi
+        
+        eval $PYTEST_CMD
+      continue-on-error: ${{ inputs.continue-on-error == 'true' }}

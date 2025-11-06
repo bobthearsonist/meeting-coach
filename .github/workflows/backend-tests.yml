@@ -22,9 +22,25 @@ permissions:
   actions: read
 
 jobs:
+  setup:
+    name: Setup and Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python Backend
+        uses: ./.github/actions/setup-python-backend
+
+      - name: Setup Backend Linting Tools
+        uses: ./.github/actions/setup-backend-linting
+
+      - name: Run Backend Linters
+        uses: ./.github/actions/run-backend-linters
+
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
+    needs: setup
     strategy:
       matrix:
         python-version: ['3.12']
@@ -37,13 +53,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Run unit tests
-        run: |
-          cd backend
-          pytest tests/unit/ \
-            -v \
-            -m "unit" \
-            --tb=short \
-            --disable-warnings
+        uses: ./.github/actions/run-backend-tests
+        with:
+          test-path: 'tests/unit/'
+          markers: 'unit'
 
   integration-tests:
     name: Integration Tests
@@ -61,23 +74,17 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Run integration tests (fast)
-        run: |
-          cd backend
-          pytest tests/integration/ \
-            -v \
-            -m "integration and not slow and not requires_ollama and not requires_audio" \
-            --tb=short \
-            --disable-warnings
+        uses: ./.github/actions/run-backend-tests
+        with:
+          test-path: 'tests/integration/'
+          markers: 'integration and not slow and not requires_ollama and not requires_audio'
 
       - name: Run integration tests (with mocks)
-        run: |
-          cd backend
-          pytest tests/integration/ \
-            -v \
-            -m "integration" \
-            --tb=short \
-            --disable-warnings
-        continue-on-error: true
+        uses: ./.github/actions/run-backend-tests
+        with:
+          test-path: 'tests/integration/'
+          markers: 'integration'
+          continue-on-error: 'true'
 
   system-tests:
     name: System Tests (Manual)
@@ -91,30 +98,28 @@ jobs:
         uses: ./.github/actions/setup-python-backend
 
       - name: Run system tests (mocked external dependencies)
-        run: |
-          cd backend
-          # System tests would test the full WebSocket server with mocked audio/LLM
-          # For now, run integration tests that simulate full pipeline
-          pytest tests/integration/test_full_pipeline.py \
-            -v \
-            --tb=short \
-            --disable-warnings
-        continue-on-error: true
+        uses: ./.github/actions/run-backend-tests
+        with:
+          test-path: 'tests/integration/test_full_pipeline.py'
+          continue-on-error: 'true'
 
   test-summary:
     name: Test Summary
     runs-on: ubuntu-latest
     needs:
+      - setup
       - unit-tests
       - integration-tests
     if: always()
     steps:
       - name: Check test results
         run: |
+          echo "Setup: ${{ needs.setup.result }}"
           echo "Unit Tests: ${{ needs.unit-tests.result }}"
           echo "Integration Tests: ${{ needs.integration-tests.result }}"
-
-          if [[ "${{ needs.unit-tests.result }}" != "success" ]] || \
+          
+          if [[ "${{ needs.setup.result }}" != "success" ]] || \
+             [[ "${{ needs.unit-tests.result }}" != "success" ]] || \
              [[ "${{ needs.integration-tests.result }}" != "success" ]]; then
             echo "❌ One or more test jobs failed"
             exit 1

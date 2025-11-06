@@ -1,0 +1,40 @@
+name: 'Run Security Scan'
+description: 'Run security scans and upload reports'
+
+inputs:
+  type:
+    description: 'Type of scan (backend or frontend)'
+    required: true
+  output-file:
+    description: 'Output file for security report'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run backend security scans
+      if: inputs.type == 'backend'
+      shell: bash
+      working-directory: backend
+      run: |
+        safety check --json || true
+        bandit -r src/ -f json -o ${{ inputs.output-file }} || true
+        cat ${{ inputs.output-file }}
+      continue-on-error: true
+
+    - name: Run frontend security scan
+      if: inputs.type == 'frontend'
+      shell: bash
+      working-directory: frontend
+      run: |
+        npm audit --json > ${{ inputs.output-file }} || true
+        cat ${{ inputs.output-file }}
+      continue-on-error: true
+
+    - name: Upload security report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: ${{ inputs.type }}-security-reports
+        path: ${{ inputs.type }}/${{ inputs.output-file }}
+        retention-days: 30

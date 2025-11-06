@@ -1,0 +1,35 @@
+name: 'Upload Coverage Reports'
+description: 'Upload coverage reports to Codecov and as artifacts'
+
+inputs:
+  coverage-file:
+    description: 'Path to coverage file (relative to workspace root)'
+    required: true
+  flags:
+    description: 'Codecov flags (e.g., "backend", "frontend")'
+    required: true
+  artifact-name:
+    description: 'Name for the uploaded artifact'
+    required: true
+  artifact-path:
+    description: 'Path to coverage artifacts (relative to workspace root)'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Upload to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        files: ${{ inputs.coverage-file }}
+        flags: ${{ inputs.flags }}
+        name: ${{ inputs.flags }}-coverage
+      continue-on-error: true
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.artifact-path }}
+        retention-days: 14
