@@ -1,10 +1,17 @@
+const path = require("path");
+
 module.exports = {
   root: true,
-  extends: '@react-native',
+  extends: "@react-native",
   env: {
-    'jest/globals': true,
+    "jest/globals": true,
   },
   globals: {
-    globalThis: 'readonly',
+    globalThis: "readonly",
+  },
+  parserOptions: {
+    babelOptions: {
+      configFile: path.join(__dirname, "babel.config.js"),
+    },
   },
 };

@@ -27,22 +27,4 @@ repos:
         args: [--profile=black]
         files: ^backend/
 
-  # Frontend (JavaScript/React Native) hooks
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v4.0.0-alpha.8
-    hooks:
-      - id: prettier
-        files: ^frontend/.*\.(js|jsx|ts|tsx|json)$
-        exclude: ^frontend/(node_modules|macos/Pods|macos/build)/
-
-  - repo: https://github.com/pre-commit/mirrors-eslint
-    rev: v9.17.0
-    hooks:
-      - id: eslint
-        files: ^frontend/.*\.(js|jsx|ts|tsx)$
-        exclude: ^frontend/(node_modules|macos/Pods|macos/build)/
-        args: [--fix, --max-warnings=0]
-        additional_dependencies:
-          - eslint@8.19.0
-          - '@react-native/eslint-config@0.73.2'
-          - '@babel/eslint-parser@^7.20.0'
+  # Note: Frontend linting/formatting is handled by Husky (see frontend/package.json)
