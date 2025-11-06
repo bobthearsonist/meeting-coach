@@ -5,7 +5,15 @@ Tests audio device detection, stream management, and audio data processing.
 import pytest
 import numpy as np
 from unittest.mock import Mock, patch, MagicMock
-import pyaudio
+
+try:
+    import pyaudio
+    PYAUDIO_AVAILABLE = True
+except ImportError:
+    pyaudio = None
+    PYAUDIO_AVAILABLE = False
+    pytestmark = pytest.mark.skip(reason="pyaudio not available on this platform")
+    pytestmark = pytest.mark.skip(reason="pyaudio not installed")
 
 from src.core import audio_capture
 from src import config
