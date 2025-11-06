@@ -44,7 +44,9 @@ help:
 	@echo ""
 	@echo "$(GREEN)Code Quality:$(NC)"
 	@echo "  make lint                - Lint all code (backend + frontend)"
+	@echo "  make lint-check          - Lint with warnings as errors (CI mode)"
 	@echo "  make format              - Format all code (backend + frontend)"
+	@echo "  make format-check        - Check formatting without modifying files"
 	@echo "  make backend-lint        - Lint backend code"
 	@echo "  make frontend-lint       - Lint frontend code"
 	@echo ""
@@ -194,9 +196,16 @@ test-coverage:
 lint: backend-lint frontend-lint
 	@echo "$(GREEN)✓ All linting complete!$(NC)"
 
+lint-check: backend-lint-check frontend-lint-check
+	@echo "$(GREEN)✓ All lint checks passed (CI mode)!$(NC)"
+
 backend-lint:
 	@echo "$(BLUE)Linting backend code...$(NC)"
 	cd backend && make lint
+
+backend-lint-check:
+	@echo "$(BLUE)Checking backend code (strict mode)...$(NC)"
+	cd backend && make lint-check
 
 frontend-lint:
 	@echo "$(BLUE)Linting frontend code...$(NC)"
@@ -206,12 +215,27 @@ frontend-lint:
 		cd frontend && npm run lint; \
 	fi
 
+frontend-lint-check:
+	@echo "$(BLUE)Checking frontend code (strict mode)...$(NC)"
+	@if command -v nvm >/dev/null 2>&1; then \
+		cd frontend && nvm use && npm run lint:check; \
+	else \
+		cd frontend && npm run lint:check; \
+	fi
+
 format: backend-format frontend-format
 	@echo "$(GREEN)✓ All code formatted!$(NC)"
+
+format-check: backend-format-check frontend-format-check
+	@echo "$(GREEN)✓ All code formatting is correct!$(NC)"
 
 backend-format:
 	@echo "$(BLUE)Formatting backend code...$(NC)"
 	cd backend && make format
+
+backend-format-check:
+	@echo "$(BLUE)Checking backend code formatting...$(NC)"
+	cd backend && make format-check
 
 frontend-format:
 	@echo "$(BLUE)Formatting frontend code...$(NC)"
@@ -220,6 +244,18 @@ frontend-format:
 	else \
 		cd frontend && npm run format; \
 	fi
+
+frontend-format-check:
+	@echo "$(BLUE)Checking frontend code formatting...$(NC)"
+	@if command -v nvm >/dev/null 2>&1; then \
+		cd frontend && nvm use && npm run format:check; \
+	else \
+		cd frontend && npm run format:check; \
+	fi
+
+# Combined pre-commit check
+pre-commit: format-check lint-check
+	@echo "$(GREEN)✅ Pre-commit checks passed!$(NC)"
 
 # ═══════════════════════════════════════════════════════════
 # Cleanup
