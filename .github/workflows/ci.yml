@@ -29,7 +29,7 @@ jobs:
       - name: Install linting tools
         run: |
           cd backend
-          pip install black isort pylint flake8
+          pip install black isort pylint
 
       - name: Run black
         run: |
@@ -44,12 +44,7 @@ jobs:
       - name: Run pylint
         run: |
           cd backend
-          pylint *.py src/ --disable=C0103,C0114,C0115,C0116,R0903,R0912,R0915 --fail-under=8.0
-
-      - name: Run flake8
-        run: |
-          cd backend
-          flake8 *.py src/ --max-line-length=100 --ignore=E501,W503
+          pylint *.py src/
 
   backend-unit-tests:
     name: Backend Unit Tests

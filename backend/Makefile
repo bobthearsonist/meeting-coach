@@ -43,7 +43,7 @@ install:
 	$(PIP) install -r requirements.txt
 
 install-dev: install
-	$(PIP) install black flake8 mypy isort
+	$(PIP) install black isort pylint
 
 # WebSocket Server Commands
 run-server:
@@ -166,16 +166,26 @@ run-demos:
 
 # Code quality
 lint:
+	@echo "🔍 Running linting checks..."
 	@echo "Running pylint..."
-	pylint *.py --disable=C0103,C0114,C0115,C0116,R0903,R0912,R0915 || true
-	@echo "Running flake8..."
-	flake8 *.py --max-line-length=100 --ignore=E501,W503 || true
+	pylint *.py src/
+	@echo "✅ Linting passed!"
+
+lint-check: lint
+	@echo "✅ All code quality checks passed!"
 
 format:
-	@echo "Formatting code with black..."
-	black *.py tests/ demos/ --line-length=100
-	@echo "Sorting imports with isort..."
-	isort *.py tests/ demos/ --profile=black
+	@echo "🎨 Formatting code with black..."
+	black *.py src/ tests/
+	@echo "🔄 Sorting imports with isort..."
+	isort *.py src/ tests/ --profile=black
+	@echo "✅ Code formatted!"
+
+format-check:
+	@echo "🔍 Checking code formatting..."
+	black --check *.py src/ tests/
+	isort --check-only *.py src/ tests/ --profile=black
+	@echo "✅ Code formatting is correct!"
 
 # Create test audio file
 create-test-audio:
