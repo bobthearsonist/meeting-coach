@@ -29,6 +29,8 @@ jobs:
 
       - name: Setup Python Backend
         uses: ./.github/actions/setup-python-backend
+        with:
+          python-version: '3.12'
 
       - name: Setup Backend Linting Tools
         uses: ./.github/actions/setup-backend-linting
@@ -81,7 +83,7 @@ jobs:
             --tb=short \
             --disable-warnings
 
-      - name: Run integration tests (with mocks)
+      - name: Run integration tests (all, including slow)
         run: |
           cd backend
           pytest tests/integration/ \
