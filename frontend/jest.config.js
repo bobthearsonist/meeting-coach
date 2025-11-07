@@ -33,5 +33,7 @@ module.exports = {
   verbose: true,
 
   // Performance settings
-  maxWorkers: '50%', // Use half of available cores
+  // Note: maxWorkers defaults to number of cores - 1 on CI, which is usually optimal
+  // Only override if you have specific performance requirements
+  // maxWorkers: '50%', // Uncomment to limit to 50% of available cores if needed
 };
