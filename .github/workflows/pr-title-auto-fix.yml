@@ -112,21 +112,17 @@ jobs:
               // Analyze title and description for keywords
               const content = (currentTitle + ' ' + prBody).toLowerCase();
               
-              // Check each type's keywords
-              for (const [type, keywords] of Object.entries(contentKeywords)) {
-                const pattern = new RegExp('\\b(' + keywords.join('|') + ')\\b', 'i');
-                if (pattern.test(content)) {
-                  suggestedType = type;
-                  confidence = 'medium';
-                  break;
+              // Check each type's keywords in priority order (feat and fix are most common)
+              const keywordTypes = ['feat', 'fix', 'refactor', 'perf', 'style'];
+              for (const type of keywordTypes) {
+                if (contentKeywords[type]) {
+                  const pattern = new RegExp('\\b(' + contentKeywords[type].join('|') + ')\\b', 'i');
+                  if (pattern.test(content)) {
+                    suggestedType = type;
+                    confidence = 'medium';
+                    break;
+                  }
                 }
-              }
-              
-              // Frontend vs Backend
-              if (categoryScores.frontend > categoryScores.backend) {
-                // Keep the type but note it's frontend
-              } else if (categoryScores.backend > categoryScores.frontend) {
-                // Keep the type but note it's backend
               }
             }
             
