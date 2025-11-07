@@ -206,18 +206,15 @@ jobs:
       - name: Setup Frontend Node.js
         uses: ./.github/actions/setup-frontend-node
 
-      - name: Run integration tests (if any exist)
+      - name: Run component tests
         uses: ./.github/actions/run-frontend-tests
         with:
-          test-pattern: '**/*.integration.test.js'
+          test-pattern: '**/components/**/*.test.js'
 
       - name: Run screen tests
-        run: |
-          cd frontend
-          npm test -- \
-            --watchAll=false \
-            --testMatch="**/screens/**/*.test.js" \
-            --passWithNoTests
+        uses: ./.github/actions/run-frontend-tests
+        with:
+          test-pattern: '**/screens/**/*.test.js'
 
   frontend-integration-tests:
     name: Frontend → Integration Tests
