@@ -1,6 +1,6 @@
 # Makefile for Meeting Coach project
 
-.PHONY: help install test test-unit test-integration test-fast test-coverage clean lint format docs run-demos run-server run-console run run-with-logs stop logs
+.PHONY: help venv install test test-unit test-integration test-fast test-coverage clean lint format docs run-demos run-server run-console run run-with-logs stop logs
 
 # Default target
 help:
@@ -15,6 +15,7 @@ help:
 	@echo "  logs                 - View Meeting Coach logs in real-time"
 	@echo ""
 	@echo "📦 Installation:"
+	@echo "  venv                 - Create virtual environment using version from .python-version"
 	@echo "  install              - Install dependencies"
 	@echo "  install-dev          - Install dev dependencies"
 	@echo ""
@@ -34,28 +35,32 @@ help:
 	@echo "  format               - Format code"
 	@echo "  clean                - Clean up temporary files"
 
-# Python executable (uses root venv)
-PYTHON := $(shell if [ -d "../venv" ]; then echo "../venv/bin/python"; else echo "python3"; fi)
-PIP := $(shell if [ -d "../venv" ]; then echo "../venv/bin/pip"; else echo "pip3"; fi)
+# Python executable
+PYTHON_VERSION := $(shell cat ../.python-version)
+
+# Virtual environment setup
+venv:
+	python$(PYTHON_VERSION) -m venv ../venv
+	../venv/bin/pip install --upgrade pip
 
 # Install dependencies
 install:
-	$(PIP) install -r requirements.txt
+	pip install -r requirements.txt
 
 install-dev: install
-	$(PIP) install black isort pylint
+	pip install black isort pylint
 
 # WebSocket Server Commands
 run-server:
 	@echo "🚀 Starting Meeting Coach Engine with WebSocket server on ws://localhost:3001"
 	@echo "Press Ctrl+C to stop"
-	$(PYTHON) main.py
+	python main.py
 
 run-console:
 	@echo "🖥️  Starting console client dashboard"
 	@echo "💡 Make sure the server is already running (make run-server)"
 	@echo "Press Ctrl+C to stop"
-	$(PYTHON) -m src.server.console_client
+	python -m src.server.console_client
 
 run:
 	@echo "🚀 Starting Teams Meeting Coach"
@@ -63,9 +68,9 @@ run:
 	@echo "📊 Dashboard will appear below..."
 	@echo ""
 	@sleep 1
-	@($(PYTHON) main.py > meeting-coach.log 2>&1 & echo $$! > .meeting-coach.pid; \
+	@(python main.py > meeting-coach.log 2>&1 & echo $$! > .meeting-coach.pid; \
 		sleep 3; \
-		$(PYTHON) -m src.server.console_client; \
+		python -m src.server.console_client; \
 		kill $$(cat .meeting-coach.pid) 2>/dev/null || true; \
 		rm -f .meeting-coach.pid)
 
@@ -78,9 +83,9 @@ run-with-logs:
 	@echo "2. Console Client Dashboard"
 	@echo ""
 	@osascript -e 'tell application "Terminal"' \
-		-e 'do script "cd $(PWD) && $(PYTHON) main.py"' \
+		-e 'do script "cd $(PWD) && python main.py"' \
 		-e 'delay 3' \
-		-e 'do script "cd $(PWD) && $(PYTHON) -m src.server.console_client"' \
+		-e 'do script "cd $(PWD) && python -m src.server.console_client"' \
 		-e 'end tell'
 	@echo "✅ Terminals opened! Press Ctrl+C in either window to stop both."
 
@@ -96,62 +101,62 @@ logs:
 
 # Test targets
 test:
-	pytest tests/ -v
+	python -m pytest tests/ -v
 
 test-unit:
-	pytest tests/unit/ -v -m "unit"
+	python -m pytest tests/unit/ -v -m "unit"
 
 test-integration:
-	pytest tests/integration/ -v -m "integration"
+	python -m pytest tests/integration/ -v -m "integration"
 
 test-fast:
-	pytest tests/ -v -m "not slow"
+	python -m pytest tests/ -v -m "not slow"
 
 test-slow:
-	pytest tests/ -v -m "slow"
+	python -m pytest tests/ -v -m "slow"
 
 test-requires-ollama:
-	pytest tests/ -v -m "requires_ollama"
+	python -m pytest tests/ -v -m "requires_ollama"
 
 test-requires-audio:
-	pytest tests/ -v -m "requires_audio"
+	python -m pytest tests/ -v -m "requires_audio"
 
 test-real-audio:
-	pytest tests/integration/test_real_audio_functionality.py -v
+	python -m pytest tests/integration/test_real_audio_functionality.py -v
 
 test-coverage:
-	pytest tests/ --cov=. --cov-report=html --cov-report=term-missing
+	python -m pytest tests/ --cov=src --cov-report=html --cov-report=term-missing
 
 # Test specific components
 test-analyzer:
-	pytest tests/unit/test_analyzer.py -v
+	python -m pytest tests/unit/test_analyzer.py -v
 
 test-transcriber:
-	pytest tests/unit/test_transcriber.py -v
+	python -m pytest tests/unit/test_transcriber.py -v
 
 test-dashboard:
-	pytest tests/unit/test_dashboard.py -v
+	python -m pytest tests/unit/test_dashboard.py -v
 
 test-pipeline:
-	pytest tests/integration/test_pipeline.py -v
+	python -m pytest tests/integration/test_pipeline.py -v
 
 # Our new comprehensive test suite
 test-comprehensive:
 	@echo "Running comprehensive test suite..."
 	@echo "✅ Unit Tests: CommunicationAnalyzer (40 tests)"
-	pytest tests/unit/test_analyzer.py -v
+	python -m pytest tests/unit/test_analyzer.py -v
 	@echo ""
 	@echo "✅ Unit Tests: AudioCapture (24 tests)"
-	pytest tests/unit/test_audio_capture.py -v
+	python -m pytest tests/unit/test_audio_capture.py -v
 	@echo ""
 	@echo "✅ Integration Tests: Full Pipeline (6 tests)"
-	pytest tests/integration/test_full_pipeline.py -v
+	python -m pytest tests/integration/test_full_pipeline.py -v
 	@echo ""
 	@echo "🎉 Comprehensive test suite complete!"
 
 test-new:
 	@echo "Running our newly created comprehensive tests..."
-	pytest tests/unit/test_analyzer.py tests/unit/test_audio_capture.py tests/integration/test_full_pipeline.py -v
+	python -m pytest tests/unit/test_analyzer.py tests/unit/test_audio_capture.py tests/integration/test_full_pipeline.py -v
 
 # Demos
 run-demos:
@@ -189,14 +194,14 @@ format-check:
 
 # Create test audio file
 create-test-audio:
-	$(PYTHON) main.py --test-audio
+	python main.py --test-audio
 
 # Debug helpers
 debug-audio:
-	$(PYTHON) main.py --select-device
+	python main.py --select-device
 
 debug-transcription:
-	$(PYTHON) main.py --test-transcription
+	python main.py --test-transcription
 
 # Clean up
 clean:
