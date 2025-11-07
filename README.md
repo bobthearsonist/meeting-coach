@@ -208,7 +208,38 @@ For detailed development workflows, see:
 
 ## 🧪 Testing
 
-This project uses a comprehensive testing strategy with separate workflows for different test levels.
+This project uses a comprehensive testing strategy with **full regression testing** - all tests run on every commit.
+
+### Quick Start
+
+```bash
+# Run all tests (backend + frontend)
+make test
+
+# Backend tests only
+make backend-test            # All backend tests
+make test-unit               # Unit tests only
+make test-integration        # Integration tests only
+make test-fast               # Fast tests (no slow/external deps)
+
+# Frontend tests only
+make frontend-test           # All frontend tests
+
+# Tests with coverage report
+make test-coverage           # Backend coverage
+```
+
+### Testing Philosophy
+
+**We run ALL tests on every commit** (full regression testing), not just tests for changed files.
+
+**Why?**
+- Complete confidence in every change
+- Catches unexpected side effects
+- Ensures all components work together
+- Simpler CI without change detection logic
+
+For detailed information about our testing strategy, test organization, and best practices, see **[TESTING_STRATEGY.md](TESTING_STRATEGY.md)**.
 
 ### Testing Levels
 

@@ -1,5 +1,19 @@
 name: CI
 
+# REGRESSION TESTING STRATEGY
+# ===========================
+# This workflow runs ALL tests on every commit, regardless of what files changed.
+# We intentionally do NOT use selective testing (e.g., pytest-testmon, jest --onlyChanged).
+#
+# Rationale:
+# - Ensures comprehensive test coverage for every change
+# - Catches unexpected side effects and integration issues
+# - Provides confidence that the entire codebase works together
+# - Simpler CI logic without path-based filtering or change detection
+# - More reliable - no risk of missing tests due to incorrect change detection
+#
+# DO NOT add path filters, change detection, or selective test running to this workflow.
+
 on:
   push:
     branches: [ main ]
@@ -55,6 +69,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      # REGRESSION TESTING: Run ALL unit tests, not just changed ones
       - name: Run unit tests
         uses: ./.github/actions/run-backend-tests
         with:
@@ -107,6 +122,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      # REGRESSION TESTING: Run ALL integration tests (fast subset first, then all)
       - name: Run integration tests (fast)
         uses: ./.github/actions/run-backend-tests
         with:
@@ -154,6 +170,7 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
+      # REGRESSION TESTING: Run ALL unit tests, not just changed ones
       - name: Run unit tests
         uses: ./.github/actions/run-frontend-tests
         with:

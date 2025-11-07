@@ -18,6 +18,19 @@ permissions:
   security-events: write
 
 jobs:
+  # REGRESSION TESTING VALIDATION
+  # Ensures our testing philosophy is maintained
+  validate-testing-strategy:
+    name: Validate Testing Strategy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run regression testing validation
+        run: |
+          chmod +x scripts/validate-regression-testing.sh
+          ./scripts/validate-regression-testing.sh
+
   backend-security:
     name: Backend Security Scan
     runs-on: ubuntu-latest
