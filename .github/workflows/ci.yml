@@ -108,23 +108,17 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Run integration tests (fast)
-        run: |
-          cd backend
-          pytest tests/integration/ \
-            -v \
-            -m "integration and not slow and not requires_ollama and not requires_audio" \
-            --tb=short \
-            --disable-warnings
+        uses: ./.github/actions/run-backend-tests
+        with:
+          test-path: 'tests/integration/'
+          markers: 'integration and not requires_ollama and not requires_audio'
 
       - name: Run integration tests (all, including slow)
-        run: |
-          cd backend
-          pytest tests/integration/ \
-            -v \
-            -m "integration" \
-            --tb=short \
-            --disable-warnings
-        continue-on-error: true
+        uses: ./.github/actions/run-backend-tests
+        with:
+          test-path: 'tests/integration/'
+          markers: 'integration'
+          continue-on-error: 'true'
 
   # ============================================
   # Frontend Jobs
