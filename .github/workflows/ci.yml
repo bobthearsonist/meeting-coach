@@ -20,7 +20,7 @@ jobs:
   # ============================================
   # Backend Jobs
   # ============================================
-  
+
   backend-lint:
     name: Backend → Lint
     runs-on: ubuntu-latest
@@ -159,12 +159,14 @@ jobs:
     needs: frontend-lint
     strategy:
       matrix:
-        node-version: ['18', '20']
+        node-version: ['20']
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup Frontend Node.js
         uses: ./.github/actions/setup-frontend-node
+        with:
+          node-version: ${{ matrix.node-version }}
 
       - name: Run unit tests
         uses: ./.github/actions/run-frontend-tests
@@ -321,37 +323,37 @@ jobs:
           script: |
             const backendCoverage = '${{ needs.backend-coverage.outputs.percentage || 'N/A' }}';
             const frontendCoverage = '${{ needs.frontend-coverage.outputs.percentage || 'N/A' }}';
-            
+
             // Get current PR
             const pr = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: context.issue.number
             });
-            
+
             // Create coverage section
             const coverageSection = `
             ## 📊 Test Coverage
-            
+
             | Component | Coverage |
             |-----------|----------|
             | Backend   | ${backendCoverage}% |
             | Frontend  | ${frontendCoverage}% |
-            
+
             _Updated: ${new Date().toISOString()}_
-            
+
             ---
             `;
-            
+
             let body = pr.data.body || '';
-            
+
             // Remove existing coverage section if present
             const coverageRegex = /## 📊 Test Coverage[\s\S]*?---\n/g;
             body = body.replace(coverageRegex, '');
-            
+
             // Add new coverage section at the end
             body = body.trim() + '\n\n' + coverageSection;
-            
+
             // Update PR description
             await github.rest.pulls.update({
               owner: context.repo.owner,
@@ -359,7 +361,7 @@ jobs:
               pull_number: context.issue.number,
               body: body
             });
-            
+
             console.log('✅ PR description updated with coverage information');
 
   # ============================================
@@ -394,7 +396,7 @@ jobs:
           echo "- Component Tests: ${{ needs.frontend-component-tests.result }}"
           echo "- Integration Tests: ${{ needs.frontend-integration-tests.result }}"
           echo ""
-          
+
           if [[ "${{ needs.backend-lint.result }}" != "success" ]] || \
              [[ "${{ needs.backend-unit-tests.result }}" != "success" ]] || \
              [[ "${{ needs.backend-integration-tests.result }}" != "success" ]] || \
@@ -405,5 +407,5 @@ jobs:
             echo "❌ One or more test jobs failed"
             exit 1
           fi
-          
+
           echo "✅ All CI jobs passed!"
