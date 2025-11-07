@@ -1,0 +1,25 @@
+name: 'Setup Frontend Node.js'
+description: 'Install Node.js and npm dependencies for frontend'
+
+inputs:
+  node-version:
+    description: 'Node.js version to install (will use .nvmrc if not specified)'
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version != '' && inputs.node-version || null }}
+        node-version-file: ${{ inputs.node-version == '' && '.nvmrc' || null }}
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        cd frontend
+        npm ci

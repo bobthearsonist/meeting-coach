@@ -1,0 +1,36 @@
+name: 'Run Frontend Tests'
+description: 'Run frontend Jest tests with configurable options'
+
+inputs:
+  test-pattern:
+    description: 'Test file pattern (e.g., "**/*.test.js", "**/components/**/*.test.js")'
+    required: false
+    default: ''
+  coverage:
+    description: 'Enable coverage reporting'
+    required: false
+    default: 'false'
+  continue-on-error:
+    description: 'Continue workflow even if tests fail'
+    required: false
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run Jest
+      shell: bash
+      working-directory: frontend
+      run: |
+        TEST_CMD="npm test -- --watchAll=false --passWithNoTests"
+
+        if [ -n "${{ inputs.test-pattern }}" ]; then
+          TEST_CMD="$TEST_CMD --testMatch='${{ inputs.test-pattern }}'"
+        fi
+
+        if [ "${{ inputs.coverage }}" = "true" ]; then
+          TEST_CMD="$TEST_CMD --coverage --coverageReporters=text --coverageReporters=lcov --coverageReporters=json-summary"
+        fi
+
+        eval $TEST_CMD
+      continue-on-error: ${{ inputs.continue-on-error == 'true' }}
