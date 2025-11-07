@@ -24,15 +24,15 @@
   "dependencies": {
     "axios": "^1.12.2",
     "react": "18.2.0",
-    "react-native": "0.73.11",
-    "react-native-macos": "0.73.36",
+    "react-native": "0.82.1",
+    "react-native-macos": "0.79.0",
     "reconnecting-websocket": "^4.4.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
     "@babel/preset-env": "^7.20.0",
     "@babel/runtime": "^7.20.0",
-    "@react-native-community/cli": "12.3.6",
+    "@react-native-community/cli": "20.0.2",
     "@react-native/babel-preset": "0.73.21",
     "@react-native/eslint-config": "0.73.2",
     "@react-native/metro-config": "0.73.5",
