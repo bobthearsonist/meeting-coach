@@ -1,0 +1,20 @@
+name: "Run Backend Linters"
+description: "Run all backend linting checks (black, isort, pylint)"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Run black
+      shell: bash
+      working-directory: backend
+      run: black --check *.py src/ tests/ || (echo "❌ Code formatting check failed. Run 'make format' to fix." && exit 1)
+
+    - name: Run isort
+      shell: bash
+      working-directory: backend
+      run: isort --check-only *.py src/ tests/ --profile=black || (echo "❌ Import sorting check failed. Run 'make format' to fix." && exit 1)
+
+    - name: Run pylint
+      shell: bash
+      working-directory: backend
+      run: pylint *.py src/

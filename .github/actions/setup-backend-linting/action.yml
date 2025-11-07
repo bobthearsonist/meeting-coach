@@ -1,0 +1,10 @@
+name: 'Setup Backend Linting Tools'
+description: 'Install Python linting tools for backend'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install linting tools
+      shell: bash
+      working-directory: backend
+      run: pip install black isort pylint

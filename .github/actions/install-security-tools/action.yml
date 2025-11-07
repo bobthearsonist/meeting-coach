@@ -1,0 +1,22 @@
+name: 'Install Security Tools'
+description: 'Install security scanning tools for backend or frontend'
+
+inputs:
+  type:
+    description: 'Type of security tools to install (backend or frontend)'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install backend security tools
+      if: inputs.type == 'backend'
+      shell: bash
+      working-directory: backend
+      run: pip install safety bandit
+
+    - name: Install backend quality tools
+      if: inputs.type == 'backend-quality'
+      shell: bash
+      working-directory: backend
+      run: pip install pylint radon
