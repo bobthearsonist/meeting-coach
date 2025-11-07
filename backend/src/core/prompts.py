@@ -2,19 +2,21 @@
 Centralized prompt engineering for Meeting Coach.
 All prompts defined here for easy inspection and updates.
 """
-from typing import Dict, Any, Optional
+
 import json
+from typing import Any, Dict, Optional
 
 VERSION = "1.0.0"
+
 
 def get_emotion_analysis_prompt(text: str, context: Dict[str, Any] = None) -> str:
     """
     Generate prompt for emotion and communication analysis.
-    
+
     Args:
         text: Text to analyze
         context: Optional previous context/history
-    
+
     Returns:
         Formatted prompt string
     """
@@ -42,23 +44,25 @@ Assessment guidelines:
 - Focus on patterns, not single words or phrases
 
 Be conservative in flagging issues - most conversation should be assessed as appropriate."""
-    
+
     # Format with text
     prompt = base_prompt.format(text=text)
-    
+
     # Add context if provided
     if context:
-        prev_state = context.get('emotional_state', 'unknown')
-        prev_cue = context.get('social_cue', 'unknown')
-        prompt += f"\n\nPrevious context: emotional_state={prev_state}, social_cue={prev_cue}"
-    
+        prev_state = context.get("emotional_state", "unknown")
+        prev_cue = context.get("social_cue", "unknown")
+        prompt += (
+            f"\n\nPrevious context: emotional_state={prev_state}, social_cue={prev_cue}"
+        )
+
     return prompt
 
 
 def get_system_prompt() -> str:
     """
     System prompt for models that support it (for future use with Anthropic/OpenAI).
-    
+
     Returns:
         System prompt string
     """
@@ -70,7 +74,7 @@ Always be encouraging and focus on strengths while gently suggesting improvement
 def get_all_prompts() -> Dict[str, Any]:
     """
     Return all prompts for API transparency.
-    
+
     Returns:
         Dictionary containing all prompt information
     """
@@ -89,12 +93,12 @@ def get_all_prompts() -> Dict[str, Any]:
                     "word_count": "integer",
                     "filler_words": "array of strings",
                     "overly_critical": "boolean",
-                    "coaching": "string"
-                }
+                    "coaching": "string",
+                },
             },
             "system_prompt": {
                 "description": "System-level instructions for the AI model",
-                "template": get_system_prompt()
-            }
-        }
+                "template": get_system_prompt(),
+            },
+        },
     }
