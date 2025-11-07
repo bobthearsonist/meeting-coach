@@ -11,7 +11,7 @@ A powerful real-time meeting feedback system that captures Teams audio, transcri
 
 This project is organized as a monorepo with two main components:
 
-```
+```text
 teams-meeting-coach/
 ├── backend/              # Python console application & analysis engine
 │   ├── main.py          # Console application entry point
@@ -59,20 +59,18 @@ brew install overmind
 git clone <your-repo>
 cd teams-meeting-coach
 
+# Optional: Set up version managers to prevent polluting system versions (recommended)
+brew install pyenv pyenv-virtualenv nvm
+
+# Python with pyenv (reads version from .python-version)
+PYVER=$(cat .python-version) && pyenv install $PYVER && pyenv virtualenv $PYVER teams-meeting-coach && pyenv local teams-meeting-coach
+
+# Node.js with nvm (reads version from .nvmrc)
+nvm install && nvm use
+
 # Install both backend and frontend
 make install
-
-# Or install individually
-make backend-install    # Python backend only
-make frontend-install   # React Native frontend only
 ```
-
-The backend installation will:
-- Install BlackHole audio driver
-- Install Ollama and download the LLM model
-- Set up Python virtual environment
-- Install all dependencies
-- Run setup verification
 
 ### Configuration
 
@@ -83,6 +81,7 @@ cp .env.example .env
 ```
 
 **.env file (all values required):**
+
 ```bash
 # Backend WebSocket Server
 WEBSOCKET_HOST=localhost
@@ -166,17 +165,20 @@ This setup allows the coach to "listen" to Teams audio while you still hear ever
 The coach provides real-time feedback on:
 
 ### Speaking Pace
+
 - 🐢 **Too Slow** (< 100 WPM): "Consider picking up the pace"
 - ✅ **Ideal** (120-160 WPM): "Great pace!"
 - 🐇 **Too Fast** (> 180 WPM): "Try to slow down"
 
 ### Communication Tone
+
 - 🤝 **Supportive**: Collaborative and encouraging language
 - 🙄 **Dismissive**: Language that might shut down discussion
 - 😤 **Aggressive**: Forceful or confrontational tone
 - 😐 **Neutral**: Professional, matter-of-fact communication
 
 ### Filler Words
+
 Real-time tracking of: "um", "uh", "like", "you know", "basically", "actually", "literally"
 
 ## 🛠️ Development
@@ -186,18 +188,21 @@ make help    # See all available commands
 ```
 
 **Common tasks:**
+
 - `make run` - Start full environment
 - `make test` - Run all tests
 - `make lint` - Lint all code
 - `make check-ports` - Debug WebSocket connection issues
 
 **Component-specific:**
+
 - `make backend-test` - Backend tests only
 - `make frontend-test` - Frontend tests only
 - `make backend-install` - Reinstall backend dependencies
 - `make frontend-install` - Reinstall frontend dependencies
 
 For detailed development workflows, see:
+
 - Backend: [backend/README.md](backend/README.md)
 - Frontend: [frontend/README.md](frontend/README.md)
 
@@ -208,11 +213,13 @@ This project uses a comprehensive testing strategy with separate workflows for d
 ### Testing Levels
 
 **Backend (Python):**
+
 - **Unit Tests**: Test individual modules (analyzer, transcriber, timeline)
 - **Integration Tests**: Test component interactions (pipeline, WebSocket communication)
 - **System Tests**: End-to-end workflows (mocked external dependencies)
 
 **Frontend (React Native):**
+
 - **Unit Tests**: Test individual utilities and services
 - **Component Tests**: Test React components in isolation
 - **Integration Tests**: Test WebSocket service and state management integration
@@ -252,7 +259,7 @@ The CI workflow is designed to provide easy navigation with all frontend and bac
 
 ### Test Organization
 
-```
+```text
 backend/tests/
 ├── unit/                    # Unit tests
 │   ├── test_analyzer.py
@@ -279,6 +286,7 @@ Application configuration is managed through code constants in each component:
 **Backend:** `backend/src/config.py`
 
 Key settings:
+
 - `WHISPER_MODEL` - Transcription model size (tiny/base/small/medium/large)
 - `OLLAMA_MODEL` - LLM for tone analysis (default: gemma2:2b)
 - `PACE_THRESHOLDS` - WPM thresholds for pace alerts
@@ -288,6 +296,7 @@ Key settings:
 **Frontend:** `frontend/src/utils/constants.js`
 
 Key settings:
+
 - `WEBSOCKET.URL` - Backend WebSocket URL (built from .env)
 - `WEBSOCKET.AUTO_RECONNECT` - Auto-reconnect on disconnect
 - `WEBSOCKET.MAX_RECONNECT_ATTEMPTS` - Maximum reconnection attempts
@@ -296,7 +305,7 @@ See [backend/README.md](backend/README.md#configuration) for complete configurat
 
 ## 🏗️ Architecture
 
-```
+```text
 Microsoft Teams Audio
           ↓
     BlackHole Driver
@@ -354,6 +363,7 @@ Apache 2.0 with Commons Clause - see LICENSE file for details.
 - **BlackHole**: Virtual audio driver
 - **PyAudio**: Audio I/O library
 - **React Native**: Cross-platform mobile framework
+
 ---
 
 **For detailed project status, architecture decisions, and next steps, see [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)**
