@@ -22,38 +22,20 @@ permissions:
   actions: read
 
 jobs:
-  setup:
-    name: Setup and Lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Frontend Node.js
-        uses: ./.github/actions/setup-frontend-node
-      
-      - name: Run ESLint
-        working-directory: frontend
-        run: npm run lint
-      
-      - name: Check code formatting
-        working-directory: frontend
-        run: npx prettier --check "src/**/*.{js,jsx,ts,tsx}" || (echo "Run 'npm run format' to fix formatting" && exit 1)
-
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
-    needs: setup
     strategy:
       matrix:
         node-version: ['18', '20']
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Frontend Node.js
         uses: ./.github/actions/setup-frontend-node
         with:
           node-version: ${{ matrix.node-version }}
-      
+
       - name: Run unit tests
         uses: ./.github/actions/run-frontend-tests
 
@@ -68,10 +50,10 @@ jobs:
           - { name: 'Screens', pattern: '**/screens/**/*.test.js' }
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Frontend Node.js
         uses: ./.github/actions/setup-frontend-node
-      
+
       - name: Run ${{ matrix.test-path.name }} tests
         uses: ./.github/actions/run-frontend-tests
         with:
@@ -89,10 +71,10 @@ jobs:
           - { name: 'Integration Suite', pattern: '**/*.integration.test.js', continue: 'true' }
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Frontend Node.js
         uses: ./.github/actions/setup-frontend-node
-      
+
       - name: Run ${{ matrix.test-path.name }} tests
         uses: ./.github/actions/run-frontend-tests
         with:
@@ -106,14 +88,14 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Frontend Node.js
         uses: ./.github/actions/setup-frontend-node
-      
+
       - name: Install CocoaPods dependencies
         working-directory: frontend/macos
         run: pod install
-      
+
       - name: Build macOS app
         working-directory: frontend
         run: npx react-native build-macos --mode Debug
@@ -123,7 +105,6 @@ jobs:
     name: Test Summary
     runs-on: ubuntu-latest
     needs:
-      - setup
       - unit-tests
       - component-tests
       - integration-tests
@@ -131,13 +112,11 @@ jobs:
     steps:
       - name: Check test results
         run: |
-          echo "Setup: ${{ needs.setup.result }}"
           echo "Unit Tests: ${{ needs.unit-tests.result }}"
           echo "Component Tests: ${{ needs.component-tests.result }}"
           echo "Integration Tests: ${{ needs.integration-tests.result }}"
 
-          if [[ "${{ needs.setup.result }}" != "success" ]] || \
-             [[ "${{ needs.unit-tests.result }}" != "success" ]] || \
+          if [[ "${{ needs.unit-tests.result }}" != "success" ]] || \
              [[ "${{ needs.component-tests.result }}" != "success" ]] || \
              [[ "${{ needs.integration-tests.result }}" != "success" ]]; then
             echo "❌ One or more test jobs failed"

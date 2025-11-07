@@ -23,14 +23,14 @@ runs:
       working-directory: frontend
       run: |
         TEST_CMD="npm test -- --watchAll=false --passWithNoTests"
-        
+
         if [ -n "${{ inputs.test-pattern }}" ]; then
           TEST_CMD="$TEST_CMD --testMatch='${{ inputs.test-pattern }}'"
         fi
-        
+
         if [ "${{ inputs.coverage }}" = "true" ]; then
           TEST_CMD="$TEST_CMD --coverage --coverageReporters=text --coverageReporters=lcov --coverageReporters=json-summary"
         fi
-        
+
         eval $TEST_CMD
       continue-on-error: ${{ inputs.continue-on-error == 'true' }}

@@ -27,14 +27,14 @@ runs:
       working-directory: backend
       run: |
         PYTEST_CMD="pytest ${{ inputs.test-path }} -v --tb=short --disable-warnings"
-        
+
         if [ -n "${{ inputs.markers }}" ]; then
           PYTEST_CMD="$PYTEST_CMD -m '${{ inputs.markers }}'"
         fi
-        
+
         if [ "${{ inputs.coverage }}" = "true" ]; then
           PYTEST_CMD="$PYTEST_CMD --cov=src --cov-report=term-missing --cov-report=xml --cov-report=html --cov-report=json --cov-branch"
         fi
-        
+
         eval $PYTEST_CMD
       continue-on-error: ${{ inputs.continue-on-error == 'true' }}

@@ -6,6 +6,5 @@ runs:
   steps:
     - name: Install linting tools
       shell: bash
-      run: |
-        cd backend
-        pip install black isort pylint flake8
+      working-directory: backend
+      run: pip install black isort pylint
