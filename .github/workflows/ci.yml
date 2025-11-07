@@ -62,7 +62,7 @@ jobs:
   backend-integration-tests:
     name: Backend → Integration Tests
     runs-on: ubuntu-latest
-    needs: backend-unit-tests
+    needs: backend-lint
     strategy:
       matrix:
         python-version: ['3.12']
@@ -96,7 +96,9 @@ jobs:
   backend-coverage:
     name: Backend → Coverage
     runs-on: ubuntu-latest
-    needs: backend-integration-tests
+    needs:
+      - backend-unit-tests
+      - backend-integration-tests
     if: github.event_name == 'pull_request'
     outputs:
       percentage: ${{ steps.coverage.outputs.percentage }}
@@ -174,7 +176,7 @@ jobs:
   frontend-component-tests:
     name: Frontend → Component Tests
     runs-on: ubuntu-latest
-    needs: frontend-unit-tests
+    needs: frontend-lint
     steps:
       - uses: actions/checkout@v4
 
@@ -197,7 +199,7 @@ jobs:
   frontend-integration-tests:
     name: Frontend → Integration Tests
     runs-on: ubuntu-latest
-    needs: frontend-component-tests
+    needs: frontend-lint
     steps:
       - uses: actions/checkout@v4
 
@@ -241,7 +243,10 @@ jobs:
   frontend-coverage:
     name: Frontend → Coverage
     runs-on: ubuntu-latest
-    needs: frontend-integration-tests
+    needs:
+      - frontend-unit-tests
+      - frontend-component-tests
+      - frontend-integration-tests
     if: github.event_name == 'pull_request'
     outputs:
       percentage: ${{ steps.coverage.outputs.percentage }}
