@@ -45,6 +45,8 @@ jobs:
     strategy:
       matrix:
         python-version: ['3.12']
+    outputs:
+      coverage: ${{ steps.coverage.outputs.percentage }}
     steps:
       - uses: actions/checkout@v4
 
@@ -58,6 +60,37 @@ jobs:
         with:
           test-path: 'tests/unit/'
           markers: 'unit'
+          coverage: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
+
+      - name: Generate coverage summary
+        if: github.event_name == 'pull_request'
+        id: coverage
+        run: |
+          cd backend
+          if [ -f coverage.json ]; then
+            COVERAGE=$(python -c "import json; print(json.load(open('coverage.json'))['totals']['percent_covered_display'])")
+            echo "percentage=$COVERAGE" >> $GITHUB_OUTPUT
+            echo "Backend coverage: $COVERAGE%"
+          else
+            echo "percentage=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload coverage to Codecov
+        if: github.event_name == 'pull_request'
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./backend/coverage.xml
+          flags: backend
+          name: backend-coverage
+        continue-on-error: true
+
+      - name: Upload HTML coverage report
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage-report
+          path: backend/htmlcov/
+          retention-days: 14
 
   backend-integration-tests:
     name: Backend → Integration Tests
@@ -93,51 +126,6 @@ jobs:
             --disable-warnings
         continue-on-error: true
 
-  backend-coverage:
-    name: Backend → Coverage
-    runs-on: ubuntu-latest
-    needs:
-      - backend-unit-tests
-      - backend-integration-tests
-    if: github.event_name == 'pull_request'
-    outputs:
-      percentage: ${{ steps.coverage.outputs.percentage }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Python Backend
-        uses: ./.github/actions/setup-python-backend
-
-      - name: Run integration tests (without external dependencies)
-        uses: ./.github/actions/run-backend-tests
-        with:
-          test-path: 'tests/integration/'
-          markers: 'integration and not requires_ollama and not requires_audio'
-
-      - name: Generate coverage summary
-        id: coverage
-        run: |
-          cd backend
-          COVERAGE=$(python -c "import json; print(json.load(open('coverage.json'))['totals']['percent_covered_display'])")
-          echo "percentage=$COVERAGE" >> $GITHUB_OUTPUT
-          echo "Backend coverage: $COVERAGE%"
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          files: ./backend/coverage.xml
-          flags: backend
-          name: backend-coverage
-        continue-on-error: true
-
-      - name: Upload HTML coverage report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: backend-coverage-report
-          path: backend/htmlcov/
-          retention-days: 14
-
   # ============================================
   # Frontend Jobs
   # ============================================
@@ -162,6 +150,8 @@ jobs:
     strategy:
       matrix:
         node-version: ['20']
+    outputs:
+      coverage: ${{ steps.coverage.outputs.percentage }}
     steps:
       - uses: actions/checkout@v4
 
@@ -172,6 +162,39 @@ jobs:
 
       - name: Run unit tests
         uses: ./.github/actions/run-frontend-tests
+        with:
+          coverage: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
+
+      - name: Generate coverage summary
+        if: github.event_name == 'pull_request'
+        id: coverage
+        run: |
+          cd frontend
+          if [ -f coverage/coverage-summary.json ]; then
+            COVERAGE=$(node -p "require('./coverage/coverage-summary.json').total.lines.pct")
+            echo "percentage=$COVERAGE" >> $GITHUB_OUTPUT
+            echo "Frontend coverage: $COVERAGE%"
+          else
+            echo "percentage=0" >> $GITHUB_OUTPUT
+            echo "No coverage data found"
+          fi
+
+      - name: Upload coverage to Codecov
+        if: github.event_name == 'pull_request'
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./frontend/coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+        continue-on-error: true
+
+      - name: Upload HTML coverage report
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage-report
+          path: frontend/coverage/
+          retention-days: 14
 
   frontend-component-tests:
     name: Frontend → Component Tests
@@ -240,71 +263,6 @@ jobs:
             --passWithNoTests
         continue-on-error: true
 
-  frontend-coverage:
-    name: Frontend → Coverage
-    runs-on: ubuntu-latest
-    needs:
-      - frontend-unit-tests
-      - frontend-component-tests
-      - frontend-integration-tests
-    if: github.event_name == 'pull_request'
-    outputs:
-      percentage: ${{ steps.coverage.outputs.percentage }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        run: |
-          cd frontend
-          npm ci
-
-      - name: Run tests with coverage
-        run: |
-          cd frontend
-          npm test -- \
-            --coverage \
-            --watchAll=false \
-            --coverageReporters=text \
-            --coverageReporters=lcov \
-            --coverageReporters=json-summary \
-            --passWithNoTests
-
-      - name: Generate coverage summary
-        id: coverage
-        run: |
-          cd frontend
-          if [ -f coverage/coverage-summary.json ]; then
-            COVERAGE=$(node -p "require('./coverage/coverage-summary.json').total.lines.pct")
-            echo "percentage=$COVERAGE" >> $GITHUB_OUTPUT
-            echo "Frontend coverage: $COVERAGE%"
-          else
-            echo "percentage=0" >> $GITHUB_OUTPUT
-            echo "No coverage data found"
-          fi
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          files: ./frontend/coverage/lcov.info
-          flags: frontend
-          name: frontend-coverage
-        continue-on-error: true
-
-      - name: Upload HTML coverage report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: frontend-coverage-report
-          path: frontend/coverage/
-          retention-days: 14
-
   # ============================================
   # Coverage Summary (Updates PR Description)
   # ============================================
@@ -313,8 +271,8 @@ jobs:
     name: Coverage → Update PR
     runs-on: ubuntu-latest
     needs:
-      - backend-coverage
-      - frontend-coverage
+      - backend-unit-tests
+      - frontend-unit-tests
     if: always() && github.event_name == 'pull_request'
     permissions:
       pull-requests: write
@@ -326,8 +284,8 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const backendCoverage = '${{ needs.backend-coverage.outputs.percentage || 'N/A' }}';
-            const frontendCoverage = '${{ needs.frontend-coverage.outputs.percentage || 'N/A' }}';
+            const backendCoverage = '${{ needs.backend-unit-tests.outputs.coverage || 'N/A' }}';
+            const frontendCoverage = '${{ needs.frontend-unit-tests.outputs.coverage || 'N/A' }}';
 
             // Get current PR
             const pr = await github.rest.pulls.get({
