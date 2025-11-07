@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: amannn/action-semantic-pull-request@v5
+        id: validate
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -30,3 +31,32 @@ jobs:
             build
           requireScope: false
           validateSingleCommit: false
+        continue-on-error: true
+
+      - name: Post validation result
+        if: steps.validate.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const message = '⚠️ **PR Title Validation Failed**\n\n' +
+              'The PR title doesn\'t follow the [Conventional Commits](https://www.conventionalcommits.org/) format.\n\n' +
+              '**Expected format:** `<type>: <description>`\n\n' +
+              '**Valid types:** `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`, `ci`, `build`\n\n' +
+              '**Examples:**\n' +
+              '- `feat: Add user authentication`\n' +
+              '- `fix: Resolve login bug`\n' +
+              '- `docs: Update README with setup instructions`\n\n' +
+              'The **Auto-Fix PR Title** workflow will attempt to automatically fix this for you. Check for an update shortly!';
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: message
+            });
+
+      - name: Fail if validation failed
+        if: steps.validate.outcome == 'failure'
+        run: |
+          echo "::error::PR title validation failed. Please check the comment for details."
+          exit 1

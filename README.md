@@ -246,7 +246,14 @@ The project uses a consolidated CI workflow that provides a unified view of all 
   - Coverage reporting updates PR descriptions (not comments)
   - Clear job grouping with visual separators (Backend →, Frontend →, Coverage →)
 - **Code Quality** (`code-quality.yml`): Security scans and code quality metrics
-- **PR Validation** (`pr-validation.yml`): PR title validation
+- **PR Validation** (`pr-validation.yml`): Validates PR titles follow [Conventional Commits](https://www.conventionalcommits.org/) format
+  - Expected format: `<type>: <description>`
+  - Valid types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`, `ci`, `build`
+- **Auto-Fix PR Title** (`pr-title-auto-fix.yml`): 🤖 Automatically fixes invalid PR titles using AI
+  - Analyzes PR content (title, description, changed files) to determine the appropriate type
+  - Updates the PR title automatically to follow Conventional Commits format
+  - Posts a comment explaining the changes made
+  - Triggered on PR open, edit, or synchronize events
 
 The CI workflow is designed to provide easy navigation with all frontend and backend jobs visible in one workflow view, making it simple to see the status of all tests at a glance.
 
