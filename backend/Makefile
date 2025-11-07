@@ -96,7 +96,7 @@ logs:
 
 # Test targets
 test:
-	pytest tests/ -v
+	$(PYTHON) -m pytest tests/ -v
 
 test-unit:
 	pytest tests/unit/ -v -m "unit"
