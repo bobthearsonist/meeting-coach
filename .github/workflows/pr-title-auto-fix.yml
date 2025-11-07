@@ -43,7 +43,8 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const currentTitle = '${{ steps.check-title.outputs.current_title }}';
+            // Use context directly to avoid interpolation issues
+            const currentTitle = context.payload.pull_request.title;
             const prBody = context.payload.pull_request.body || '';
             
             // Get the list of changed files
@@ -52,6 +53,15 @@ jobs:
               repo: context.repo.repo,
               pull_number: context.issue.number
             });
+            
+            // Handle empty PR case
+            if (files.data.length === 0) {
+              core.setOutput('new_title', 'chore: ' + currentTitle);
+              core.setOutput('suggested_type', 'chore');
+              core.setOutput('confidence', 'low');
+              console.log('No files changed, defaulting to chore type');
+              return;
+            }
             
             const changedFiles = files.data.map(f => f.filename).join('\n');
             const fileCategories = {
@@ -62,6 +72,15 @@ jobs:
               frontend: ['frontend/', 'src/components/', 'src/screens/', '.jsx', '.tsx'],
               backend: ['backend/', 'api/', 'server/'],
               config: ['config/', '.env', 'settings', '.yml', '.yaml', '.json'],
+            };
+            
+            // Keyword patterns for content analysis
+            const contentKeywords = {
+              feat: ['add', 'new', 'create', 'implement', 'introduce'],
+              fix: ['fix', 'bug', 'issue', 'error', 'patch', 'resolve'],
+              refactor: ['refactor', 'restructure', 'reorganize', 'cleanup', 'clean up'],
+              perf: ['performance', 'perf', 'optimize', 'speed', 'faster'],
+              style: ['style', 'format', 'lint', 'prettier', 'eslint'],
             };
             
             // Analyze changed files to determine the type
@@ -93,21 +112,14 @@ jobs:
               // Analyze title and description for keywords
               const content = (currentTitle + ' ' + prBody).toLowerCase();
               
-              if (content.match(/\b(add|new|create|implement|introduce)\b/)) {
-                suggestedType = 'feat';
-                confidence = 'medium';
-              } else if (content.match(/\b(fix|bug|issue|error|patch|resolve)\b/)) {
-                suggestedType = 'fix';
-                confidence = 'medium';
-              } else if (content.match(/\b(refactor|restructure|reorganize|cleanup|clean up)\b/)) {
-                suggestedType = 'refactor';
-                confidence = 'medium';
-              } else if (content.match(/\b(performance|perf|optimize|speed|faster)\b/)) {
-                suggestedType = 'perf';
-                confidence = 'medium';
-              } else if (content.match(/\b(style|format|lint|prettier|eslint)\b/)) {
-                suggestedType = 'style';
-                confidence = 'medium';
+              // Check each type's keywords
+              for (const [type, keywords] of Object.entries(contentKeywords)) {
+                const pattern = new RegExp('\\b(' + keywords.join('|') + ')\\b', 'i');
+                if (pattern.test(content)) {
+                  suggestedType = type;
+                  confidence = 'medium';
+                  break;
+                }
               }
               
               // Frontend vs Backend
@@ -143,9 +155,11 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const newTitle = '${{ steps.generate-title.outputs.new_title }}';
-            const suggestedType = '${{ steps.generate-title.outputs.suggested_type }}';
-            const confidence = '${{ steps.generate-title.outputs.confidence }}';
+            // Get values from previous steps safely
+            const newTitle = `${{ steps.generate-title.outputs.new_title }}`;
+            const suggestedType = `${{ steps.generate-title.outputs.suggested_type }}`;
+            const confidence = `${{ steps.generate-title.outputs.confidence }}`;
+            const previousTitle = context.payload.pull_request.title;
             
             // Update the PR title
             await github.rest.pulls.update({
@@ -155,20 +169,26 @@ jobs:
               title: newTitle
             });
             
-            // Add a comment to explain the change
-            const currentTitleForComment = '${{ steps.check-title.outputs.current_title }}';
-            const comment = '🤖 **AI PR Title Auto-Fix**\n\n' +
-              'I\'ve automatically updated the PR title to follow [Conventional Commits](https://www.conventionalcommits.org/) format:\n\n' +
-              '**Previous title:** `' + currentTitleForComment + '`\n' +
-              '**New title:** `' + newTitle + '`\n\n' +
-              '**Analysis:**\n' +
-              '- Suggested type: `' + suggestedType + '`\n' +
-              '- Confidence: ' + confidence + '\n\n' +
-              'If this isn\'t quite right, you can manually edit the PR title. The format should be:\n' +
-              '```\n' +
-              '<type>: <description>\n' +
-              '```\n\n' +
-              'Valid types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`, `ci`, `build`';
+            // Add a comment to explain the change - using template literals for safety
+            const comment = [
+              '🤖 **AI PR Title Auto-Fix**',
+              '',
+              'I\'ve automatically updated the PR title to follow [Conventional Commits](https://www.conventionalcommits.org/) format:',
+              '',
+              `**Previous title:** \`${previousTitle}\``,
+              `**New title:** \`${newTitle}\``,
+              '',
+              '**Analysis:**',
+              `- Suggested type: \`${suggestedType}\``,
+              `- Confidence: ${confidence}`,
+              '',
+              'If this isn\'t quite right, you can manually edit the PR title. The format should be:',
+              '```',
+              '<type>: <description>',
+              '```',
+              '',
+              'Valid types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`, `ci`, `build`'
+            ].join('\n');
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,
