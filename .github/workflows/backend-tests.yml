@@ -57,18 +57,11 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Run integration tests (fast)
-        uses: ./.github/actions/run-backend-tests
-        with:
-          test-path: 'tests/integration/'
-          markers: 'integration and not slow and not requires_ollama and not requires_audio'
-
-      - name: Run integration tests (with mocks)
+      - name: Run integration tests
         uses: ./.github/actions/run-backend-tests
         with:
           test-path: 'tests/integration/'
           markers: 'integration'
-          continue-on-error: 'true'
 
   system-tests:
     name: System Tests (Manual)
