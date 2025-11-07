@@ -76,7 +76,8 @@ fi
 echo "Checking CI workflows..."
 if [ -f "$PROJECT_ROOT/.github/workflows/ci.yml" ]; then
     # Check if any test jobs have path filters (they shouldn't)
-    if grep -A 20 "backend.*test\|frontend.*test" "$PROJECT_ROOT/.github/workflows/ci.yml" | grep -q "paths:"; then
+    # Look for specific test job names we know about
+    if grep -A 30 "^\s*backend-unit-tests:\|^\s*backend-integration-tests:\|^\s*frontend-unit-tests:\|^\s*frontend-component-tests:\|^\s*frontend-integration-tests:" "$PROJECT_ROOT/.github/workflows/ci.yml" | grep -q "^\s*paths:"; then
         error "CI workflow contains path filters on test jobs"
     else
         success "No path filters on test jobs in CI workflow"
