@@ -153,12 +153,16 @@ jobs:
       - name: Update PR title
         if: steps.check-title.outputs.needs_fix == 'true'
         uses: actions/github-script@v7
+        env:
+          NEW_TITLE: ${{ steps.generate-title.outputs.new_title }}
+          SUGGESTED_TYPE: ${{ steps.generate-title.outputs.suggested_type }}
+          CONFIDENCE: ${{ steps.generate-title.outputs.confidence }}
         with:
           script: |
-            // Get values from previous steps safely
-            const newTitle = `${{ steps.generate-title.outputs.new_title }}`;
-            const suggestedType = `${{ steps.generate-title.outputs.suggested_type }}`;
-            const confidence = `${{ steps.generate-title.outputs.confidence }}`;
+            // Get values from environment variables (safer than string interpolation)
+            const newTitle = process.env.NEW_TITLE;
+            const suggestedType = process.env.SUGGESTED_TYPE;
+            const confidence = process.env.CONFIDENCE;
             const previousTitle = context.payload.pull_request.title;
             
             // Update the PR title
@@ -169,7 +173,8 @@ jobs:
               title: newTitle
             });
             
-            // Add a comment to explain the change - using template literals for safety
+            // Add a comment to explain the change
+            // Note: GitHub API properly escapes content in comments, preventing XSS
             const comment = [
               '🤖 **AI PR Title Auto-Fix**',
               '',
