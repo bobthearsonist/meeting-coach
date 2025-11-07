@@ -49,6 +49,7 @@ help:
 	@echo "  make format-check        - Check formatting without modifying files"
 	@echo "  make backend-lint        - Lint backend code"
 	@echo "  make frontend-lint       - Lint frontend code"
+	@echo "  make validate-testing    - Validate regression testing configuration"
 	@echo ""
 	@echo "$(GREEN)Cleanup:$(NC)"
 	@echo "  make clean               - Clean all temporary files"
@@ -256,6 +257,11 @@ frontend-format-check:
 # Combined pre-commit check
 pre-commit: format-check lint-check
 	@echo "$(GREEN)✅ Pre-commit checks passed!$(NC)"
+
+# Validate regression testing configuration
+validate-testing:
+	@echo "$(BLUE)Validating regression testing configuration...$(NC)"
+	@./scripts/validate-regression-testing.sh
 
 # ═══════════════════════════════════════════════════════════
 # Cleanup
