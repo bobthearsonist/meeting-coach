@@ -1,5 +1,5 @@
 name: 'Install Security Tools'
-description: 'Install security scanning tools for backend or frontend'
+description: 'Install security scanning tools for backend or frontend (now uses requirements-quality.txt)'
 
 inputs:
   type:
@@ -9,14 +9,19 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Install backend security tools
-      if: inputs.type == 'backend'
+    - name: Install backend security and quality tools
+      if: inputs.type == 'backend' || inputs.type == 'backend-quality'
       shell: bash
-      working-directory: backend
-      run: pip install safety bandit
-
-    - name: Install backend quality tools
-      if: inputs.type == 'backend-quality'
+      run: |
+        cd backend
+        pip install -r requirements-quality.txt
+        
+    - name: Verify tools are installed
+      if: inputs.type == 'backend' || inputs.type == 'backend-quality'
       shell: bash
-      working-directory: backend
-      run: pip install pylint radon
+      run: |
+        echo "✓ Verifying security and quality tools..."
+        safety --version
+        bandit --version
+        pylint --version
+        radon --version
