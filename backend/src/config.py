@@ -4,6 +4,7 @@ Configuration settings for Teams Meeting Coach
 
 import os
 import sys
+import yaml
 from pathlib import Path
 from typing import Any, Dict
 

@@ -79,6 +79,84 @@ pip install -r requirements.txt
 
 ## Usage
 
+## 🔧 Configuration
+
+Meeting Coach uses a YAML configuration file for model settings.
+
+### Configuration File
+
+Edit `backend/config/model_config.yaml`:
+
+```yaml
+# Model mode: 'self_hosted' or 'local'
+model_mode: self_hosted
+
+# Self-hosted Ollama configuration
+self_hosted:
+  endpoint: http://localhost:11434  # Change for remote Ollama
+  model: gemma2:2b
+  timeout: 30
+
+# Analysis settings
+analysis:
+  min_words: 15
+  temperature: 0.3
+  debug: false
+```
+
+### REST API (Phase 1.5)
+
+Start the API server for configuration inspection:
+
+```bash
+# Run API server only
+make run-api
+
+# Or manually
+python backend/main.py --api-only
+```
+
+**Endpoints:**
+
+- `GET /health` - Health check
+- `GET /api/v1/config` - View current configuration
+- `GET /api/v1/prompts` - View all prompts
+- `GET /api/v1/prompts/{name}` - View specific prompt
+- `GET /api/v1/modes` - List available modes
+- `POST /api/v1/reload-config` - Reload configuration
+
+**Examples:**
+
+```bash
+# Check health
+curl http://localhost:3003/health
+
+# View configuration
+curl http://localhost:3003/api/v1/config
+
+# View prompts
+curl http://localhost:3003/api/v1/prompts
+
+# View specific prompt
+curl http://localhost:3003/api/v1/prompts/emotion_analysis
+```
+
+API documentation is available at http://localhost:3003/docs when the server is running.
+
+### Remote Ollama Setup
+
+To use Ollama on a NAS or remote server:
+
+1. Edit `backend/config/model_config.yaml`:
+   ```yaml
+   self_hosted:
+     endpoint: http://192.168.1.100:11434  # Your NAS IP
+     model: llama2
+     timeout: 60  # Longer timeout for remote
+   ```
+
+2. Restart the service
+
 ### Start Backend Server
 
 ```bash

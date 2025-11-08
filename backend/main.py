@@ -46,6 +46,11 @@ class MeetingCoach:
             ws_server: WebSocket server instance for broadcasting updates
             device_index: Specific device index to use (for RealtimeSTT)
         """
+        # Import here to avoid loading dependencies for API-only mode
+        from RealtimeSTT import AudioToTextRecorder
+        from src.core.analyzer import CommunicationAnalyzer
+        from src.ui.timeline import EmotionalTimeline
+        
         print("Initializing Teams Meeting Coach WebSocket Engine...")
 
         # WebSocket server reference
@@ -445,18 +450,46 @@ def main():
     # Create Meeting Coach engine
     coach = MeetingCoach(ws_server=ws_server, device_index=args.device)
 
-    # Run WebSocket server in background thread
-    server_thread = threading.Thread(target=ws_server.run, daemon=True)
-    server_thread.start()
+    args = parser.parse_args()
+    
+    if args.api_only:
+        # Run only the REST API server
+        print("Starting REST API server only...")
+        from src.server.api_server import app
+        import uvicorn
+        uvicorn.run(app, host="127.0.0.1", port=args.api_port)
+    else:
+        # Import WebSocket dependencies only when needed
+        from src.server.ws_server import MeetingCoachWebSocketServer
+        
+        # Run WebSocket server (existing behavior)
+        # Create WebSocket server (will use config defaults if args are None)
+        ws_server = MeetingCoachWebSocketServer(host=args.host, port=args.port)
 
-    # Give server time to start
-    time.sleep(2)
+        print("🧠 Teams Meeting Coach - WebSocket Server")
+        print("=" * 70)
+        print(f"📡 Starting WebSocket server on ws://{ws_server.host}:{ws_server.port}")
+        print(f"💡 Connect clients with: python -m src.server.console_client --url ws://{ws_server.host}:{ws_server.port}")
+        print("=" * 70)
 
-    # Run the meeting coach engine (blocking)
-    try:
-        coach.run()
-    except KeyboardInterrupt:
-        print("\n👋 Goodbye!")
+        # Create Meeting Coach engine
+        coach = MeetingCoach(
+            ws_server=ws_server,
+            device_index=args.device
+        )
+
+        # Run WebSocket server in background thread
+        server_thread = threading.Thread(target=ws_server.run, daemon=True)
+        server_thread.start()
+
+        # Give server time to start
+        time.sleep(2)
+
+        # Run the meeting coach engine (blocking)
+        try:
+            coach.run()
+        except KeyboardInterrupt:
+            print("\n👋 Goodbye!")
 
 
 if __name__ == "__main__":

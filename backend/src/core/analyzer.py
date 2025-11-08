@@ -1,5 +1,5 @@
 """
-Communication analysis using local LLM (Ollama)
+Communication analysis using configurable model providers.
 """
 
 import json
@@ -10,52 +10,74 @@ import ollama
 from src import config
 
 
-def fix_malformed_json(text: str) -> str:
-    """
-    Attempt to fix common JSON formatting errors from LLM responses.
-
-    Args:
-        text: Potentially malformed JSON string
-
-    Returns:
-        Fixed JSON string
-    """
-    # Fix missing commas between array elements on different lines
-    text = re.sub(r'"\s*\n\s*"', '",\n    "', text)
-
-    # Fix missing commas between object properties
-    text = re.sub(r'"\s*\n\s*"([a-z_]+)":', '",\n  "\\1":', text)
-
-    return text
-
-
 class CommunicationAnalyzer:
-    def __init__(self, model: str = None):
+    """Analyzes communication patterns using configurable model providers."""
+    
+    def __init__(self, model_provider: 'BaseModelProvider' = None):
         """
-        Initialize the analyzer with Ollama LLM.
-
+        Initialize the analyzer with a model provider.
+        
         Args:
-            model: Ollama model name (default from config)
+            model_provider: Optional pre-configured provider. If None, will create from config.
         """
-        self.model = model or config.OLLAMA_MODEL
-
-        # Test Ollama connection
-        try:
-            ollama.list()
-            print(f"Connected to Ollama. Using model: {self.model}")
-        except Exception as e:
-            print(f"Warning: Could not connect to Ollama: {e}")
-            print("Make sure Ollama is running: brew install ollama && ollama serve")
-
+        self.model_provider = model_provider
+        self._initialized = False
+        self.config = config.ModelConfig()
+        self.min_words = self.config.get_analysis_config().get('min_words', 15)
+    
+    async def initialize(self):
+        """Initialize with configured model provider."""
+        if self.model_provider is None:
+            # Create provider from configuration
+            from .model_factory import ModelProviderFactory
+            self.model_provider = await ModelProviderFactory.create_provider(self.config)
+        
+        self._initialized = True
+        print(f"✓ Communication analyzer initialized")
+        print(f"  Provider: {self.model_provider.get_provider_info()['name']}")
+        print(f"  Min words: {self.min_words}")
+    
+    async def analyze_tone_async(self, text: str, context: dict = None) -> Dict[str, any]:
+        """
+        Analyze the tone and communication style of text asynchronously.
+        
+        Args:
+            text: Text to analyze
+            context: Optional previous analysis context
+        
+        Returns:
+            Analysis results dictionary
+        """
+        if not self._initialized:
+            await self.initialize()
+        
+        # Check minimum word requirement
+        word_count = len(text.split())
+        if word_count < self.min_words:
+            return {
+                "emotional_state": "insufficient_data",
+                "confidence": 0.0,
+                "social_cue": "appropriate",
+                "speech_pace": "unknown",
+                "word_count": word_count,
+                "filler_words": [],
+                "overly_critical": False,
+                "coaching": f"Need at least {self.min_words} words for analysis (got {word_count})"
+            }
+        
+        # Delegate to configured provider
+        return await self.model_provider.analyze_emotion(text, context)
+    
     def analyze_tone(self, text: str) -> Dict[str, any]:
         """
-        Analyze the tone and communication style of text.
-
+        Synchronous wrapper for analyze_tone_async.
+        Maintained for backward compatibility.
+        
         Args:
-            text: transcribed text to analyze
-
+            text: Text to analyze
+        
         Returns:
-            Dictionary containing tone analysis and suggestions
+            Analysis results dictionary
         """
         if len(text.split()) < config.MIN_WORDS_FOR_ANALYSIS:
             return {
