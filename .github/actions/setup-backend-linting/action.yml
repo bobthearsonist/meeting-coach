@@ -1,10 +1,14 @@
 name: 'Setup Backend Linting Tools'
-description: 'Install Python linting tools for backend'
+description: 'Install Python linting tools for backend (now a no-op as tools are in requirements-dev.txt)'
 
 runs:
   using: 'composite'
   steps:
-    - name: Install linting tools
+    - name: Verify linting tools are installed
       shell: bash
-      working-directory: backend
-      run: pip install black isort pylint
+      run: |
+        echo "✓ Linting tools should be installed via requirements-dev.txt"
+        python --version
+        black --version
+        isort --version
+        pylint --version

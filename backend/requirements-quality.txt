@@ -1,0 +1,10 @@
+# Code quality and security scanning tools
+# These are separate from dev requirements as they're only needed for CI quality checks
+
+# Security scanning
+safety>=2.3.0
+bandit>=1.7.0
+
+# Code quality analysis
+pylint>=2.17.0
+radon>=5.1.0

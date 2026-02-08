@@ -31,6 +31,7 @@ jobs:
         uses: ./.github/actions/setup-python-backend
         with:
           python-version: '3.12'
+          install-dev: 'true'
 
       - name: Setup Backend Linting Tools
         uses: ./.github/actions/setup-backend-linting
@@ -54,6 +55,7 @@ jobs:
         uses: ./.github/actions/setup-python-backend
         with:
           python-version: ${{ matrix.python-version }}
+          install-dev: 'true'
 
       - name: Run unit tests
         uses: ./.github/actions/run-backend-tests
@@ -106,6 +108,7 @@ jobs:
         uses: ./.github/actions/setup-python-backend
         with:
           python-version: ${{ matrix.python-version }}
+          install-dev: 'true'
 
       - name: Run integration tests (fast)
         uses: ./.github/actions/run-backend-tests

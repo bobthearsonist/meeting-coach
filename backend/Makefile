@@ -48,7 +48,7 @@ install:
 	pip install -r requirements.txt
 
 install-dev: install
-	pip install black isort pylint
+	pip install -r requirements-dev.txt
 
 # WebSocket Server Commands
 run-server:
@@ -228,7 +228,7 @@ docs:
 
 # Development helpers
 dev-install: install
-	pip install black isort pylint flake8
+	pip install -r requirements-dev.txt
 
 setup-dev: dev-install
 	@echo "Development environment setup complete!"

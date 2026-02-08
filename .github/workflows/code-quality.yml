@@ -28,9 +28,9 @@ jobs:
         uses: ./.github/actions/setup-python-backend
 
       - name: Install security tools
-        run: |
-          cd backend
-          pip install safety bandit
+        uses: ./.github/actions/install-security-tools
+        with:
+          type: backend
 
       - name: Run safety check
         run: |
@@ -86,9 +86,9 @@ jobs:
         uses: ./.github/actions/setup-python-backend
 
       - name: Install quality tools
-        run: |
-          cd backend
-          pip install pylint radon
+        uses: ./.github/actions/install-security-tools
+        with:
+          type: backend-quality
 
       - name: Run pylint detailed report
         run: |
