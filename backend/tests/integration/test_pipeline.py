@@ -15,6 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from src import config
 from src.core.analyzer import CommunicationAnalyzer
 from src.core.audio_capture import AudioCapture
+from src.core.response_models import AnalysisResponse
 from src.core.transcriber import Transcriber
 from src.ui.dashboard import LiveDashboard
 
@@ -112,14 +113,30 @@ class TestMeetingCoachPipeline:
 
     @pytest.mark.integration
     @pytest.mark.slow
-    @patch("src.core.analyzer.ollama.generate")
-    def test_complete_pipeline_mock_ollama(self, mock_generate, sample_audio_data):
+    @patch("src.core.analyzer.OpenAI")
+    @patch("src.core.analyzer.instructor.from_openai")
+    @patch("src.core.analyzer.ollama.list")
+    def test_complete_pipeline_mock_ollama(
+        self, mock_ollama_list, mock_from_openai, mock_openai, sample_audio_data
+    ):
         """Test the complete pipeline with mocked Ollama."""
-        # Mock Ollama response
-        mock_response = {
-            "response": '{"emotional_state": "supportive", "confidence": 0.8, "coaching_feedback": "Positive language"}'
-        }
-        mock_generate.return_value = mock_response
+        # Mock ollama.list for connection check
+        mock_ollama_list.return_value = {"models": []}
+
+        # Mock the instructor client
+        mock_client = MagicMock()
+        mock_from_openai.return_value = mock_client
+
+        # Mock the response from chat.completions.create
+        mock_response = AnalysisResponse(
+            emotional_state="calm",
+            confidence=0.8,
+            coaching_feedback="Positive language",
+            social_cues="appropriate",
+            speech_pattern="normal",
+            key_indicators=["positive tone", "clear communication"],
+        )
+        mock_client.chat.completions.create.return_value = mock_response
 
         # Initialize components
         transcriber = Transcriber()
@@ -154,10 +171,10 @@ class TestMeetingCoachPipeline:
 
         # Verify end-to-end results
         assert transcription_result["text"] is not None
-        assert analysis_result["emotional_state"] == "supportive"
+        assert analysis_result["emotional_state"] == "calm"
         assert analysis_result["confidence"] == 0.8
         assert dashboard.current_state["confidence"] == 0.8
-        assert not dashboard.alert_active  # Supportive tone shouldn't alert
+        assert not dashboard.alert_active  # Calm tone shouldn't alert
 
     @pytest.mark.integration
     @pytest.mark.requires_audio
@@ -178,8 +195,20 @@ class TestMeetingCoachPipeline:
             pytest.skip(f"Audio hardware not available: {e}")
 
     @pytest.mark.integration
-    def test_error_handling_in_pipeline(self):
+    @patch("src.core.analyzer.OpenAI")
+    @patch("src.core.analyzer.instructor.from_openai")
+    @patch("src.core.analyzer.ollama.list")
+    def test_error_handling_in_pipeline(
+        self, mock_ollama_list, mock_from_openai, mock_openai
+    ):
         """Test error handling throughout the pipeline."""
+        # Mock ollama.list for connection check
+        mock_ollama_list.return_value = {"models": []}
+
+        # Mock the instructor client
+        mock_client = MagicMock()
+        mock_from_openai.return_value = mock_client
+
         transcriber = Transcriber()
         analyzer = CommunicationAnalyzer()
         dashboard = LiveDashboard()
@@ -251,22 +280,31 @@ class TestMeetingCoachPipeline:
         import os
 
         process = psutil.Process(os.getpid())
-        initial_memory = process.memory_info().rss
 
         transcriber = Transcriber()
 
-        # Run transcription multiple times
-        for _ in range(5):
-            result = transcriber.transcribe(sample_audio_data)
-            gc.collect()  # Force garbage collection
+        # Warm up: run several times so model loading and lazy init settle
+        for _ in range(3):
+            transcriber.transcribe(sample_audio_data)
+            gc.collect()
+
+        baseline_memory = process.memory_info().rss
+
+        # Run transcription multiple times to detect per-iteration leaks
+        for _ in range(10):
+            transcriber.transcribe(sample_audio_data)
+            gc.collect()
 
         final_memory = process.memory_info().rss
-        memory_increase = final_memory - initial_memory
+        memory_increase = final_memory - baseline_memory
 
-        # Memory increase should be reasonable (less than 100MB for this test)
+        # Per-iteration growth should be minimal after warm-up
         memory_increase_mb = memory_increase / (1024 * 1024)
+        per_iteration_mb = memory_increase_mb / 10
         assert (
-            memory_increase_mb < 100
-        ), f"Excessive memory usage: {memory_increase_mb:.1f} MB"
+            per_iteration_mb < 10
+        ), f"Possible memory leak: {per_iteration_mb:.1f} MB/iteration ({memory_increase_mb:.1f} MB total over 10 iterations)"
 
-        print(f"Memory usage increase: {memory_increase_mb:.1f} MB")
+        print(
+            f"Memory growth after warm-up: {memory_increase_mb:.1f} MB ({per_iteration_mb:.1f} MB/iter)"
+        )
