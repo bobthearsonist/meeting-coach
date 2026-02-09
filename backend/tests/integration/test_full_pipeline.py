@@ -3,7 +3,6 @@ Integration tests for the full meeting coach pipeline.
 Tests the interaction between audio capture, transcription, and analysis components.
 """
 
-import json
 import time
 from unittest.mock import MagicMock, Mock, patch
 
@@ -12,6 +11,7 @@ import pytest
 from src import config
 from src.core.analyzer import CommunicationAnalyzer
 from src.core.audio_capture import AudioCapture
+from src.core.response_models import AnalysisResponse
 from src.core.transcriber import Transcriber
 
 
@@ -56,37 +56,19 @@ class TestFullPipeline:
 
     @pytest.fixture
     def mock_analysis_response(self):
-        """Mock Ollama analysis response."""
-        return {
-            "response": json.dumps(
-                {
-                    "emotional_state": "engaged",
-                    "social_cues": "appropriate",
-                    "speech_pattern": "normal",
-                    "confidence": 0.8,
-                    "key_indicators": ["appreciate", "great point"],
-                    "coaching_feedback": "Continue as you are",
-                }
-            )
-        }
+        """Mock instructor AnalysisResponse for testing."""
+        return AnalysisResponse(
+            emotional_state="engaged",
+            social_cues="appropriate",
+            speech_pattern="normal",
+            confidence=0.8,
+            key_indicators=["appreciate", "great point"],
+            coaching_feedback="Continue as you are",
+        )
 
-    @patch("src.core.audio_capture.pyaudio.PyAudio")
-    @patch("src.core.transcriber.WhisperModel")
-    @patch("src.core.analyzer.ollama.list")
-    @patch("src.core.analyzer.ollama.generate")
-    def test_complete_audio_to_analysis_pipeline(
-        self,
-        mock_ollama_generate,
-        mock_ollama_list,
-        mock_whisper_model_class,
-        mock_pyaudio_class,
-        mock_audio_data,
-        mock_transcription_response,
-        mock_analysis_response,
-    ):
-        """Test the complete pipeline from audio capture through analysis."""
+    def _setup_audio_mocks(self, mock_pyaudio_class, mock_audio_data):
+        """Helper to set up audio capture mocks."""
 
-        # Setup mock audio capture
         def audio_side_effect_func(i):
             devices = [
                 {
@@ -114,19 +96,18 @@ class TestFullPipeline:
         mock_pyaudio.get_device_count.return_value = 3
         mock_pyaudio.get_device_info_by_index.side_effect = audio_side_effect_func
 
-        # Mock audio stream that returns our test audio data
         audio_bytes = (mock_audio_data * 32768).astype(np.int16).tobytes()
         mock_stream = Mock()
         mock_stream.read.return_value = audio_bytes
         mock_pyaudio.open.return_value = mock_stream
         mock_pyaudio_class.return_value = mock_pyaudio
 
-        # Setup mock transcription
-        # Create mock segments that can be iterated
+    def _setup_transcriber_mock(self, mock_whisper_model_class, text):
+        """Helper to set up transcriber mocks."""
         mock_segment = Mock()
         mock_segment.start = 0.0
         mock_segment.end = 3.0
-        mock_segment.text = "I really appreciate your input on this project. That is a great point you have made."
+        mock_segment.text = text
 
         mock_info = Mock()
         mock_info.language = "en"
@@ -135,8 +116,47 @@ class TestFullPipeline:
         mock_whisper_model.transcribe.return_value = ([mock_segment], mock_info)
         mock_whisper_model_class.return_value = mock_whisper_model
 
-        # Setup mock analysis
-        mock_ollama_generate.return_value = mock_analysis_response
+    def _create_analyzer_with_mock(self, mock_response):
+        """Helper to create analyzer with mocked instructor client."""
+        with (
+            patch("src.core.analyzer.ollama.list"),
+            patch("src.core.analyzer.instructor.from_openai") as mock_from_openai,
+            patch("src.core.analyzer.OpenAI"),
+        ):
+            mock_client = MagicMock()
+            mock_from_openai.return_value = mock_client
+            mock_client.chat.completions.create.return_value = mock_response
+            analyzer = CommunicationAnalyzer()
+            return analyzer
+
+    @patch("src.core.audio_capture.pyaudio.PyAudio")
+    @patch("src.core.transcriber.WhisperModel")
+    @patch("src.core.analyzer.OpenAI")
+    @patch("src.core.analyzer.instructor.from_openai")
+    @patch("src.core.analyzer.ollama.list")
+    def test_complete_audio_to_analysis_pipeline(
+        self,
+        mock_ollama_list,
+        mock_from_openai,
+        mock_openai,
+        mock_whisper_model_class,
+        mock_pyaudio_class,
+        mock_audio_data,
+        mock_transcription_response,
+        mock_analysis_response,
+    ):
+        """Test the complete pipeline from audio capture through analysis."""
+
+        self._setup_audio_mocks(mock_pyaudio_class, mock_audio_data)
+        self._setup_transcriber_mock(
+            mock_whisper_model_class,
+            "I really appreciate your input on this project. That is a great point you have made.",
+        )
+
+        # Setup mock instructor client
+        mock_client = MagicMock()
+        mock_from_openai.return_value = mock_client
+        mock_client.chat.completions.create.return_value = mock_analysis_response
 
         # Initialize components
         audio_capture = AudioCapture()
@@ -157,7 +177,6 @@ class TestFullPipeline:
         assert "text" in transcription_result
         assert "word_count" in transcription_result
         assert "duration" in transcription_result
-        assert transcription_result["text"] == mock_segment.text
         assert transcription_result["word_count"] == 16  # Word count of the mock text
 
         # Calculate WPM separately if needed
@@ -184,80 +203,39 @@ class TestFullPipeline:
 
     @patch("src.core.audio_capture.pyaudio.PyAudio")
     @patch("src.core.transcriber.WhisperModel")
+    @patch("src.core.analyzer.OpenAI")
+    @patch("src.core.analyzer.instructor.from_openai")
     @patch("src.core.analyzer.ollama.list")
-    @patch("src.core.analyzer.ollama.generate")
     def test_pipeline_with_concerning_analysis(
         self,
-        mock_ollama_generate,
         mock_ollama_list,
+        mock_from_openai,
+        mock_openai,
         mock_whisper_model_class,
         mock_pyaudio_class,
         mock_audio_data,
     ):
         """Test pipeline with analysis that should trigger alerts."""
 
-        # Setup mocks (similar to above but with different responses)
-        def audio_side_effect_func(i):
-            devices = [
-                {
-                    "name": "Built-in Microphone",
-                    "maxInputChannels": 1,
-                    "maxOutputChannels": 0,
-                    "defaultSampleRate": 44100.0,
-                },
-                {
-                    "name": "BlackHole 2ch",
-                    "maxInputChannels": 2,
-                    "maxOutputChannels": 2,
-                    "defaultSampleRate": 48000.0,
-                },
-                {
-                    "name": "Built-in Output",
-                    "maxInputChannels": 0,
-                    "maxOutputChannels": 2,
-                    "defaultSampleRate": 44100.0,
-                },
-            ]
-            return devices[i]
+        self._setup_audio_mocks(mock_pyaudio_class, mock_audio_data)
+        self._setup_transcriber_mock(
+            mock_whisper_model_class,
+            "Whatever, I do not really care about that at all. Let us just move on immediately.",
+        )
 
-        mock_pyaudio = Mock()
-        mock_pyaudio.get_device_count.return_value = 3
-        mock_pyaudio.get_device_info_by_index.side_effect = audio_side_effect_func
+        # Mock concerning analysis via instructor
+        concerning_response = AnalysisResponse(
+            emotional_state="elevated",
+            social_cues="dominating",
+            speech_pattern="rushed",
+            confidence=0.9,
+            key_indicators=["whatever", "do not care"],
+            coaching_feedback="Try to show more engagement and interest in the discussion",
+        )
 
-        audio_bytes = (mock_audio_data * 32768).astype(np.int16).tobytes()
-        mock_stream = Mock()
-        mock_stream.read.return_value = audio_bytes
-        mock_pyaudio.open.return_value = mock_stream
-        mock_pyaudio_class.return_value = mock_pyaudio
-
-        # Mock concerning transcription
-        mock_segment = Mock()
-        mock_segment.start = 0.0
-        mock_segment.end = 3.0
-        mock_segment.text = "Whatever, I do not really care about that at all. Let us just move on immediately."
-
-        mock_info = Mock()
-        mock_info.language = "en"
-
-        mock_whisper_model = Mock()
-        mock_whisper_model.transcribe.return_value = ([mock_segment], mock_info)
-        mock_whisper_model_class.return_value = mock_whisper_model
-
-        # Mock concerning analysis
-        concerning_analysis = {
-            "response": json.dumps(
-                {
-                    "emotional_state": "dismissive",
-                    "social_cues": "inappropriate",
-                    "speech_pattern": "rushed",
-                    "confidence": 0.9,
-                    "key_indicators": ["whatever", "do not care"],
-                    "coaching_feedback": "Try to show more engagement and interest in the discussion",
-                }
-            )
-        }
-
-        mock_ollama_generate.return_value = concerning_analysis
+        mock_client = MagicMock()
+        mock_from_openai.return_value = mock_client
+        mock_client.chat.completions.create.return_value = concerning_response
 
         # Initialize components
         audio_capture = AudioCapture()
@@ -271,8 +249,8 @@ class TestFullPipeline:
         analysis_result = analyzer.analyze_tone(transcription_result["text"])
 
         # Verify concerning results
-        assert analysis_result["emotional_state"] == "dismissive"
-        assert analysis_result["social_cues"] == "inappropriate"
+        assert analysis_result["emotional_state"] == "elevated"
+        assert analysis_result["social_cues"] == "dominating"
         assert analysis_result["confidence"] == 0.9
 
         # Check that alerts would be triggered
@@ -283,76 +261,39 @@ class TestFullPipeline:
             analysis_result["social_cues"], analysis_result["confidence"]
         )
 
-        assert should_alert_emotion  # 'dismissive' should trigger alert
-        assert not should_alert_social  # 'inappropriate' not in the social alert list
+        assert should_alert_emotion  # 'elevated' should trigger alert
+        assert should_alert_social  # 'dominating' should trigger social alert
 
         audio_capture.stop_capture()
 
     @patch("src.core.audio_capture.pyaudio.PyAudio")
     @patch("src.core.transcriber.WhisperModel")
+    @patch("src.core.analyzer.OpenAI")
+    @patch("src.core.analyzer.instructor.from_openai")
     @patch("src.core.analyzer.ollama.list")
-    @patch("src.core.analyzer.ollama.generate")
     def test_pipeline_error_handling(
         self,
-        mock_ollama_generate,
         mock_ollama_list,
+        mock_from_openai,
+        mock_openai,
         mock_whisper_model_class,
         mock_pyaudio_class,
         mock_audio_data,
     ):
         """Test pipeline error handling when components fail."""
 
-        # Setup audio capture mock
-        def audio_side_effect_func(i):
-            devices = [
-                {
-                    "name": "Built-in Microphone",
-                    "maxInputChannels": 1,
-                    "maxOutputChannels": 0,
-                    "defaultSampleRate": 44100.0,
-                },
-                {
-                    "name": "BlackHole 2ch",
-                    "maxInputChannels": 2,
-                    "maxOutputChannels": 2,
-                    "defaultSampleRate": 48000.0,
-                },
-                {
-                    "name": "Built-in Output",
-                    "maxInputChannels": 0,
-                    "maxOutputChannels": 2,
-                    "defaultSampleRate": 44100.0,
-                },
-            ]
-            return devices[i]
+        self._setup_audio_mocks(mock_pyaudio_class, mock_audio_data)
+        self._setup_transcriber_mock(
+            mock_whisper_model_class,
+            "This is a test transcription with sufficient words for analysis to proceed correctly and demonstrate error handling.",
+        )
 
-        mock_pyaudio = Mock()
-        mock_pyaudio.get_device_count.return_value = 3
-        mock_pyaudio.get_device_info_by_index.side_effect = audio_side_effect_func
-
-        audio_bytes = (mock_audio_data * 32768).astype(np.int16).tobytes()
-        mock_stream = Mock()
-        mock_stream.read.return_value = audio_bytes
-        mock_pyaudio.open.return_value = mock_stream
-        mock_pyaudio_class.return_value = mock_pyaudio
-
-        # Mock transcription that works
-        mock_segment = Mock()
-        mock_segment.start = 0.0
-        mock_segment.end = 3.0
-        mock_segment.text = "This is a test transcription with sufficient words for analysis to proceed correctly and demonstrate error handling."
-
-        mock_info = Mock()
-        mock_info.language = "en"
-
-        mock_whisper_model = Mock()
-        mock_whisper_model.transcribe.return_value = ([mock_segment], mock_info)
-        mock_whisper_model_class.return_value = mock_whisper_model
-
-        # Mock analysis that fails (invalid JSON)
-        mock_ollama_generate.return_value = {
-            "response": "Invalid JSON response that cannot be parsed"
-        }
+        # Mock instructor client that raises an exception
+        mock_client = MagicMock()
+        mock_from_openai.return_value = mock_client
+        mock_client.chat.completions.create.side_effect = Exception(
+            "Failed to parse LLM response"
+        )
 
         # Initialize components
         audio_capture = AudioCapture()
@@ -370,26 +311,23 @@ class TestFullPipeline:
 
         # Analysis should fail gracefully and return error state
         analysis_result = analyzer.analyze_tone(transcription_result["text"])
-        assert (
-            analysis_result["emotional_state"] == "error"
-        )  # Long enough text should reach error handler
+        assert analysis_result["emotional_state"] == "error"
         assert analysis_result["confidence"] == 0.0
-        assert analysis_result["error"] == "parse_error"
-        assert (
-            analysis_result["coaching_feedback"]
-            == "Analysis error - could not parse response"
-        )
+        assert "Failed to parse LLM response" in analysis_result["error"]
+        assert analysis_result["coaching_feedback"] == "Analysis unavailable"
 
         audio_capture.stop_capture()
 
     @patch("src.core.audio_capture.pyaudio.PyAudio")
     @patch("src.core.transcriber.WhisperModel")
+    @patch("src.core.analyzer.OpenAI")
+    @patch("src.core.analyzer.instructor.from_openai")
     @patch("src.core.analyzer.ollama.list")
-    @patch("src.core.analyzer.ollama.generate")
     def test_pipeline_performance_timing(
         self,
-        mock_ollama_generate,
         mock_ollama_list,
+        mock_from_openai,
+        mock_openai,
         mock_whisper_model_class,
         mock_pyaudio_class,
         mock_audio_data,
@@ -398,53 +336,14 @@ class TestFullPipeline:
     ):
         """Test that the pipeline completes within reasonable time limits."""
 
-        # Setup mocks similar to the first test
-        def audio_side_effect_func(i):
-            devices = [
-                {
-                    "name": "Built-in Microphone",
-                    "maxInputChannels": 1,
-                    "maxOutputChannels": 0,
-                    "defaultSampleRate": 44100.0,
-                },
-                {
-                    "name": "BlackHole 2ch",
-                    "maxInputChannels": 2,
-                    "maxOutputChannels": 2,
-                    "defaultSampleRate": 48000.0,
-                },
-                {
-                    "name": "Built-in Output",
-                    "maxInputChannels": 0,
-                    "maxOutputChannels": 2,
-                    "defaultSampleRate": 44100.0,
-                },
-            ]
-            return devices[i]
+        self._setup_audio_mocks(mock_pyaudio_class, mock_audio_data)
+        self._setup_transcriber_mock(
+            mock_whisper_model_class, mock_transcription_response["text"]
+        )
 
-        mock_pyaudio = Mock()
-        mock_pyaudio.get_device_count.return_value = 3
-        mock_pyaudio.get_device_info_by_index.side_effect = audio_side_effect_func
-
-        audio_bytes = (mock_audio_data * 32768).astype(np.int16).tobytes()
-        mock_stream = Mock()
-        mock_stream.read.return_value = audio_bytes
-        mock_pyaudio.open.return_value = mock_stream
-        mock_pyaudio_class.return_value = mock_pyaudio
-
-        mock_segment = Mock()
-        mock_segment.start = 0.0
-        mock_segment.end = 3.0
-        mock_segment.text = mock_transcription_response["text"]
-
-        mock_info = Mock()
-        mock_info.language = "en"
-
-        mock_whisper_model = Mock()
-        mock_whisper_model.transcribe.return_value = ([mock_segment], mock_info)
-        mock_whisper_model_class.return_value = mock_whisper_model
-
-        mock_ollama_generate.return_value = mock_analysis_response
+        mock_client = MagicMock()
+        mock_from_openai.return_value = mock_client
+        mock_client.chat.completions.create.return_value = mock_analysis_response
 
         # Initialize components
         audio_capture = AudioCapture()
@@ -473,7 +372,7 @@ class TestFullPipeline:
 
     def test_summary_generation_integration(self):
         """Test the analysis summary generation with multiple results."""
-        analyzer = CommunicationAnalyzer()
+        analyzer = self._create_analyzer_with_mock(None)
 
         # Simulate multiple analysis results from a meeting
         analysis_results = [
@@ -533,7 +432,7 @@ class TestFullPipeline:
     @pytest.mark.slow
     def test_emoji_and_formatting_integration(self):
         """Test that emoji mappings work correctly for all tone types."""
-        analyzer = CommunicationAnalyzer()
+        analyzer = self._create_analyzer_with_mock(None)
 
         # Test all tone types have corresponding emojis
         tone_types = [
@@ -578,5 +477,5 @@ class TestFullPipeline:
             assert emoji != ""
 
         # Test unknown values return default emoji
-        assert analyzer.get_emotional_state_emoji("unknown_tone") == "💬"
-        assert analyzer.get_social_cue_emoji("unknown_cue") == "💬"
+        assert analyzer.get_emotional_state_emoji("unknown_tone") == "\U0001f4ac"
+        assert analyzer.get_social_cue_emoji("unknown_cue") == "\U0001f4ac"

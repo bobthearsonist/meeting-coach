@@ -2,10 +2,9 @@
 Test cases specifically for overly critical speech detection
 """
 
-import json
 import os
 import sys
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -13,6 +12,7 @@ import pytest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from src.core.analyzer import CommunicationAnalyzer
+from src.core.response_models import AnalysisResponse
 
 
 class TestOverlyCriticalDetection:
@@ -21,7 +21,16 @@ class TestOverlyCriticalDetection:
     @pytest.fixture
     def analyzer(self):
         """Create analyzer instance for testing."""
-        return CommunicationAnalyzer()
+        with patch("src.core.analyzer.ollama.list"), patch(
+            "src.core.analyzer.instructor.from_openai"
+        ) as mock_instructor, patch("src.core.analyzer.OpenAI"):
+
+            # Create a mock client
+            mock_client = MagicMock()
+            mock_instructor.return_value = mock_client
+
+            analyzer = CommunicationAnalyzer()
+            return analyzer
 
     @pytest.fixture
     def overly_critical_examples(self):
@@ -103,38 +112,31 @@ class TestOverlyCriticalDetection:
 
     @pytest.mark.unit
     @pytest.mark.requires_ollama
-    @patch("src.core.analyzer.ollama.generate")
-    def test_analyze_overly_critical_patterns(
-        self, mock_generate, analyzer, overly_critical_examples
-    ):
+    def test_analyze_overly_critical_patterns(self, analyzer, overly_critical_examples):
         """Test that overly critical patterns are detected correctly."""
 
         for example in overly_critical_examples:
-            # Mock Ollama to return overly critical analysis
-            mock_response = {
-                "response": json.dumps(
-                    {
-                        "emotional_state": "overly_critical",
-                        "social_cues": "inappropriate",
-                        "speech_pattern": "harsh",
-                        "confidence": 0.85,
-                        "key_indicators": [
-                            "harsh language",
-                            "personal attack",
-                            "dismissive",
-                        ],
-                        "coaching_feedback": "Consider using more constructive language when providing feedback",
-                    }
-                )
-            }
-            mock_generate.return_value = mock_response
+            # Mock the client response to return an AnalysisResponse object
+            mock_response = AnalysisResponse(
+                emotional_state="overly_critical",
+                social_cues="appropriate",
+                speech_pattern="normal",
+                confidence=0.85,
+                key_indicators=[
+                    "harsh language",
+                    "personal attack",
+                    "dismissive",
+                ],
+                coaching_feedback="Consider using more constructive language when providing feedback",
+            )
+            analyzer.client.chat.completions.create.return_value = mock_response
 
             result = analyzer.analyze_tone(example["text"])
 
             # Check that the result identifies overly critical behavior
             assert (
                 result["emotional_state"] == "overly_critical"
-                or result["tone"] == "overly_critical"
+                or result.get("tone") == "overly_critical"
             ), f"Failed to detect overly critical pattern in: {example['description']}"
 
             # Should trigger an alert
@@ -144,27 +146,22 @@ class TestOverlyCriticalDetection:
 
     @pytest.mark.unit
     @pytest.mark.requires_ollama
-    @patch("src.core.analyzer.ollama.generate")
     def test_constructive_criticism_not_flagged(
-        self, mock_generate, analyzer, constructive_criticism_examples
+        self, analyzer, constructive_criticism_examples
     ):
         """Test that constructive criticism is not flagged as overly critical."""
 
         for example in constructive_criticism_examples:
-            # Mock Ollama to return calm/engaged analysis
-            mock_response = {
-                "response": json.dumps(
-                    {
-                        "emotional_state": example["expected_tone"],
-                        "social_cues": "appropriate",
-                        "speech_pattern": "clear",
-                        "confidence": 0.8,
-                        "key_indicators": ["respectful", "constructive"],
-                        "coaching_feedback": "Continue as you are",
-                    }
-                )
-            }
-            mock_generate.return_value = mock_response
+            # Mock the client response to return an AnalysisResponse object
+            mock_response = AnalysisResponse(
+                emotional_state=example["expected_tone"],
+                social_cues="appropriate",
+                speech_pattern="clear",
+                confidence=0.8,
+                key_indicators=["respectful", "constructive"],
+                coaching_feedback="Continue as you are",
+            )
+            analyzer.client.chat.completions.create.return_value = mock_response
 
             result = analyzer.analyze_tone(example["text"])
 

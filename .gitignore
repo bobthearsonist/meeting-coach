@@ -12,6 +12,9 @@ venv/
 .claude/
 .idea/
 
+# Git worktrees
+.worktrees/
+
 # Overmind socket
 .overmind.sock
 

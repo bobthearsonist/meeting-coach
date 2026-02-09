@@ -2,10 +2,9 @@
 Integration test for overly critical speech analysis
 """
 
-import json
 import os
 import sys
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -13,6 +12,7 @@ import pytest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from src.core.analyzer import CommunicationAnalyzer
+from src.core.response_models import AnalysisResponse
 
 
 class TestOverlyCriticalIntegration:
@@ -20,8 +20,27 @@ class TestOverlyCriticalIntegration:
 
     @pytest.fixture
     def analyzer(self):
-        """Create analyzer instance for testing."""
-        return CommunicationAnalyzer()
+        """Create analyzer instance for testing with mocked dependencies."""
+        # Mock ollama.list for connection test
+        with patch("src.core.analyzer.ollama.list") as mock_list:
+            mock_list.return_value = {"models": [{"name": "llama2"}]}
+
+            # Mock instructor and OpenAI
+            with patch(
+                "src.core.analyzer.instructor.from_openai"
+            ) as mock_from_openai, patch("src.core.analyzer.OpenAI") as mock_openai:
+
+                # Create a mock client
+                mock_client = MagicMock()
+                mock_from_openai.return_value = mock_client
+
+                # Create the analyzer
+                analyzer_instance = CommunicationAnalyzer()
+
+                # Ensure the mock client is accessible for tests
+                analyzer_instance.client = mock_client
+
+                yield analyzer_instance
 
     @pytest.mark.integration
     def test_end_to_end_overly_critical_detection(self, analyzer):
@@ -43,60 +62,53 @@ class TestOverlyCriticalIntegration:
             },
         ]
 
-        # Mock Ollama to simulate realistic overly critical detection
-        with patch("src.core.analyzer.ollama.generate") as mock_generate:
-            mock_generate.return_value = {
-                "response": json.dumps(
-                    {
-                        "emotional_state": "overly_critical",
-                        "social_cues": "inappropriate",
-                        "speech_pattern": "harsh",
-                        "confidence": 0.85,
-                        "key_indicators": [
-                            "harsh language",
-                            "personal attack",
-                            "dismissive tone",
-                        ],
-                        "coaching_feedback": "Consider using more constructive language when providing feedback. Focus on the work, not the person.",
-                    }
-                )
-            }
+        # Mock the instructor client to simulate realistic overly critical detection
+        analyzer.client.chat.completions.create.return_value = AnalysisResponse(
+            emotional_state="overly_critical",
+            social_cues="dominating",
+            speech_pattern="loud",
+            confidence=0.85,
+            key_indicators=[
+                "harsh language",
+                "personal attack",
+                "dismissive tone",
+            ],
+            coaching_feedback="Consider using more constructive language when providing feedback. Focus on the work, not the person.",
+        )
 
-            for case in test_cases:
-                # Step 1: Analyze the text
-                result = analyzer.analyze_tone(case["text"])
+        for case in test_cases:
+            # Step 1: Analyze the text
+            result = analyzer.analyze_tone(case["text"])
 
-                # Step 2: Verify analysis detected overly critical behavior
-                emotional_state = result.get("emotional_state", result.get("tone"))
-                assert (
-                    emotional_state == "overly_critical"
-                ), f"Failed to detect overly critical pattern in: {case['description']}"
+            # Step 2: Verify analysis detected overly critical behavior
+            emotional_state = result.get("emotional_state", result.get("tone"))
+            assert (
+                emotional_state == "overly_critical"
+            ), f"Failed to detect overly critical pattern in: {case['description']}"
 
-                # Step 3: Verify confidence is reasonable
-                confidence = result.get("confidence", 0)
-                assert (
-                    confidence >= 0.7
-                ), f"Confidence should be high for clear overly critical pattern: {case['description']}"
+            # Step 3: Verify confidence is reasonable
+            confidence = result.get("confidence", 0)
+            assert (
+                confidence >= 0.7
+            ), f"Confidence should be high for clear overly critical pattern: {case['description']}"
 
-                # Step 4: Verify alert is triggered
-                should_alert = analyzer.should_alert(emotional_state, confidence)
-                assert (
-                    should_alert == True
-                ), f"Should trigger alert for overly critical behavior: {case['description']}"
+            # Step 4: Verify alert is triggered
+            should_alert = analyzer.should_alert(emotional_state, confidence)
+            assert (
+                should_alert == True
+            ), f"Should trigger alert for overly critical behavior: {case['description']}"
 
-                # Step 5: Verify correct emoji is returned
-                emoji = analyzer.get_emotional_state_emoji(emotional_state)
-                assert (
-                    emoji == "👎"
-                ), f"Should return thumbs down emoji for overly critical: {case['description']}"
+            # Step 5: Verify correct emoji is returned
+            emoji = analyzer.get_emotional_state_emoji(emotional_state)
+            assert (
+                emoji == "👎"
+            ), f"Should return thumbs down emoji for overly critical: {case['description']}"
 
-                # Step 6: Verify coaching feedback is provided
-                coaching = result.get(
-                    "coaching_feedback", result.get("suggestions", "")
-                )
-                assert (
-                    coaching and len(coaching) > 10
-                ), f"Should provide meaningful coaching feedback: {case['description']}"
+            # Step 6: Verify coaching feedback is provided
+            coaching = result.get("coaching_feedback", result.get("suggestions", ""))
+            assert (
+                coaching and len(coaching) > 10
+            ), f"Should provide meaningful coaching feedback: {case['description']}"
 
     @pytest.mark.integration
     def test_end_to_end_constructive_feedback_not_flagged(self, analyzer):
@@ -117,41 +129,37 @@ class TestOverlyCriticalIntegration:
             },
         ]
 
-        # Mock Ollama to simulate constructive feedback detection
+        # Test each constructive example
         for case in constructive_examples:
-            with patch("src.core.analyzer.ollama.generate") as mock_generate:
-                mock_generate.return_value = {
-                    "response": json.dumps(
-                        {
-                            "emotional_state": case["expected_state"],
-                            "social_cues": "appropriate",
-                            "speech_pattern": "clear",
-                            "confidence": 0.8,
-                            "key_indicators": [
-                                "respectful",
-                                "constructive",
-                                "collaborative",
-                            ],
-                            "coaching_feedback": "Continue as you are - good constructive communication",
-                        }
-                    )
-                }
+            # Mock the instructor client for constructive feedback
+            analyzer.client.chat.completions.create.return_value = AnalysisResponse(
+                emotional_state=case["expected_state"],
+                social_cues="appropriate",
+                speech_pattern="clear",
+                confidence=0.8,
+                key_indicators=[
+                    "respectful",
+                    "constructive",
+                    "collaborative",
+                ],
+                coaching_feedback="Continue as you are - good constructive communication",
+            )
 
-                result = analyzer.analyze_tone(case["text"])
+            result = analyzer.analyze_tone(case["text"])
 
-                # Should not be flagged as overly critical
-                emotional_state = result.get("emotional_state", result.get("tone"))
-                assert (
-                    emotional_state != "overly_critical"
-                ), f"Constructive feedback incorrectly flagged as overly critical: {case['text']}"
+            # Should not be flagged as overly critical
+            emotional_state = result.get("emotional_state", result.get("tone"))
+            assert (
+                emotional_state != "overly_critical"
+            ), f"Constructive feedback incorrectly flagged as overly critical: {case['text']}"
 
-                # Should not trigger alert
-                should_alert = analyzer.should_alert(
-                    emotional_state, result.get("confidence", 0)
-                )
-                assert (
-                    should_alert == False
-                ), f"Constructive feedback should not trigger alert: {case['text']}"
+            # Should not trigger alert
+            should_alert = analyzer.should_alert(
+                emotional_state, result.get("confidence", 0)
+            )
+            assert (
+                should_alert == False
+            ), f"Constructive feedback should not trigger alert: {case['text']}"
 
     @pytest.mark.integration
     def test_overly_critical_with_different_confidence_levels(self, analyzer):
@@ -162,34 +170,30 @@ class TestOverlyCriticalIntegration:
         confidence_levels = [0.9, 0.8, 0.7, 0.6, 0.5]
 
         for confidence in confidence_levels:
-            with patch("src.core.analyzer.ollama.generate") as mock_generate:
-                mock_generate.return_value = {
-                    "response": json.dumps(
-                        {
-                            "emotional_state": "overly_critical",
-                            "social_cues": "inappropriate",
-                            "speech_pattern": "harsh",
-                            "confidence": confidence,
-                            "key_indicators": ["harsh language"],
-                            "coaching_feedback": "Consider more constructive language",
-                        }
-                    )
-                }
+            # Set the mock return value for this iteration
+            analyzer.client.chat.completions.create.return_value = AnalysisResponse(
+                emotional_state="overly_critical",
+                social_cues="dominating",
+                speech_pattern="loud",
+                confidence=confidence,
+                key_indicators=["harsh language"],
+                coaching_feedback="Consider more constructive language",
+            )
 
-                result = analyzer.analyze_tone(test_text)
-                emotional_state = result.get("emotional_state", result.get("tone"))
+            result = analyzer.analyze_tone(test_text)
+            emotional_state = result.get("emotional_state", result.get("tone"))
 
-                # Verify the analysis result
-                assert emotional_state == "overly_critical"
-                assert result.get("confidence") == confidence
+            # Verify the analysis result
+            assert emotional_state == "overly_critical"
+            assert result.get("confidence") == confidence
 
-                # Check alert logic based on confidence threshold
-                should_alert = analyzer.should_alert(emotional_state, confidence)
-                expected_alert = confidence >= 0.7  # Default threshold
+            # Check alert logic based on confidence threshold
+            should_alert = analyzer.should_alert(emotional_state, confidence)
+            expected_alert = confidence >= 0.7  # Default threshold
 
-                assert (
-                    should_alert == expected_alert
-                ), f"Alert logic incorrect for confidence {confidence}: expected {expected_alert}, got {should_alert}"
+            assert (
+                should_alert == expected_alert
+            ), f"Alert logic incorrect for confidence {confidence}: expected {expected_alert}, got {should_alert}"
 
     @pytest.mark.integration
     def test_overly_critical_summary_generation(self, analyzer):

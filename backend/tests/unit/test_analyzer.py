@@ -10,32 +10,36 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from src import config
 from src.core import analyzer
+from src.core.response_models import AnalysisResponse
 
 
 class TestCommunicationAnalyzer:
     """Test suite for CommunicationAnalyzer class."""
 
     @pytest.fixture
-    def mock_ollama_response(self):
-        """Mock Ollama response for testing."""
-        return {
-            "response": json.dumps(
-                {
-                    "emotional_state": "engaged",
-                    "social_cues": "appropriate",
-                    "speech_pattern": "normal",
-                    "confidence": 0.8,
-                    "key_indicators": ["appreciate", "great point"],
-                    "coaching_feedback": "Continue as you are",
-                }
-            )
-        }
+    def mock_analysis_response(self):
+        """Mock AnalysisResponse for testing."""
+        return AnalysisResponse(
+            emotional_state="engaged",
+            social_cues="appropriate",
+            speech_pattern="normal",
+            confidence=0.8,
+            key_indicators=["appreciate", "great point"],
+            coaching_feedback="Continue as you are",
+        )
 
     @pytest.fixture
     def mock_analyzer(self):
-        """Create analyzer instance with mocked Ollama connection."""
-        with patch("src.core.analyzer.ollama.list"):
-            return analyzer.CommunicationAnalyzer(model="test-model")
+        """Create analyzer instance with mocked Ollama connection and instructor client."""
+        with (
+            patch("src.core.analyzer.ollama.list"),
+            patch("src.core.analyzer.instructor.from_openai") as mock_from_openai,
+            patch("src.core.analyzer.OpenAI"),
+        ):
+            mock_client = MagicMock()
+            mock_from_openai.return_value = mock_client
+            instance = analyzer.CommunicationAnalyzer(model="test-model")
+            return instance
 
     @pytest.fixture
     def sample_analysis_results(self):
@@ -63,21 +67,34 @@ class TestCommunicationAnalyzer:
 
     def test_init_with_default_model(self):
         """Test analyzer initialization with default model."""
-        with patch("src.core.analyzer.ollama.list"):
+        with (
+            patch("src.core.analyzer.ollama.list"),
+            patch("src.core.analyzer.instructor.from_openai"),
+            patch("src.core.analyzer.OpenAI"),
+        ):
             analyzer_instance = analyzer.CommunicationAnalyzer()
             assert analyzer_instance.model == config.OLLAMA_MODEL
 
     def test_init_with_custom_model(self):
         """Test analyzer initialization with custom model."""
         custom_model = "custom-test-model"
-        with patch("src.core.analyzer.ollama.list"):
+        with (
+            patch("src.core.analyzer.ollama.list"),
+            patch("src.core.analyzer.instructor.from_openai"),
+            patch("src.core.analyzer.OpenAI"),
+        ):
             analyzer_instance = analyzer.CommunicationAnalyzer(model=custom_model)
             assert analyzer_instance.model == custom_model
 
     def test_init_ollama_connection_error(self, capsys):
         """Test initialization when Ollama is not available."""
-        with patch(
-            "src.core.analyzer.ollama.list", side_effect=Exception("Connection failed")
+        with (
+            patch(
+                "src.core.analyzer.ollama.list",
+                side_effect=Exception("Connection failed"),
+            ),
+            patch("src.core.analyzer.instructor.from_openai"),
+            patch("src.core.analyzer.OpenAI"),
         ):
             analyzer_instance = analyzer.CommunicationAnalyzer()
             captured = capsys.readouterr()
@@ -96,147 +113,112 @@ class TestCommunicationAnalyzer:
         assert result["coaching_feedback"] == "Not enough content to analyze"
 
     def test_analyze_tone_successful_analysis(self, mock_analyzer):
-        """Test successful tone analysis with valid response."""
-        mock_ollama_response = {
-            "response": json.dumps(
-                {
-                    "emotional_state": "engaged",
-                    "social_cues": "appropriate",
-                    "speech_pattern": "normal",
-                    "confidence": 0.8,
-                    "key_indicators": ["appreciate", "great point"],
-                    "coaching_feedback": "Continue as you are",
-                }
-            )
-        }
+        """Test successful tone analysis with instructor response."""
+        mock_response = AnalysisResponse(
+            emotional_state="engaged",
+            social_cues="appropriate",
+            speech_pattern="normal",
+            confidence=0.8,
+            key_indicators=["appreciate", "great point"],
+            coaching_feedback="Continue as you are",
+        )
 
-        with patch(
-            "src.core.analyzer.ollama.generate", return_value=mock_ollama_response
-        ):
-            text = "I really appreciate your input on this project. That's a great point you've made and I value your perspective."
-            result = mock_analyzer.analyze_tone(text)
+        mock_analyzer.client.chat.completions.create.return_value = mock_response
 
-            assert result["emotional_state"] == "engaged"
-            assert result["social_cues"] == "appropriate"
-            assert result["speech_pattern"] == "normal"
-            assert result["confidence"] == 0.8
-            assert "appreciate" in result["key_indicators"]
-            assert result["coaching_feedback"] == "Continue as you are"
+        text = "I really appreciate your input on this project. That's a great point you've made and I value your perspective."
+        result = mock_analyzer.analyze_tone(text)
 
-    def test_analyze_tone_markdown_wrapped_json(self, mock_analyzer):
-        """Test parsing JSON response wrapped in markdown code blocks."""
-        json_content = {
-            "emotional_state": "calm",
-            "social_cues": "appropriate",
-            "speech_pattern": "normal",
-            "confidence": 0.7,
-            "key_indicators": ["test"],
-            "coaching_feedback": "Good work",
-        }
+        assert result["emotional_state"] == "engaged"
+        assert result["social_cues"] == "appropriate"
+        assert result["speech_pattern"] == "normal"
+        assert result["confidence"] == 0.8
+        assert "appreciate" in result["key_indicators"]
+        assert result["coaching_feedback"] == "Continue as you are"
 
-        mock_generate_response = {
-            "response": f"```json\n{json.dumps(json_content)}\n```"
-        }
+    def test_analyze_tone_uses_response_model(self, mock_analyzer):
+        """Test that analyze_tone passes AnalysisResponse as the response_model."""
+        mock_response = AnalysisResponse(
+            emotional_state="calm",
+            social_cues="appropriate",
+            speech_pattern="normal",
+            confidence=0.7,
+            key_indicators=["test"],
+            coaching_feedback="Good work",
+        )
+        mock_analyzer.client.chat.completions.create.return_value = mock_response
 
-        with patch(
-            "src.core.analyzer.ollama.generate", return_value=mock_generate_response
-        ):
-            text = "This is a test message with enough words to trigger analysis and reach the JSON parsing code paths successfully."
-            result = mock_analyzer.analyze_tone(text)
+        text = "This is a test message with enough words to trigger analysis and reach the instructor code paths successfully."
+        mock_analyzer.analyze_tone(text)
 
-            assert result["emotional_state"] == "calm"
-            assert result["confidence"] == 0.7
+        call_kwargs = mock_analyzer.client.chat.completions.create.call_args
+        assert call_kwargs.kwargs["response_model"] == AnalysisResponse
 
-    def test_analyze_tone_plain_code_blocks(self, mock_analyzer):
-        """Test parsing JSON response wrapped in plain code blocks."""
-        json_content = {
-            "emotional_state": "neutral",
-            "social_cues": "appropriate",
-            "speech_pattern": "normal",
-            "confidence": 0.5,
-            "key_indicators": [],
-            "coaching_feedback": "Continue",
-        }
+    def test_analyze_tone_returns_dict(self, mock_analyzer):
+        """Test that analyze_tone returns a plain dict via model_dump."""
+        mock_response = AnalysisResponse(
+            emotional_state="calm",
+            social_cues="appropriate",
+            speech_pattern="normal",
+            confidence=0.5,
+            key_indicators=[],
+            coaching_feedback="Continue",
+        )
+        mock_analyzer.client.chat.completions.create.return_value = mock_response
 
-        mock_generate_response = {"response": f"```\n{json.dumps(json_content)}\n```"}
+        text = "This is another test message with sufficient content for analysis and reaching the code paths."
+        result = mock_analyzer.analyze_tone(text)
 
-        with patch(
-            "src.core.analyzer.ollama.generate", return_value=mock_generate_response
-        ):
-            text = "This is another test message with sufficient content for analysis and reaching the JSON parsing code paths."
-            result = mock_analyzer.analyze_tone(text)
+        assert isinstance(result, dict)
+        assert result["emotional_state"] == "calm"
+        assert result["confidence"] == 0.5
 
-            assert result["emotional_state"] == "neutral"
-            assert result["confidence"] == 0.5
+    def test_analyze_tone_instructor_exception(self, mock_analyzer, capsys):
+        """Test handling of instructor/API exceptions."""
+        mock_analyzer.client.chat.completions.create.side_effect = Exception(
+            "API error"
+        )
 
-    def test_analyze_tone_json_parse_error(self, mock_analyzer, capsys):
-        """Test handling of invalid JSON response."""
-        mock_generate_response = {"response": "Invalid JSON response from LLM"}
+        text = "This is a test message with enough words to trigger analysis and reach the error handling code paths successfully."
+        result = mock_analyzer.analyze_tone(text)
 
-        with patch(
-            "src.core.analyzer.ollama.generate", return_value=mock_generate_response
-        ):
-            text = "This is a test message with enough words to trigger analysis and reach the error handling code paths successfully."
-            result = mock_analyzer.analyze_tone(text)
+        assert result["emotional_state"] == "error"
+        assert result["confidence"] == 0.0
+        assert "API error" in result["error"]
+        assert result["coaching_feedback"] == "Analysis unavailable"
 
-            assert result["emotional_state"] == "error"
-            assert result["confidence"] == 0.0
-            assert result["error"] == "parse_error"
-            assert (
-                result["coaching_feedback"]
-                == "Analysis error - could not parse response"
-            )
-
-            captured = capsys.readouterr()
-            assert "Error parsing LLM response" in captured.out
-
-    def test_analyze_tone_ollama_exception(self, mock_analyzer, capsys):
-        """Test handling of Ollama API exceptions."""
-        with patch(
-            "src.core.analyzer.ollama.generate",
-            side_effect=Exception("Ollama API error"),
-        ):
-            text = "This is a test message with enough words to trigger analysis and reach the error handling code paths successfully."
-            result = mock_analyzer.analyze_tone(text)
-
-            assert result["emotional_state"] == "error"
-            assert result["confidence"] == 0.0
-            assert "Ollama API error" in result["error"]
-            assert result["coaching_feedback"] == "Analysis unavailable"
-
-            captured = capsys.readouterr()
-            assert "Error during analysis" in captured.out
+        captured = capsys.readouterr()
+        assert "Error during analysis" in captured.out
 
     def test_get_emotional_state_emoji_known_states(self, mock_analyzer):
         """Test emoji mapping for known emotional states."""
-        assert mock_analyzer.get_emotional_state_emoji("supportive") == "🤝"
-        assert mock_analyzer.get_emotional_state_emoji("dismissive") == "🙄"
-        assert mock_analyzer.get_emotional_state_emoji("neutral") == "😐"
-        assert mock_analyzer.get_emotional_state_emoji("aggressive") == "😤"
-        assert mock_analyzer.get_emotional_state_emoji("elevated") == "⬆️"
-        assert mock_analyzer.get_emotional_state_emoji("calm") == "🧘"
+        assert mock_analyzer.get_emotional_state_emoji("supportive") == "\U0001f91d"
+        assert mock_analyzer.get_emotional_state_emoji("dismissive") == "\U0001f644"
+        assert mock_analyzer.get_emotional_state_emoji("neutral") == "\U0001f610"
+        assert mock_analyzer.get_emotional_state_emoji("aggressive") == "\U0001f624"
+        assert mock_analyzer.get_emotional_state_emoji("elevated") == "\u2b06\ufe0f"
+        assert mock_analyzer.get_emotional_state_emoji("calm") == "\U0001f9d8"
 
     def test_get_emotional_state_emoji_case_insensitive(self, mock_analyzer):
         """Test emoji mapping is case insensitive."""
-        assert mock_analyzer.get_emotional_state_emoji("SUPPORTIVE") == "🤝"
-        assert mock_analyzer.get_emotional_state_emoji("Dismissive") == "🙄"
-        assert mock_analyzer.get_emotional_state_emoji("ELEVATED") == "⬆️"
+        assert mock_analyzer.get_emotional_state_emoji("SUPPORTIVE") == "\U0001f91d"
+        assert mock_analyzer.get_emotional_state_emoji("Dismissive") == "\U0001f644"
+        assert mock_analyzer.get_emotional_state_emoji("ELEVATED") == "\u2b06\ufe0f"
 
     def test_get_emotional_state_emoji_unknown_state(self, mock_analyzer):
         """Test emoji mapping for unknown states returns default."""
-        assert mock_analyzer.get_emotional_state_emoji("unknown_state") == "💬"
-        assert mock_analyzer.get_emotional_state_emoji("") == "💬"
+        assert mock_analyzer.get_emotional_state_emoji("unknown_state") == "\U0001f4ac"
+        assert mock_analyzer.get_emotional_state_emoji("") == "\U0001f4ac"
 
     def test_get_social_cue_emoji_known_cues(self, mock_analyzer):
         """Test emoji mapping for known social cues."""
-        assert mock_analyzer.get_social_cue_emoji("interrupting") == "✋"
-        assert mock_analyzer.get_social_cue_emoji("dominating") == "🎤"
-        assert mock_analyzer.get_social_cue_emoji("appropriate") == "👍"
-        assert mock_analyzer.get_social_cue_emoji("off_topic") == "🔄"
+        assert mock_analyzer.get_social_cue_emoji("interrupting") == "\u270b"
+        assert mock_analyzer.get_social_cue_emoji("dominating") == "\U0001f3a4"
+        assert mock_analyzer.get_social_cue_emoji("appropriate") == "\U0001f44d"
+        assert mock_analyzer.get_social_cue_emoji("off_topic") == "\U0001f504"
 
     def test_get_social_cue_emoji_unknown_cue(self, mock_analyzer):
         """Test emoji mapping for unknown social cues returns default."""
-        assert mock_analyzer.get_social_cue_emoji("unknown_cue") == "💬"
+        assert mock_analyzer.get_social_cue_emoji("unknown_cue") == "\U0001f4ac"
 
     def test_should_alert_elevated_states(self, mock_analyzer):
         """Test alert logic for elevated emotional states."""
@@ -368,14 +350,14 @@ class TestCommunicationAnalyzer:
     @pytest.mark.parametrize(
         "emotional_state,expected_emoji",
         [
-            ("supportive", "🤝"),
-            ("dismissive", "🙄"),
-            ("neutral", "😐"),
-            ("aggressive", "😤"),
-            ("elevated", "⬆️"),
-            ("calm", "🧘"),
-            ("unknown", "❓"),
-            ("nonexistent", "💬"),
+            ("supportive", "\U0001f91d"),
+            ("dismissive", "\U0001f644"),
+            ("neutral", "\U0001f610"),
+            ("aggressive", "\U0001f624"),
+            ("elevated", "\u2b06\ufe0f"),
+            ("calm", "\U0001f9d8"),
+            ("unknown", "\u2753"),
+            ("nonexistent", "\U0001f4ac"),
         ],
     )
     def test_emotional_state_emoji_parametrized(
@@ -406,7 +388,9 @@ class TestCommunicationAnalyzer:
     @pytest.mark.unit
     def test_get_tone_emoji_overly_critical(self, mock_analyzer):
         """Test emoji mapping for overly critical tone."""
-        assert mock_analyzer.get_emotional_state_emoji("overly_critical") == "👎"
+        assert (
+            mock_analyzer.get_emotional_state_emoji("overly_critical") == "\U0001f44e"
+        )
 
     @pytest.mark.unit
     def test_should_alert_overly_critical(self, mock_analyzer):
@@ -421,3 +405,64 @@ class TestCommunicationAnalyzer:
 
         # Boundary case - exactly at threshold
         assert mock_analyzer.should_alert("overly_critical", 0.7) == True
+
+
+class TestAnalysisResponse:
+    """Test suite for the AnalysisResponse Pydantic model."""
+
+    def test_defaults(self):
+        """Test AnalysisResponse default values."""
+        response = AnalysisResponse()
+        assert response.emotional_state == "unknown"
+        assert response.social_cues == "appropriate"
+        assert response.speech_pattern == "normal"
+        assert response.confidence == 0.5
+        assert response.key_indicators == []
+        assert response.coaching_feedback == "No specific suggestions"
+
+    def test_custom_values(self):
+        """Test AnalysisResponse with custom values."""
+        response = AnalysisResponse(
+            emotional_state="calm",
+            social_cues="interrupting",
+            speech_pattern="rushed",
+            confidence=0.9,
+            key_indicators=["fast", "urgent"],
+            coaching_feedback="Slow down",
+        )
+        assert response.emotional_state == "calm"
+        assert response.social_cues == "interrupting"
+        assert response.confidence == 0.9
+
+    def test_confidence_clamped(self):
+        """Test that confidence outside 0-1 range raises validation error."""
+        with pytest.raises(Exception):
+            AnalysisResponse(confidence=1.5)
+        with pytest.raises(Exception):
+            AnalysisResponse(confidence=-0.1)
+
+    def test_extra_fields_ignored(self):
+        """Test that extra fields from LLM are silently ignored."""
+        response = AnalysisResponse(
+            emotional_state="calm",
+            extra_field="should be ignored",
+            another_extra=42,
+        )
+        assert response.emotional_state == "calm"
+        assert not hasattr(response, "extra_field")
+
+    def test_model_dump(self):
+        """Test model_dump produces correct dict."""
+        response = AnalysisResponse(
+            emotional_state="engaged",
+            confidence=0.8,
+        )
+        d = response.model_dump()
+        assert isinstance(d, dict)
+        assert d["emotional_state"] == "engaged"
+        assert d["confidence"] == 0.8
+
+    def test_invalid_emotional_state(self):
+        """Test that invalid emotional state raises validation error."""
+        with pytest.raises(Exception):
+            AnalysisResponse(emotional_state="nonexistent_state")

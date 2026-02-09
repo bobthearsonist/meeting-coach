@@ -1,32 +1,14 @@
 """
-Communication analysis using local LLM (Ollama)
+Communication analysis using local LLM (Ollama) with instructor for structured output.
 """
 
-import json
-import re
-from typing import Dict, Optional
+from typing import Dict
 
+import instructor
 import ollama
+from openai import OpenAI
 from src import config
-
-
-def fix_malformed_json(text: str) -> str:
-    """
-    Attempt to fix common JSON formatting errors from LLM responses.
-
-    Args:
-        text: Potentially malformed JSON string
-
-    Returns:
-        Fixed JSON string
-    """
-    # Fix missing commas between array elements on different lines
-    text = re.sub(r'"\s*\n\s*"', '",\n    "', text)
-
-    # Fix missing commas between object properties
-    text = re.sub(r'"\s*\n\s*"([a-z_]+)":', '",\n  "\\1":', text)
-
-    return text
+from src.core.response_models import AnalysisResponse
 
 
 class CommunicationAnalyzer:
@@ -46,6 +28,12 @@ class CommunicationAnalyzer:
         except Exception as e:
             print(f"Warning: Could not connect to Ollama: {e}")
             print("Make sure Ollama is running: brew install ollama && ollama serve")
+
+        # Create instructor-patched OpenAI client pointing at Ollama
+        self.client = instructor.from_openai(
+            OpenAI(base_url="http://localhost:11434/v1", api_key="ollama"),
+            mode=instructor.Mode.JSON,
+        )
 
     def analyze_tone(self, text: str) -> Dict[str, any]:
         """
@@ -71,65 +59,18 @@ class CommunicationAnalyzer:
         try:
             prompt = config.ANALYSIS_PROMPT.format(text=text)
 
-            response = ollama.generate(
+            response = self.client.chat.completions.create(
                 model=self.model,
-                prompt=prompt,
-                options={
-                    "temperature": 0.3,  # Lower temperature for more consistent analysis
-                },
+                response_model=AnalysisResponse,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3,
             )
 
-            # Parse JSON response
-            response_text = response["response"].strip()
-
-            # Debug: print the raw response to understand what we're getting
             if config.DEBUG_ANALYSIS:
-                print(f"Raw LLM response: {response_text}")
+                print(f"Instructor response: {response}")
 
-            # Try to extract JSON if it's wrapped in markdown
-            if "```json" in response_text:
-                response_text = (
-                    response_text.split("```json")[1].split("```")[0].strip()
-                )
-            elif "```" in response_text:
-                response_text = response_text.split("```")[1].split("```")[0].strip()
+            return response.model_dump()
 
-            # Try to fix common JSON formatting issues
-            response_text = fix_malformed_json(response_text)
-
-            try:
-                analysis = json.loads(response_text)
-            except json.JSONDecodeError as e:
-                # If still fails, try one more aggressive fix
-                print(f"First parse attempt failed: {e}")
-                print(f"Attempting to fix JSON...")
-
-                # Try to fix trailing commas
-                response_text = re.sub(r",(\s*[}\]])", r"\1", response_text)
-                analysis = json.loads(response_text)
-
-            # Ensure all required fields exist with sensible defaults
-            analysis.setdefault("emotional_state", "unknown")
-            analysis.setdefault("social_cues", "appropriate")
-            analysis.setdefault("speech_pattern", "normal")
-            analysis.setdefault("confidence", 0.5)
-            analysis.setdefault("key_indicators", [])
-            analysis.setdefault("coaching_feedback", "No specific suggestions")
-
-            return analysis
-
-        except json.JSONDecodeError as e:
-            print(f"Error parsing LLM response: {e}")
-            print(f"Response was: {response_text}")
-            return {
-                "emotional_state": "error",
-                "social_cues": "error",
-                "speech_pattern": "error",
-                "confidence": 0.0,
-                "key_indicators": [],
-                "coaching_feedback": "Analysis error - could not parse response",
-                "error": "parse_error",
-            }
         except Exception as e:
             print(f"Error during analysis: {e}")
             return {
@@ -146,42 +87,42 @@ class CommunicationAnalyzer:
         """Get emoji representation of emotional state."""
         emoji_map = {
             # Communication/Social Tones
-            "supportive": "🤝",
-            "dismissive": "🙄",
-            "aggressive": "😤",
-            "passive": "😶",
-            "positive": "😊",
-            "negative": "😕",
-            "neutral": "😐",
+            "supportive": "\U0001f91d",
+            "dismissive": "\U0001f644",
+            "aggressive": "\U0001f624",
+            "passive": "\U0001f636",
+            "positive": "\U0001f60a",
+            "negative": "\U0001f615",
+            "neutral": "\U0001f610",
             # Emotional Regulation States
-            "elevated": "⬆️",
-            "intense": "🔥",
-            "rapid": "⚡",
-            "calm": "🧘",
-            "engaged": "✨",
-            "distracted": "🤔",
-            "overwhelmed": "😵‍💫",
-            "overly_critical": "👎",
+            "elevated": "\u2b06\ufe0f",
+            "intense": "\U0001f525",
+            "rapid": "\u26a1",
+            "calm": "\U0001f9d8",
+            "engaged": "\u2728",
+            "distracted": "\U0001f914",
+            "overwhelmed": "\U0001f635\u200d\U0001f4ab",
+            "overly_critical": "\U0001f44e",
             # System States
-            "unknown": "❓",
-            "error": "❌",
+            "unknown": "\u2753",
+            "error": "\u274c",
         }
-        return emoji_map.get(emotional_state.lower(), "💬")
+        return emoji_map.get(emotional_state.lower(), "\U0001f4ac")
 
     def get_social_cue_emoji(self, social_cue: str) -> str:
         """Get emoji for social cue indicators."""
         emoji_map = {
-            "interrupting": "✋",
-            "dominating": "🎤",
-            "monotone": "📢",
-            "too_quiet": "🤐",
-            "appropriate": "👍",
-            "off_topic": "🔄",
-            "repetitive": "🔁",
-            "unknown": "❓",
-            "error": "❌",
+            "interrupting": "\u270b",
+            "dominating": "\U0001f3a4",
+            "monotone": "\U0001f4e2",
+            "too_quiet": "\U0001f910",
+            "appropriate": "\U0001f44d",
+            "off_topic": "\U0001f504",
+            "repetitive": "\U0001f501",
+            "unknown": "\u2753",
+            "error": "\u274c",
         }
-        return emoji_map.get(social_cue.lower(), "💬")
+        return emoji_map.get(social_cue.lower(), "\U0001f4ac")
 
     def should_alert(
         self, emotional_state: str, confidence: float, threshold: float = 0.7
@@ -310,9 +251,9 @@ if __name__ == "__main__":
             print(f"Key indicators: {', '.join(result['key_indicators'])}")
 
         if analyzer.should_alert(result["emotional_state"], result["confidence"]):
-            print("⚠️  Alert: Potentially concerning emotional state detected")
+            print("Warning: Potentially concerning emotional state detected")
 
         if analyzer.should_social_cue_alert(
             result["social_cues"], result["confidence"]
         ):
-            print("⚠️  Social Alert: Concerning social pattern detected")
+            print("Warning: Concerning social pattern detected")
